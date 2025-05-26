@@ -8,7 +8,7 @@ const Login = () => {
     return (
         <div className="flex flex-col sm:flex-row h-screen">
             {/* Imagen de fondo */}
-            <div className="w-full sm:w-1/2 h-1/3 sm:h-screen bg-[url('/public/images/doglogin.jpg')] 
+            <div className="w-full sm:w-1/2 h-1/3 sm:h-screen bg-[url('/public/images/telaLogin.jpg')] 
             bg-no-repeat bg-cover bg-center sm:block hidden">
             </div>
 
@@ -54,7 +54,7 @@ const Login = () => {
 
                         {/* Botón de iniciar sesión */}
                         <div className="my-4">
-                            <Link to="/dashboard" className="py-2 w-full block text-center bg-gray-500 text-slate-300 border rounded-xl hover:scale-100 duration-300 hover:bg-gray-900 hover:text-white">Iniciar sesión</Link>
+                            <Link to="/dashboard" className="py-2 w-full block text-white text-center bg-gray-500 bg-orange-800 border rounded-xl hover:scale-100 duration-300 hover:bg-orange-700 hover:text-slate-300">Iniciar sesión</Link>
                         </div>
                     </form>
 
