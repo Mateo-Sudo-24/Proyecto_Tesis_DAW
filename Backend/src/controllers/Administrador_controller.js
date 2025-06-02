@@ -2,7 +2,7 @@ import Administrador from "../models/Administrador.js";
 import sendMailToRegister from "../config/nodemailer.js";
 
 // Registro único del administrador (solo se ejecuta una vez)
-const registroAdministrador = async (req, res) => {
+const registro = async (req, res) => {
     try {
         // Verificar si ya existe un administrador
         const administradorExistente = await Administrador.findOne({});
@@ -45,7 +45,7 @@ const registroAdministrador = async (req, res) => {
 };
 
 // Verificar si existe administrador (útil para setup inicial)
-const verificarAdministrador = async (req, res) => {
+const verificar = async (req, res) => {
     try {
         const administrador = await Administrador.findOne({});
         res.status(200).json({
@@ -61,7 +61,7 @@ const verificarAdministrador = async (req, res) => {
 };
 
 // Actualizar datos del administrador (excepto password)
-const actualizarAdministrador = async (req, res) => {
+const actualizar = async (req, res) => {
     try {
         const { password, ...datosActualizar } = req.body;
         
@@ -91,7 +91,7 @@ const actualizarAdministrador = async (req, res) => {
 };
 
 // Cambiar password del administrador
-const cambiarPasswordAdministrador = async (req, res) => {
+const cambiarPassword = async (req, res) => {
     try {
         const { passwordActual, passwordNuevo } = req.body;
 
@@ -169,9 +169,9 @@ const confirmarEmail = async (req, res) => {
 };
 
 export {
-    registroAdministrador,
-    verificarAdministrador,
-    actualizarAdministrador,
-    cambiarPasswordAdministrador,
+    registro,
+    verificar,
+    actualizar,
+    cambiarPassword,
     confirmarEmail
 };
