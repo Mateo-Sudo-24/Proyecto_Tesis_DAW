@@ -54,22 +54,36 @@ const administradorSchema = new Schema({
   timestamps: true
 });
 
-// Método para encriptar contraseña
-administradorSchema.methods.encrypPassword = async function (password) {
+// Método para encriptar contraseña (versión mejorada)
+administradorSchema.methods.encrypPassword = async function(password) {
   const salt = await bcrypt.genSalt(10);
-  const hashed = await bcrypt.hash(password, salt);
-  return hashed;
+  const passwordEncryp = await bcrypt.hash(password, salt);
+  return passwordEncryp;
 };
 
-// Método para comparar contraseñas
-administradorSchema.methods.matchPassword = async function (password) {
-  return await bcrypt.compare(password, this.password);
+// Método para comparar contraseñas (versión mejorada)
+administradorSchema.methods.matchPassword = async function(password) {
+  const response = await bcrypt.compare(password, this.password);
+  return response;
 };
 
-// Método para generar token de verificación o recuperación
-administradorSchema.methods.crearToken = function () {
-  this.token = Math.random().toString(36).slice(2);
-  return this.token;
+// Método para generar token de verificación o recuperación (versión mejorada)
+administradorSchema.methods.crearToken = function() {
+  const tokenGenerado = this.token = Math.random().toString(36).slice(2);
+  return tokenGenerado;
 };
+
+// Middleware para encriptar password antes de guardar
+administradorSchema.pre('save', async function(next) {
+  // Solo encriptar si el password ha sido modificado o es nuevo
+  if (!this.isModified('password')) return next();
+  
+  try {
+    this.password = await this.encrypPassword(this.password);
+    next();
+  } catch (error) {
+    next(error);
+  }
+});
 
 export default model("Administrador", administradorSchema);
