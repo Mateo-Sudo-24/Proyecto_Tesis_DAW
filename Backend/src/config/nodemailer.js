@@ -1,7 +1,6 @@
-import nodemailer from "nodemailer"
-import dotenv from 'dotenv'
-dotenv.config()
-
+import nodemailer from "nodemailer";
+import dotenv from 'dotenv';
+dotenv.config();
 
 let transporter = nodemailer.createTransport({
     service: 'gmail',
@@ -13,25 +12,50 @@ let transporter = nodemailer.createTransport({
     }
 });
 
-const sendMailToRegister = (userMail, token) => {
-
+const sendMailToRegister = async (userMail, token) => {
     let mailOptions = {
         from: 'admin@unitex.com',
         to: userMail,
         subject: "Unitex - Confirmación de cuenta",
-        html: `<p>Hola, haz clic <a href="${process.env.URL_BACKEND}confirmar/${token}">aquí</a> para confirmar tu cuenta.</p>
-        <hr>
-        <footer>El equipo de Unitex te da la más cordial bienvenida.</footer>
+        html: `
+            <p>Hola, haz clic <a href="${process.env.URL_BACKEND}confirmar/${token}">aquí</a> para confirmar tu cuenta.</p>
+            <hr>
+            <footer>El equipo de Unitex te da la más cordial bienvenida.</footer>
         `
+    };
+
+    try {
+        let info = await transporter.sendMail(mailOptions);
+        console.log("Mensaje enviado satisfactoriamente: ", info.messageId);
+    } catch (error) {
+        console.error("Error enviando correo de confirmación: ", error);
     }
+};
 
-    transporter.sendMail(mailOptions, function(error, info){
-        if (error) {
-            console.log(error);
-        } else {
-            console.log("Mensaje enviado satisfactoriamente: ", info.messageId);
-        }
-    })
-}
+const sendMailToRecoveryPassword = async (userMail, token) => {
+    let mailOptions = {
+        from: 'admin@unitex.com',
+        to: userMail,
+        subject: "Unitex - Reestablece tu contraseña",
+        html: `
+            <h1>Unitex - Plataforma de Gestión</h1>
+            <hr>
+            <p>Haz clic en el siguiente enlace para reestablecer tu contraseña:</p>
+            <a href="${process.env.URL_BACKEND}recuperarpassword/${token}">Reestablecer contraseña</a>
+            <hr>
+            <footer>El equipo de Unitex te da la más cordial bienvenida.</footer>
+        `
+    };
 
-export default sendMailToRegister
+    try {
+        let info = await transporter.sendMail(mailOptions);
+        console.log("Mensaje enviado satisfactoriamente: ", info.messageId);
+    } catch (error) {
+        console.error("Error enviando correo de recuperación: ", error);
+    }
+};
+
+export {
+    sendMailToRegister,
+    sendMailToRecoveryPassword
+};

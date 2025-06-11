@@ -1,70 +1,84 @@
 import Administrador from "../models/Administrador.js";
-import sendMailToRegister from "../config/nodemailer.js";
+import { sendMailToRecoveryPassword } from "../config/nodemailer.js";
 
-// Registro único del administrador (solo se ejecuta una vez)
-const registro = async (req, res) => {
-    try {
-        // Verificar si ya existe un administrador
-        const administradorExistente = await Administrador.findOne({});
-        if (administradorExistente) {
-            return res.status(400).json({
-                msg: "Ya existe un administrador registrado en el sistema"
-            });
-        }
-
-        const { email, password } = req.body;
-        
-        // Validar campos obligatorios
-        if (Object.values(req.body).includes("")) {
-            return res.status(400).json({
-                msg: "Lo sentimos, debes llenar todos los campos"
-            });
-        }
-
-        // Crear el único administrador
-        const nuevoAdministrador = new Administrador(req.body);
-        
-        // El password se encripta automáticamente con el middleware pre-save
-        // pero si prefieres hacerlo manual:
-        // nuevoAdministrador.password = await nuevoAdministrador.encrypPassword(password);
-        
-        const token = nuevoAdministrador.crearToken();
-        await sendMailToRegister(email, token);
-        await nuevoAdministrador.save();
-
-        res.status(200).json({
-            msg: "Revisa tu correo electrónico para confirmar tu cuenta de administrador"
-        });
-
-    } catch (error) {
-        res.status(500).json({
-            msg: "Error interno del servidor",
-            error: error.message
-        });
+// ✅ Login de administrador
+const login = async (req, res) => {
+    const { email, password } = req.body;
+    
+    if (Object.values(req.body).includes("")) {
+        return res.status(404).json({ msg: "Lo sentimos, debes llenar todos los campos" });
     }
+    
+    const administradorBDD = await Administrador.findOne({ email }).select("-status -__v -token -updatedAt -createdAt");
+    
+    if (!administradorBDD) {
+        return res.status(404).json({ msg: "Lo sentimos, el usuario no se encuentra registrado" });
+    }
+    
+    const verificarPassword = await administradorBDD.matchPassword(password);
+    if (!verificarPassword) {
+        return res.status(401).json({ msg: "Lo sentimos, el password no es el correcto" });
+    }
+    
+    const { nombre, apellido, direccion, telefono, _id, rol } = administradorBDD;
+    
+    res.status(200).json({
+        rol,
+        nombre,
+        apellido,
+        direccion,
+        telefono,
+        _id,
+        email: administradorBDD.email
+    });
 };
 
-// Verificar si existe administrador (útil para setup inicial)
-const verificar = async (req, res) => {
-    try {
-        const administrador = await Administrador.findOne({});
-        res.status(200).json({
-            existe: !!administrador,
-            setupCompleto: !!administrador
-        });
-    } catch (error) {
-        res.status(500).json({
-            msg: "Error al verificar administrador",
-            error: error.message
-        });
-    }
-};
-
-// Actualizar datos del administrador (excepto password)
+// Actualizar datos (excepto password)
 const actualizar = async (req, res) => {
     try {
-        const { password, ...datosActualizar } = req.body;
-        
+        const { password, token, _id, ...datosActualizar } = req.body;
+
+        // Validaciones específicas
+        if (Object.keys(datosActualizar).length === 0) {
+            return res.status(400).json({ msg: "No se proporcionaron datos para actualizar" });
+        }
+
+        // Validar campos obligatorios si están presentes
+        if (datosActualizar.nombre && datosActualizar.nombre.trim() === "") {
+            return res.status(400).json({ msg: "El nombre no puede estar vacío" });
+        }
+
+        if (datosActualizar.email && datosActualizar.email.trim() === "") {
+            return res.status(400).json({ msg: "El email no puede estar vacío" });
+        }
+
+        // Validar formato de email si se proporciona
+        if (datosActualizar.email) {
+            const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+            if (!emailRegex.test(datosActualizar.email)) {
+                return res.status(400).json({ msg: "El formato del email no es válido" });
+            }
+        }
+
+        // Validar teléfono si se proporciona
+        if (datosActualizar.telefono && datosActualizar.telefono.trim() !== "") {
+            const telefonoRegex = /^\d{10}$/;
+            if (!telefonoRegex.test(datosActualizar.telefono.replace(/\s/g, ""))) {
+                return res.status(400).json({ msg: "El teléfono debe tener 10 dígitos" });
+            }
+        }
+
+        // Verificar si el email ya existe (si se está actualizando)
+        if (datosActualizar.email) {
+            const emailExistente = await Administrador.findOne({ 
+                email: datosActualizar.email 
+            });
+            
+            if (emailExistente) {
+                return res.status(400).json({ msg: "El email ya está registrado" });
+            }
+        }
+
         const administrador = await Administrador.findOneAndUpdate(
             {},
             datosActualizar,
@@ -72,9 +86,7 @@ const actualizar = async (req, res) => {
         );
 
         if (!administrador) {
-            return res.status(404).json({
-                msg: "No se encontró el administrador"
-            });
+            return res.status(404).json({ msg: "No se encontró el administrador" });
         }
 
         res.status(200).json({
@@ -83,95 +95,97 @@ const actualizar = async (req, res) => {
         });
 
     } catch (error) {
-        res.status(500).json({
-            msg: "Error al actualizar administrador",
-            error: error.message
-        });
-    }
-};
-
-// Cambiar password del administrador
-const cambiarPassword = async (req, res) => {
-    try {
-        const { passwordActual, passwordNuevo } = req.body;
-
-        if (!passwordActual || !passwordNuevo) {
-            return res.status(400).json({
-                msg: "Debe proporcionar la contraseña actual y la nueva"
-            });
+        // Manejo específico de errores de MongoDB
+        if (error.code === 11000) {
+            return res.status(400).json({ msg: "El email ya está registrado" });
         }
-
-        const administrador = await Administrador.findOne({});
         
-        if (!administrador) {
-            return res.status(404).json({
-                msg: "No se encontró el administrador"
-            });
-        }
-
-        // Verificar password actual
-        const passwordValido = await administrador.matchPassword(passwordActual);
-        if (!passwordValido) {
-            return res.status(400).json({
-                msg: "La contraseña actual no es correcta"
-            });
-        }
-
-        // Actualizar password
-        administrador.password = passwordNuevo;
-        await administrador.save(); // El middleware pre-save encriptará automáticamente
-
-        res.status(200).json({
-            msg: "Contraseña actualizada exitosamente"
-        });
-
-    } catch (error) {
-        res.status(500).json({
-            msg: "Error al cambiar contraseña",
-            error: error.message
-        });
+        res.status(500).json({ msg: "Error al actualizar administrador", error: error.message });
     }
 };
 
-// Confirmar email del administrador
-const confirmarEmail = async (req, res) => {
-    try {
-        const { token } = req.params;
+// ✅ Recuperar contraseña
+const recuperarPassword = async (req, res) => {
+    const { email } = req.body;
 
-        if (!token) {
-            return res.status(400).json({
-                msg: "Lo sentimos, no se puede validar la cuenta"
-            });
-        }
+    if (!email) return res.status(400).json({ msg: "Debes proporcionar el correo electrónico" });
 
-        const administrador = await Administrador.findOne({ token });
+    const administrador = await Administrador.findOne({ email });
+    if (!administrador) return res.status(404).json({ msg: "El correo no está registrado" });
 
-        if (!administrador) {
-            return res.status(404).json({
-                msg: "La cuenta ya ha sido confirmada o el token no es válido"
-            });
-        }
+    const token = administrador.crearToken();
+    administrador.token = token;
+    await administrador.save();
 
-        administrador.token = null;
-        administrador.confirmEmail = true;
-        await administrador.save();
+    await sendMailToRecoveryPassword(email, token);
 
-        res.status(200).json({
-            msg: "Token confirmado, cuenta de administrador verificada correctamente"
-        });
+    res.status(200).json({ msg: "Revisa tu correo electrónico para reestablecer tu contraseña" });
+};
 
-    } catch (error) {
-        res.status(500).json({
-            msg: "Error al confirmar email",
-            error: error.message
-        });
+// ✅ Comprobar token
+const comprobarTokenPassword = async (req, res) => {
+    const { token } = req.params;
+
+    const administrador = await Administrador.findOne({ token });
+    if (!administrador) return res.status(404).json({ msg: "Token no válido o expirado" });
+
+    res.status(200).json({ msg: "Token confirmado. Ahora puedes crear una nueva contraseña." });
+};
+
+// ✅ Crear nueva contraseña
+const crearNuevoPassword = async (req, res) => {
+    const { password, confirmpassword } = req.body;
+
+    if (!password || !confirmpassword) {
+        return res.status(400).json({ msg: "Debes llenar todos los campos" });
     }
+
+    if (password !== confirmpassword) {
+        return res.status(400).json({ msg: "Las contraseñas no coinciden" });
+    }
+
+    const administrador = await Administrador.findOne({ token: req.params.token });
+    if (!administrador) return res.status(404).json({ msg: "Token inválido o expirado" });
+
+    administrador.password = await administrador.encrypPassword(password);
+    administrador.token = null;
+    await administrador.save();
+
+    // Notificar por correo que fue exitoso (opcional: puedes crear otro correo para esto)
+    await sendMailToRecoveryPassword(administrador.email, null, true);
+
+    res.status(200).json({ msg: "Contraseña actualizada correctamente. Ya puedes iniciar sesión." });
+};
+
+// ✅ Cambio manual con contraseña actual
+const cambiarPassword = async (req, res) => {
+    const { passwordActual, passwordNuevo } = req.body;
+
+    if (!passwordActual || !passwordNuevo) {
+        return res.status(400).json({ msg: "Debes proporcionar ambas contraseñas" });
+    }
+
+    const administrador = await Administrador.findOne({});
+    if (!administrador) {
+        return res.status(404).json({ msg: "No se encontró el administrador" });
+    }
+
+    const passwordValido = await administrador.matchPassword(passwordActual);
+    if (!passwordValido) {
+        return res.status(400).json({ msg: "La contraseña actual no es correcta" });
+    }
+
+    administrador.password = await administrador.encrypPassword(passwordNuevo);
+    await administrador.save();
+
+    res.status(200).json({ msg: "Contraseña actualizada exitosamente" });
 };
 
 export {
-    registro,
-    verificar,
+    login,
     actualizar,
-    cambiarPassword,
-    confirmarEmail
+    recuperarPassword,
+    comprobarTokenPassword,
+    crearNuevoPassword,
+    cambiarPassword
 };

@@ -2,13 +2,16 @@ import mongoose from 'mongoose'
 
 mongoose.set('strictQuery', true)
 
-const connection = async()=>{
+const connection = async () => {
     try {
-        const {connection} = await mongoose.connect(process.env.MONGODB_URI_LOCAL)
-        console.log(`Database is connected on ${connection.host} - ${connection.port}`)
+        // Usa directamente la URI de producción si está definida, si no, usa la local
+        const connectionUri = process.env.MONGODB_URI_PRODUCTION || process.env.MONGODB_URI_LOCAL
+
+        const connection = await mongoose.connect(connectionUri)
+        console.log(`✅ Database connected: ${connection.connection.host} - ${connection.connection.port}`)
     } catch (error) {
-        console.log(error);
+        console.error('❌ Database connection error:', error)
     }
 }
 
-export default  connection
+export default connection
