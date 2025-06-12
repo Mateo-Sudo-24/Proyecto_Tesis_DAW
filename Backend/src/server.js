@@ -3,6 +3,8 @@ import express from 'express'
 import dotenv from 'dotenv'
 import cors from 'cors'
 import routerAdministrador from './routers/Administrador_routers.js'
+import routerClientes from './routers/Cliente_routers.js'
+import routerVendedores from './routers/Vendedores_routers.js'
 import mongoose from 'mongoose'
 
 // Inicializaciones
@@ -41,8 +43,19 @@ app.use(express.json())
 app.get('/', (req, res) => {
     res.send("Server on")
 })
+// Rutas para administradores
 app.use('/api', routerAdministrador)
 app.use((req, res) => res.status(404).send("Endpoint no encontrado - 404"))
+
+// Rutas para clientes
+app.use('/api',routerClientes)
+// Manejo de una ruta que no sea encontrada
+app.use((req,res)=>res.status(404).send("Endpoint no encontrado - 404"))
+
+//Rutas para vendedores
+app.use('/api', routerVendedores)
+// Manejo de una ruta que no sea encontrada
+app.use((req,res)=>res.status(404).send("Endpoint no encontrado - 404"))
 
 // Exportar la instancia de express
 export default app

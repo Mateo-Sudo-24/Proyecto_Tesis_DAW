@@ -48,7 +48,7 @@ const administradorSchema = new Schema({
   rol: {
     type: String,
     default: "administrador",
-    enum: ["administrador"]
+    enum: ["administrador, cliente, vendedor"]
   }
 }, {
   timestamps: true
