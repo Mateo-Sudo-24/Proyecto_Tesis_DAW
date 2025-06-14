@@ -3,8 +3,8 @@ import express from 'express'
 import dotenv from 'dotenv'
 import cors from 'cors'
 import routerAdministrador from './routers/Administrador_routers.js'
-import routerClientes from './routers/Cliente_routers.js'
-import routerVendedores from './routers/Vendedores_routers.js'
+import routerClientes from './routers/Clientes_routers.js'
+import routerVendedores from './routers/Vendedor_routers.js'
 import mongoose from 'mongoose'
 
 // Inicializaciones
