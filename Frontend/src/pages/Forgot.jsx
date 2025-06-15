@@ -1,9 +1,22 @@
 import {Link} from 'react-router'
+import useFetch from '../hooks/useFetch'
+import { useForm } from 'react-hook-form';
+import { ToastContainer} from 'react-toastify'
 
 
 export const Forgot = () => {
+    const { register, handleSubmit, formState: { errors } } = useForm()
+    const { fetchDataBackend } = useFetch()
+
+    const sendMail = (data) => {
+        const url = `${import.meta.env.VITE_BACKEND_URL}/recuperarpassword`
+        fetchDataBackend(url, data,'POST')
+    }
+
+
     return (
         <div className="flex flex-col sm:flex-row h-screen">
+            <ToastContainer/>   
 
             <div className="w-full sm:w-1/2 h-screen bg-white flex justify-center items-center">
 
@@ -13,11 +26,14 @@ export const Forgot = () => {
                     <small className="text-gray-400 block my-4 text-sm">No te preocupes</small>
 
 
-                    <form >
+                    <form onSubmit={handleSubmit(sendMail)}>
 
                         <div className="mb-1">
                             <label className="mb-2 block text-sm font-semibold">Correo electrónico</label>
-                            <input type="email" placeholder="Ingresa un correo electrónico válido" className="block w-full rounded-md border border-gray-300 focus:border-purple-700 focus:outline-none focus:ring-1 focus:ring-purple-700 py-1 px-1.5 text-gray-500" />
+                            <input type="email" placeholder="Ingresa un correo electrónico válido" className="block w-full rounded-md border border-gray-300 focus:border-purple-700 focus:outline-none focus:ring-1 focus:ring-purple-700 py-1 px-1.5 text-gray-500"
+                            {...register("email", { required: "El correo electrónico es obligatorio" })}
+                            />
+                            {errors.email && <p className="text-red-800">{errors.email.message}</p>}
                         </div>
 
                         <div className="mb-3">

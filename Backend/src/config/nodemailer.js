@@ -18,7 +18,7 @@ const sendMailToRegister = async (userMail, token) => {
         to: userMail,
         subject: "Unitex - Confirmación de cuenta",
         html: `
-            <p>Hola, haz clic <a href="${process.env.URL_BACKEND}confirmar/${token}">aquí</a> para confirmar tu cuenta.</p>
+            <p>Hola, haz clic <a href="${process.env.URL_FRONTEND}confirm/${token}">aquí</a> para confirmar tu cuenta.</p>
             <hr>
             <footer>El equipo de Unitex te da la más cordial bienvenida.</footer>
         `
@@ -41,7 +41,7 @@ const sendMailToRecoveryPassword = async (userMail, token) => {
             <h1>Unitex - Plataforma de Gestión</h1>
             <hr>
             <p>Haz clic en el siguiente enlace para reestablecer tu contraseña:</p>
-            <a href="${process.env.URL_BACKEND}recuperarpassword/${token}">Reestablecer contraseña</a>
+            <a href="${process.env.URL_FRONTEND}reset/${token}">Reestablecer contraseña</a>
             <hr>
             <footer>El equipo de Unitex te da la más cordial bienvenida.</footer>
         `
