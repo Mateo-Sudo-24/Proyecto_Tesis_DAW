@@ -1,11 +1,23 @@
 import Administrador from "../models/Administrador.js";
+import mongoose from "mongoose";
+import dotenv from 'dotenv'
 import { sendMailToRecoveryPassword } from "../config/nodemailer.js";
+
+// cargar las variables de entorno
+
 
 const crearAdministrador = async () => {
     try {
         // Conectar a MongoDB
-        await mongoose.connect('tu_connection_string_aqui');
-        
+        await mongoose.connect(process.env.MONGODB_URI);
+        console.log('Conectado a la base de datos MongoDB');
+        // Verificar si ya existe un administrador
+        const administradorExistente = await Administrador.findOne({ email: "admin@empresa.com" });
+        if (administradorExistente) {
+            console.log('El administrador ya existe');
+            return;
+        }
+
         // Crear el administrador
         const nuevoAdmin = new Administrador({
             _id: new mongoose.Types.ObjectId("684e20446cbeddab4b70c4be"),
