@@ -11,7 +11,7 @@ export const Register = () => {
 
     const registro = async (data) => {
         try {
-            const url = "http://localhost:3000/api/clientes/registro"
+            const url = "https://unitex.up.railway.app/api/cliente/registro"; // URL del endpoint de registro
             const respuesta = await axios.post(url,data)
             toast.success(respuesta.data.msg)
         } catch (error) {

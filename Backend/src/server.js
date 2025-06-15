@@ -17,10 +17,9 @@ mongoose.set('strictQuery', true)
 const connectToDatabase = async () => {
     try {
         const connectionUri = process.env.MONGODB_URI_PRODUCTION || process.env.MONGODB_URI_LOCAL
-        
         const connection = await mongoose.connect(connectionUri)
         const isProduction = connectionUri === process.env.MONGODB_URI_PRODUCTION
-        
+
         console.log(`✅ Conectado a la base de datos (${isProduction ? 'PRODUCCIÓN' : 'LOCAL'})`)
         console.log(`   Host: ${connection.connection.host} - Puerto: ${connection.connection.port}`)
     } catch (error) {
@@ -33,33 +32,34 @@ const connectToDatabase = async () => {
 await connectToDatabase()
 
 // Configuraciones
-app.set('port', process.env.PORT || 3000)
-app.use(cors())
+const PORT = process.env.PORT || 3000
+const BASE_URL = process.env.URL_BACKEND || `http://localhost:${PORT}`
 
-// Middlewares
+app.set('port', PORT)
+app.use(cors())
 app.use(express.json())
 
-// Rutas principales
+// Ruta principal
 app.get('/', (req, res) => {
-    res.send("Server on")
+    res.send("✅ API Activa - Unitex Backend")
 })
 
 // Rutas específicas
-app.use('/api/admin', routerAdministrador)   // POST /api/admin/login
+app.use('/api/admin', routerAdministrador)
 app.use('/api/clientes', routerClientes)
 app.use('/api/vendedores', routerVendedores)
 
-// Middleware 404 al final
+// Middleware 404
 app.use((req, res) => res.status(404).send("❌ Endpoint no encontrado - 404"))
 
-// 🚀 INICIAR EL SERVIDOR (ESTO ES LO QUE FALTABA)
-app.listen(app.get('port'), () => {
-    console.log(`🚀 Servidor corriendo en http://localhost:${app.get('port')}`)
+// Iniciar servidor
+app.listen(PORT, () => {
+    console.log(`🚀 Servidor corriendo en ${BASE_URL}`)
     console.log(`📡 API disponible en:`)
-    console.log(`   - Admin: http://localhost:${app.get('port')}/api/admin`)
-    console.log(`   - Clientes: http://localhost:${app.get('port')}/api/admin/clientes`)
-    console.log(`   - Vendedores: http://localhost:${app.get('port')}/api/admin/vendedores`)
+    console.log(`   - Admin: ${BASE_URL}/api/admin`)
+    console.log(`   - Clientes: ${BASE_URL}/api/clientes`)
+    console.log(`   - Vendedores: ${BASE_URL}/api/vendedores`)
 })
 
-// Exportar la instancia de express (opcional si usas testing)
+// Exportar (opcional)
 export default app
