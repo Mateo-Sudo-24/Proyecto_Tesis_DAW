@@ -17,10 +17,10 @@ mongoose.set('strictQuery', true)
 const connectToDatabase = async () => {
     try {
         const connectionUri = process.env.MONGODB_URI_PRODUCTION || process.env.MONGODB_URI_LOCAL
-
+        
         const connection = await mongoose.connect(connectionUri)
         const isProduction = connectionUri === process.env.MONGODB_URI_PRODUCTION
-
+        
         console.log(`✅ Conectado a la base de datos (${isProduction ? 'PRODUCCIÓN' : 'LOCAL'})`)
         console.log(`   Host: ${connection.connection.host} - Puerto: ${connection.connection.port}`)
     } catch (error) {
@@ -32,11 +32,11 @@ const connectToDatabase = async () => {
 // Ejecutar la conexión antes de iniciar el servidor
 await connectToDatabase()
 
-// Configuraciones 
+// Configuraciones
 app.set('port', process.env.PORT || 3000)
 app.use(cors())
 
-// Middlewares 
+// Middlewares
 app.use(express.json())
 
 // Rutas principales
@@ -45,12 +45,21 @@ app.get('/', (req, res) => {
 })
 
 // Rutas específicas
-app.use('/api/admin', routerAdministrador)   // Aquí va el login del administrador: POST /api/admin/login
+app.use('/api/admin', routerAdministrador)   // POST /api/admin/login
 app.use('/api/clientes', routerClientes)
 app.use('/api/vendedores', routerVendedores)
 
 // Middleware 404 al final
 app.use((req, res) => res.status(404).send("❌ Endpoint no encontrado - 404"))
 
-// Exportar la instancia de express
+// 🚀 INICIAR EL SERVIDOR (ESTO ES LO QUE FALTABA)
+app.listen(app.get('port'), () => {
+    console.log(`🚀 Servidor corriendo en http://localhost:${app.get('port')}`)
+    console.log(`📡 API disponible en:`)
+    console.log(`   - Admin: http://localhost:${app.get('port')}/api/admin`)
+    console.log(`   - Clientes: http://localhost:${app.get('port')}/api/admin/clientes`)
+    console.log(`   - Vendedores: http://localhost:${app.get('port')}/api/admin/vendedores`)
+})
+
+// Exportar la instancia de express (opcional si usas testing)
 export default app
