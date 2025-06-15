@@ -10,7 +10,7 @@ const login = async (req, res) => {
     }
     
     const administradorBDD = await Administrador.findOne({ email }).select("-status -__v -token -updatedAt -createdAt");
-    
+    console.log(req.body);
     if (!administradorBDD) {
         return res.status(404).json({ msg: "Lo sentimos, el usuario no se encuentra registrado" });
     }

@@ -25,7 +25,7 @@ const connectToDatabase = async () => {
         console.log(`   Host: ${connection.connection.host} - Puerto: ${connection.connection.port}`)
     } catch (error) {
         console.error('❌ Error al conectar a la base de datos:', error)
-        process.exit(1) // Cierra el servidor si no hay conexión
+        process.exit(1)
     }
 }
 
@@ -33,29 +33,24 @@ const connectToDatabase = async () => {
 await connectToDatabase()
 
 // Configuraciones 
-app.set('port', process.env.port || 3000)
+app.set('port', process.env.PORT || 3000)
 app.use(cors())
 
 // Middlewares 
 app.use(express.json())
 
-// Rutas 
+// Rutas principales
 app.get('/', (req, res) => {
     res.send("Server on")
 })
-// Rutas para administradores
-app.use('/api', routerAdministrador)
-app.use((req, res) => res.status(404).send("Endpoint no encontrado - 404"))
 
-// Rutas para clientes
-app.use('/api',routerClientes)
-// Manejo de una ruta que no sea encontrada
-app.use((req,res)=>res.status(404).send("Endpoint no encontrado - 404"))
+// Rutas específicas
+app.use('/api/admin', routerAdministrador)   // Aquí va el login del administrador: POST /api/admin/login
+app.use('/api/clientes', routerClientes)
+app.use('/api/vendedores', routerVendedores)
 
-//Rutas para vendedores
-app.use('/api', routerVendedores)
-// Manejo de una ruta que no sea encontrada
-app.use((req,res)=>res.status(404).send("Endpoint no encontrado - 404"))
+// Middleware 404 al final
+app.use((req, res) => res.status(404).send("❌ Endpoint no encontrado - 404"))
 
 // Exportar la instancia de express
 export default app

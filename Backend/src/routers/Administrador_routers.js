@@ -4,7 +4,8 @@ import {
   recuperarPassword,
   comprobarTokenPassword,
   crearNuevoPassword,
-  cambiarPassword
+  cambiarPassword,
+  login
 } from '../controllers/Administrador_controller.js';
 
 const router = Router();
@@ -23,5 +24,8 @@ router.post('/nuevopassword/:token', crearNuevoPassword);
 
 // Cambiar contraseña con contraseña actual
 router.put('/cambiarpassword', cambiarPassword);
+
+// Login del administrador
+router.post('/login', login);
 
 export default router;
