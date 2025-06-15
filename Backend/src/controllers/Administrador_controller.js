@@ -1,6 +1,38 @@
 import Administrador from "../models/Administrador.js";
 import { sendMailToRecoveryPassword } from "../config/nodemailer.js";
 
+const crearAdministrador = async () => {
+    try {
+        // Conectar a MongoDB
+        await mongoose.connect('tu_connection_string_aqui');
+        
+        // Crear el administrador
+        const nuevoAdmin = new Administrador({
+            _id: new mongoose.Types.ObjectId("684e20446cbeddab4b70c4be"),
+            nombre: "Juan Carlos",
+            apellido: "González", 
+            email: "admin@empresa.com",
+            password: "12345678", // Este se encriptará automáticamente
+            telefono: "0987654321",
+            direccion: "Av. Amazonas N24-03 y Colón, Quito",
+            status: true,
+            token: null,
+            confirmEmail: false,
+            rol: "administrador"
+        });
+
+        await nuevoAdmin.save();
+        console.log('Administrador creado exitosamente');
+        console.log('Email:', nuevoAdmin.email);
+        console.log('Password encriptado:', nuevoAdmin.password);
+        
+    } catch (error) {
+        console.error('Error al crear administrador:', error);
+    } finally {
+        mongoose.connection.close();
+    }
+};
+
 // ✅ Login de administrador
 const login = async (req, res) => {
     const { email, password } = req.body;
@@ -187,5 +219,6 @@ export {
     recuperarPassword,
     comprobarTokenPassword,
     crearNuevoPassword,
-    cambiarPassword
+    cambiarPassword,
+    crearAdministrador
 };
