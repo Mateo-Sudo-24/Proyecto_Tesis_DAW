@@ -5,43 +5,98 @@ import { sendMailToRecoveryPassword } from "../config/nodemailer.js";
 
 // cargar las variables de entorno
 
-
-const crearAdministrador = async () => {
+const crearAdministrador = async (req, res) => {
     try {
-        // Conectar a MongoDB
-        await mongoose.connect(process.env.MONGODB_URI);
-        console.log('Conectado a la base de datos MongoDB');
-        // Verificar si ya existe un administrador
-        const administradorExistente = await Administrador.findOne({ email: "admin@empresa.com" });
-        if (administradorExistente) {
-            console.log('El administrador ya existe');
-            return;
+        const { nombre, apellido, email, password, telefono, direccion, rol } = req.body;
+
+        // Validar campos obligatorios
+        if (!nombre || !apellido || !email || !password) {
+            return res.status(400).json({ 
+                msg: "Los campos nombre, apellido, email y password son obligatorios" 
+            });
         }
 
-        // Crear el administrador
-        const nuevoAdmin = new Administrador({
-            _id: new mongoose.Types.ObjectId("684e20446cbeddab4b70c4be"),
-            nombre: "Juan Carlos",
-            apellido: "González", 
-            email: "admin@empresa.com",
-            password: "12345678", // Este se encriptará automáticamente
-            telefono: "0987654321",
-            direccion: "Av. Amazonas N24-03 y Colón, Quito",
+        // Validar que los campos no estén vacíos
+        if ([nombre, apellido, email, password].some(campo => campo.trim() === "")) {
+            return res.status(400).json({ 
+                msg: "Los campos obligatorios no pueden estar vacíos" 
+            });
+        }
+
+        // Validar formato de email
+        const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+        if (!emailRegex.test(email)) {
+            return res.status(400).json({ msg: "El formato del email no es válido" });
+        }
+
+        // Validar longitud mínima de password
+        if (password.length < 6) {
+            return res.status(400).json({ 
+                msg: "El password debe tener al menos 6 caracteres" 
+            });
+        }
+
+        // Verificar si el email ya existe
+        const emailExistente = await Administrador.findOne({ email: email.toLowerCase() });
+        if (emailExistente) {
+            return res.status(400).json({ 
+                msg: "Ya existe un administrador con este email" 
+            });
+        }
+
+        // Validar teléfono si se proporciona
+        if (telefono && telefono.trim() !== "") {
+            const telefonoRegex = /^\d{10}$/;
+            if (!telefonoRegex.test(telefono.replace(/\s/g, ""))) {
+                return res.status(400).json({ 
+                    msg: "El teléfono debe tener 10 dígitos" 
+                });
+            }
+        }
+
+        // Crear nuevo administrador
+        const nuevoAdministrador = new Administrador({
+            nombre: nombre.trim(),
+            apellido: apellido.trim(),
+            email: email.toLowerCase().trim(),
+            password, // Se encriptará automáticamente con el middleware pre-save
+            telefono: telefono ? telefono.trim() : null,
+            direccion: direccion ? direccion.trim() : null,
+            rol: rol || "administrador",
             status: true,
-            token: null,
-            confirmEmail: false,
-            rol: "administrador"
+            confirmEmail: false
         });
 
-        await nuevoAdmin.save();
-        console.log('Administrador creado exitosamente');
-        console.log('Email:', nuevoAdmin.email);
-        console.log('Password encriptado:', nuevoAdmin.password);
-        
+        await nuevoAdministrador.save();
+
+        // Responder sin el password
+        const { password: _, ...administradorSinPassword } = nuevoAdministrador.toObject();
+
+        res.status(201).json({
+            msg: "Administrador creado exitosamente",
+            administrador: administradorSinPassword
+        });
+
     } catch (error) {
         console.error('Error al crear administrador:', error);
-    } finally {
-        mongoose.connection.close();
+        
+        // Manejo específico de errores de MongoDB
+        if (error.code === 11000) {
+            return res.status(400).json({ 
+                msg: "Ya existe un administrador con este email" 
+            });
+        }
+        
+        if (error.name === 'ValidationError') {
+            return res.status(400).json({ 
+                msg: "Error de validación", 
+                details: error.message 
+            });
+        }
+        
+        res.status(500).json({ 
+            msg: "Error interno del servidor al crear administrador" 
+        });
     }
 };
 

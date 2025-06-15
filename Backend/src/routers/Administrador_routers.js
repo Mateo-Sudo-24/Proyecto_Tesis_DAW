@@ -5,7 +5,8 @@ import {
   comprobarTokenPassword,
   crearNuevoPassword,
   cambiarPassword,
-  login
+  login,
+  crearAdministrador
 } from '../controllers/Administrador_controller.js';
 
 const router = Router();
@@ -27,5 +28,8 @@ router.put('/cambiarpassword', cambiarPassword);
 
 // Login del administrador
 router.post('/login', login);
+
+// Crear un nuevo administrador (solo para el administrador principal)
+router.post('/crear', crearAdministrador);
 
 export default router;
