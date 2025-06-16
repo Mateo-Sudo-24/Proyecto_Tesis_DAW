@@ -1,8 +1,9 @@
 import logoDog from '../assets/reset.webp';
 import { ToastContainer, toast } from 'react-toastify';
+import 'react-toastify/dist/ReactToastify.css'; // ✅ Asegura que se vean los Toasts
 import { useEffect, useState } from 'react';
 import useFetch from '../hooks/useFetch';
-import { useNavigate, useParams } from 'react-router';
+import { useNavigate, useParams } from 'react-router-dom'; // ✅ CORRECTO
 import { useForm } from 'react-hook-form';
 
 const Reset = () => {
@@ -12,25 +13,41 @@ const Reset = () => {
     const [tokenback, setTokenBack] = useState(false);
     const { register, handleSubmit, formState: { errors } } = useForm();
 
-    const changePassword = (data) => {
+    const changePassword = async (data) => {
         if (data.password !== data.confirmpassword) {
             toast.error("Las contraseñas no coinciden");
             return;
         }
 
-        const url = `${import.meta.env.VITE_BACKEND_URL}/clientes/nuevopassword/${token}`;
-        fetchDataBackend(url, data, 'POST');
+        try {
+            const url = `${import.meta.env.VITE_BACKEND_URL}/clientes/nuevopassword/${token}`;
+            const response = await fetchDataBackend(url, data, 'POST');
 
-        setTimeout(() => {
-            navigate('/login');
-        }, 3000);   
+            if (response?.msg) {
+                toast.success(response.msg);
+                setTimeout(() => navigate('/login'), 3000);
+            } else {
+                toast.error("Hubo un error al cambiar la contraseña");
+            }
+        } catch (error) {
+            toast.error("Error inesperado al cambiar la contraseña");
+        }
     };
 
     useEffect(() => {
         const verifyToken = async () => {
-            const url = `${import.meta.env.VITE_BACKEND_URL}/clientes/recuperarpassword/${token}`;
-            fetchDataBackend(url, null, 'GET');
-            setTokenBack(true);
+            try {
+                const url = `${import.meta.env.VITE_BACKEND_URL}/clientes/recuperarpassword/${token}`;
+                const response = await fetchDataBackend(url, null, 'GET');
+                if (response?.msg) {
+                    toast.success(response.msg);
+                    setTokenBack(true);
+                } else {
+                    toast.error("Token inválido o expirado");
+                }
+            } catch (error) {
+                toast.error("Error al verificar el token");
+            }
         };
         verifyToken();
     }, []);
@@ -47,7 +64,7 @@ const Reset = () => {
             <img
                 className="object-cover h-80 w-80 rounded-full border-4 border-solid border-slate-600"
                 src={logoDog}
-                alt="image description"
+                alt="Reset Password"
             />
             {tokenback && (
                 <form className="w-80" onSubmit={handleSubmit(changePassword)}>
@@ -59,7 +76,7 @@ const Reset = () => {
                             type="password"
                             placeholder="Ingresa tu nueva contraseña"
                             className="block w-full rounded-md border border-gray-300 focus:border-purple-700 focus:outline-none focus:ring-1 focus:ring-purple-700 py-1 px-1.5 text-gray-500"
-                            {...register("password", { required: "La contraseña es obligatorio" })}
+                            {...register("password", { required: "La contraseña es obligatoria" })}
                         />
                         {errors.password && <p className="text-red-800">{errors.password.message}</p>}
 
@@ -70,7 +87,7 @@ const Reset = () => {
                             type="password"
                             placeholder="Repite tu contraseña"
                             className="block w-full rounded-md border border-gray-300 focus:border-purple-700 focus:outline-none focus:ring-1 focus:ring-purple-700 py-1 px-1.5 text-gray-500"
-                            {...register("confirmpassword", { required: "La contraseña es obligatorio" })}
+                            {...register("confirmpassword", { required: "La confirmación es obligatoria" })}
                         />
                         {errors.confirmpassword && <p className="text-red-800">{errors.confirmpassword.message}</p>}
                     </div>
