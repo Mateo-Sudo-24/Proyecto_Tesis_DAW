@@ -11,7 +11,7 @@ const Login = () => {
     const { fetchDataBackend } = useFetch()
 
     const loginUser = async(data) => {
-        const url = `${import.meta.env.VITE_BACKEND_URL}login`
+        const url = `${import.meta.env.VITE_BACKEND_URL}admin/login`
         const response = await fetchDataBackend(url, data,'POST')
         if(response){
             navigate('/dashboard')
