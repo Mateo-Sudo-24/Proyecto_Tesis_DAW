@@ -1,38 +1,39 @@
-import logoDog from '../assets/dog-hand.webp'
-import { ToastContainer } from 'react-toastify';
-import { useEffect, useState } from 'react'
+import logoDog from '../assets/reset.webp';
+import { ToastContainer, toast } from 'react-toastify';
+import { useEffect, useState } from 'react';
 import useFetch from '../hooks/useFetch';
 import { useNavigate, useParams } from 'react-router';
 import { useForm } from 'react-hook-form';
 
-
 const Reset = () => {
-
-    const { fetchDataBackend } = useFetch()
-    const { token } = useParams()
+    const { fetchDataBackend } = useFetch();
+    const { token } = useParams();
     const navigate = useNavigate();
-    const [tokenback, setTokenBack] = useState(false)
+    const [tokenback, setTokenBack] = useState(false);
     const { register, handleSubmit, formState: { errors } } = useForm();
 
-
-
     const changePassword = (data) => {
-        const url = `${import.meta.env.VITE_BACKEND_URL}/nuevopassword/${token}`
-        fetchDataBackend(url, data,'POST')
+        if (data.password !== data.confirmpassword) {
+            toast.error("Las contraseñas no coinciden");
+            return;
+        }
+
+        const url = `${import.meta.env.VITE_BACKEND_URL}/clientes/nuevopassword/${token}`;
+        fetchDataBackend(url, data, 'POST');
+
         setTimeout(() => {
-            navigate('/login')
-        }, 3000)
-    }
+            navigate('/login');
+        }, 3000);   
+    };
 
     useEffect(() => {
-        const verifyToken = async()=>{
-            const url = `${import.meta.env.VITE_BACKEND_URL}/recuperarpassword/${token}`
-            fetchDataBackend(url, null,'GET')
-            setTokenBack(true)
-        }
-        verifyToken()
-    }, [])
-
+        const verifyToken = async () => {
+            const url = `${import.meta.env.VITE_BACKEND_URL}/clientes/recuperarpassword/${token}`;
+            fetchDataBackend(url, null, 'GET');
+            setTokenBack(true);
+        };
+        verifyToken();
+    }, []);
 
     return (
         <div className="flex flex-col items-center justify-center h-screen">
@@ -49,7 +50,7 @@ const Reset = () => {
                 alt="image description"
             />
             {tokenback && (
-                <form className="w-80" onSubmit={handleSubmit(changePassword )}>
+                <form className="w-80" onSubmit={handleSubmit(changePassword)}>
                     <div className="mb-1">
                         <label className="mb-2 block text-sm font-semibold">
                             Nueva contraseña

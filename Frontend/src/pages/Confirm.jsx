@@ -8,7 +8,7 @@ export const Confirm = () => {
     const { token } = useParams()
     const verifyToken = async()=>{
         try {
-            const url = `${import.meta.env.VITE_BACKEND_URL}/confirmar/${token}`
+            const url = `${import.meta.env.VITE_BACKEND_URL}/clientes/confirmar/${token}`
             const respuesta = await axios.get(url)
             toast.success(respuesta?.data?.msg)
         } catch (error) {

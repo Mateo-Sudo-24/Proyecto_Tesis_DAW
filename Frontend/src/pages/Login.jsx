@@ -10,13 +10,23 @@ const Login = () => {
     const { register, handleSubmit, formState: { errors } } = useForm()
     const { fetchDataBackend } = useFetch()
 
-    const loginUser = async(data) => {
-        const url = `${import.meta.env.VITE_BACKEND_URL}login`
-        const response = await fetchDataBackend(url, data,'POST')
-        if(response){
-            navigate('/dashboard')
+    const loginUser = async (data) => {
+    const baseUrl = import.meta.env.VITE_BACKEND_URL;
+    const roles = ['admin', 'clientes', 'vendedores'];
+
+    for (let role of roles) {
+        const url = `${baseUrl}/${role}/login`;
+        const response = await fetchDataBackend(url, data, 'POST');
+
+        if (response) {
+            navigate('/dashboard');
+            return;
         }
     }
+
+    // Si no funcionó ninguna
+    toast.error("Credenciales inválidas o usuario no encontrado");
+};
     return (
         <div className="flex flex-col sm:flex-row h-screen">
             <ToastContainer />

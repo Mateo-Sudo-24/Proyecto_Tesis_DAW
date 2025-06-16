@@ -9,7 +9,7 @@ export const Forgot = () => {
     const { fetchDataBackend } = useFetch()
 
     const sendMail = (data) => {
-        const url = `${import.meta.env.VITE_BACKEND_URL}/recuperarpassword`
+        const url = `${import.meta.env.VITE_BACKEND_URL}/clientes/recuperarpassword`
         fetchDataBackend(url, data,'POST')
     }
 
