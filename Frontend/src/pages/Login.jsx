@@ -10,6 +10,7 @@ const Login = () => {
     const { register, handleSubmit, formState: { errors } } = useForm()
     const { fetchDataBackend } = useFetch()
 
+<<<<<<< HEAD
     const loginUser = async (data) => {
     const baseUrl = import.meta.env.VITE_BACKEND_URL;
     const roles = ['admin', 'clientes', 'vendedores'];
@@ -21,6 +22,13 @@ const Login = () => {
         if (response) {
             navigate('/dashboard');
             return;
+=======
+    const loginUser = async(data) => {
+        const url = `${import.meta.env.VITE_BACKEND_URL}admin/login`
+        const response = await fetchDataBackend(url, data,'POST')
+        if(response){
+            navigate('/dashboard')
+>>>>>>> 702a673fee9de798e88d4cd643a63645379bfe45
         }
     }
 

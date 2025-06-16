@@ -1,6 +1,4 @@
 import Administrador from "../models/Administrador.js";
-import mongoose from "mongoose";
-import dotenv from 'dotenv'
 import { sendMailToRecoveryPassword } from "../config/nodemailer.js";
 
 // cargar las variables de entorno
