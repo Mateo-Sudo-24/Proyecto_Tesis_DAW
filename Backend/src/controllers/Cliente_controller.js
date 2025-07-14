@@ -1,6 +1,7 @@
 // Importamos el modelo Cliente y las funciones de envío de correos
 import Cliente from "../models/Cliente.js"
 import { sendMailToRegister, sendMailToRecoveryPassword } from "../config/nodemailer.js"
+import { crearTokenJWT } from '../middlewares/JWT.js'
 
 // REGISTRO DE CLIENTES
 const registro = async (req, res) => {
@@ -145,6 +146,7 @@ const login = async (req, res) => {
     if (clienteBDD.confirmEmail === false) {
         return res.status(403).json({ msg: "Lo sentimos, debe verificar su cuenta" })
     }
+    
 
     // Validar contraseña
     const verificarPassword = await clienteBDD.matchPassword(password)
@@ -152,9 +154,13 @@ const login = async (req, res) => {
         return res.status(401).json({ msg: "Lo sentimos, el password no es el correcto" })
     }
 
+    // Crear token JWT
+    const token = crearTokenJWT(clienteBDD._id, clienteBDD.rol)
+
     // Extraer datos del cliente para la sesión
     const { nombre, apellido, direccion, telefono, _id, rol } = clienteBDD
     res.status(200).json({
+        token,
         rol,
         nombre,
         apellido,
@@ -164,6 +170,13 @@ const login = async (req, res) => {
         email: clienteBDD.email
     })
 }
+
+// LOGICA CLIENTE
+// Realizar pedidos
+// Ver pedidos
+// Funacionalidad de la IA -- USAR LA CAMARA PARA ESCANEAR EL TIPO DE TELA (En produccion)
+
+
 
 // Exportar todas las funciones del controlador
 export {

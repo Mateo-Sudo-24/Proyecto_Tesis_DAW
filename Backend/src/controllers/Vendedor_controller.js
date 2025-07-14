@@ -1,24 +1,7 @@
 import Vendedor from '../models/Vendedor.js'
 import { sendMailToRecoveryPassword } from "../config/nodemailer.js"
+import { crearTokenJWT } from '../middlewares/JWT.js'
 
-// Registrar un nuevo vendedor (hecho por el administrador)
-const registro = async (req, res) => {
-    const { email, password } = req.body;
-    if (Object.values(req.body).includes("")) {
-        return res.status(400).json({ msg: "Lo sentimos, debes llenar todos los campos" });
-    }
-    const verificarEmailBDD = await Vendedor.findOne({ email });
-    if (verificarEmailBDD) {
-        return res.status(400).json({ msg: "Lo sentimos, el email ya se encuentra registrado" });
-    }
-
-    const nuevoVendedor = new Vendedor(req.body);
-    nuevoVendedor.password = await nuevoVendedor.encrypPassword(password);
-    nuevoVendedor.crearToken(); // Genera token interno, pero no se envía por correo
-    await nuevoVendedor.save();
-
-    res.status(200).json({ nuevoVendedor });
-};
 
 // Recuperar contraseña
 const recuperarPassword = async (req, res) => {
@@ -94,9 +77,12 @@ const login = async (req, res) => {
         return res.status(401).json({ msg: "Lo sentimos, el password no es el correcto" });
     }
 
+    const token = crearTokenJWT(vendedorBDD._id, vendedorBDD.rol);
+
     const { nombre, apellido, direccion, telefono, _id, rol } = vendedorBDD;
 
     res.status(200).json({
+        token,
         rol,
         nombre,
         apellido,
@@ -107,8 +93,13 @@ const login = async (req, res) => {
     });
 };
 
+// LOGICA VENDEDOR
+// CRUD DE VENTAS Generar ventas -- Actualizar ventas -- Eliminar ventas
+// CRUD DE PEDIDOS Gestion de pedidos -- Crear pedidos -- Ver pedidos -- Correciones
+// Uso de la IA -- USAR LA CAMARA PARA ESCANEAR EL TIPO DE TELA (En produccion)
+
+
 export {
-    registro,
     recuperarPassword,
     comprobarTokenPasword,
     crearNuevoPassword,

@@ -1,5 +1,8 @@
 import Administrador from "../models/Administrador.js";
 import { sendMailToRecoveryPassword } from "../config/nodemailer.js";
+import { crearTokenJWT } from "../middlewares/JWT.js";
+import { registroVendedor } from "./Vendedor_controller.js";
+import Vendedor from '../models/Vendedor.js';
 
 // cargar las variables de entorno
 
@@ -35,12 +38,16 @@ const crearAdministrador = async (req, res) => {
         }
 
         // Verificar si el email ya existe
-        const emailExistente = await Administrador.findOne({ email: email.toLowerCase() });
+        const emailExistente = await Administrador.findOne({ 
+            email: email.toLowerCase(), 
+            _id: { $ne: id } // Excluye el propio usuario
+        });
         if (emailExistente) {
             return res.status(400).json({ 
                 msg: "Ya existe un administrador con este email" 
             });
         }
+
 
         // Validar teléfono si se proporciona
         if (telefono && telefono.trim() !== "") {
@@ -116,10 +123,14 @@ const login = async (req, res) => {
     if (!verificarPassword) {
         return res.status(401).json({ msg: "Lo sentimos, el password no es el correcto" });
     }
+
+    // Generar token JWT
+    const token = crearTokenJWT(administradorBDD._id, administradorBDD.rol);
     
     const { nombre, apellido, direccion, telefono, _id, rol } = administradorBDD;
     
     res.status(200).json({
+        token,
         rol,
         nombre,
         apellido,
@@ -136,6 +147,10 @@ const actualizar = async (req, res) => {
         const { password, token, _id, ...datosActualizar } = req.body;
 
         // Validaciones específicas
+         if (!_id) {
+            return res.status(400).json({ msg: "Debes proporcionar el ID del administrador" });
+        }
+
         if (Object.keys(datosActualizar).length === 0) {
             return res.status(400).json({ msg: "No se proporcionaron datos para actualizar" });
         }
@@ -176,19 +191,19 @@ const actualizar = async (req, res) => {
             }
         }
 
-        const administrador = await Administrador.findOneAndUpdate(
-            {},
+        const administradorBDD = await Administrador.findByIdAndUpdate(
+            _id,
             datosActualizar,
             { new: true, select: '-password -token' }
         );
 
-        if (!administrador) {
+        if (!administradorBDD) {
             return res.status(404).json({ msg: "No se encontró el administrador" });
         }
 
         res.status(200).json({
             msg: "Administrador actualizado exitosamente",
-            administrador
+            administradorBDD
         });
 
     } catch (error) {
@@ -207,12 +222,11 @@ const recuperarPassword = async (req, res) => {
 
     if (!email) return res.status(400).json({ msg: "Debes proporcionar el correo electrónico" });
 
-    const administrador = await Administrador.findOne({ email });
-    if (!administrador) return res.status(404).json({ msg: "El correo no está registrado" });
+    const administradorBDD = await Administrador.findOne({ email });
+    if (!administradorBDD) return res.status(404).json({ msg: "El correo no está registrado" });
 
-    const token = administrador.crearToken();
-    administrador.token = token;
-    await administrador.save();
+    const token = administradorBDD.crearToken();
+    await administradorBDD.save();
 
     await sendMailToRecoveryPassword(email, token);
 
@@ -256,13 +270,13 @@ const crearNuevoPassword = async (req, res) => {
 
 // ✅ Cambio manual con contraseña actual
 const cambiarPassword = async (req, res) => {
-    const { passwordActual, passwordNuevo } = req.body;
+    const { passwordActual, passwordNuevo, _id } = req.body;
 
-    if (!passwordActual || !passwordNuevo) {
-        return res.status(400).json({ msg: "Debes proporcionar ambas contraseñas" });
+    if (!passwordActual || !passwordNuevo || !_id) {
+        return res.status(400).json({ msg: "Debes proporcionar ambas contraseñas y el ID" });
     }
 
-    const administrador = await Administrador.findOne({});
+    const administrador = await Administrador.findById(_id);
     if (!administrador) {
         return res.status(404).json({ msg: "No se encontró el administrador" });
     }
@@ -278,6 +292,94 @@ const cambiarPassword = async (req, res) => {
     res.status(200).json({ msg: "Contraseña actualizada exitosamente" });
 };
 
+// LOGICA ADMINISTRADOR 
+
+// CRUD para vendedores -- Crear vendedor -- Actualizar vendedor -- Eliminar vendedor
+// Registrar un nuevo vendedor (hecho por el administrador)
+const registroVendedor = async (req, res) => {
+    const { email, password } = req.body;
+    if (Object.values(req.body).includes("")) {
+        return res.status(400).json({ msg: "Lo sentimos, debes llenar todos los campos" });
+    }
+    const verificarEmailBDD = await Vendedor.findOne({ email });
+    if (verificarEmailBDD) {
+        return res.status(400).json({ msg: "Lo sentimos, el email ya se encuentra registrado" });
+    }
+
+    const nuevoVendedor = new Vendedor(req.body);
+    nuevoVendedor.password = await nuevoVendedor.encrypPassword(password);
+    nuevoVendedor.crearToken(); // Genera token interno, pero no se envía por correo
+    await nuevoVendedor.save();
+
+    res.status(200).json({ nuevoVendedor });
+};
+
+// Obtener un vendedor por ID
+const obtenerVendedorPorId = async (req, res) => {
+  const { id } = req.params;
+
+  try {
+    const vendedor = await Vendedor.findById(id).select("-password -token -__v");
+
+    if (!vendedor) {
+      return res.status(404).json({ msg: "Vendedor no encontrado" });
+    }
+
+    res.status(200).json({
+      msg: "Vendedor encontrado",
+      vendedor
+    });
+  } catch (error) {
+    console.error("Error al obtener vendedor:", error);
+
+    // Manejo de error si el ID no es válido
+    if (error.kind === "ObjectId") {
+      return res.status(400).json({ msg: "ID inválido" });
+    }
+
+    res.status(500).json({ msg: "Error al obtener el vendedor" });
+  }
+};
+
+// Actualizar estado o rol del vendedor
+const actualizarVendedor = async (req, res) => {
+  const { id } = req.params;
+  const { nombre, email, status, rol, telefono, direccion } = req.body;
+
+  try {
+    const vendedor = await Vendedor.findById(id);
+
+    if (!vendedor) {
+      return res.status(404).json({ msg: "Vendedor no encontrado" });
+    }
+
+    // Actualizar solo campos permitidos
+    if (nombre) vendedor.nombre = nombre.trim();
+    if (email) vendedor.email = email.trim().toLowerCase();
+    if (typeof status === "boolean") vendedor.status = status;
+    if (rol) vendedor.rol = rol;
+    if (telefono) vendedor.telefono = telefono.trim();
+    if (direccion) vendedor.direccion = direccion.trim();
+
+    await vendedor.save();
+
+    res.status(200).json({
+      msg: "Vendedor actualizado exitosamente",
+      vendedor
+    });
+  } catch (error) {
+    console.error("Error al actualizar vendedor:", error);
+    res.status(500).json({ msg: "Error al actualizar vendedor" });
+  }
+};
+
+// CRUD para ventas Gestion de ventas -- Visualizar ventas -- Actualizar ventas -- Eliminar ventas
+
+
+// CRUD para pedidos  Gestion de pedidos --Crear pedidios-- Visualizar pedidos -- Actualizar pedidos -- Eliminar pedidos
+
+
+
 export {
     login,
     actualizar,
@@ -285,5 +387,8 @@ export {
     comprobarTokenPassword,
     crearNuevoPassword,
     cambiarPassword,
-    crearAdministrador
+    crearAdministrador,
+    registroVendedor,
+    obtenerVendedorPorId, 
+    actualizarVendedor
 };

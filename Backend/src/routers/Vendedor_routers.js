@@ -1,23 +1,20 @@
 import { Router } from 'express';
 import { 
-    registro, 
     recuperarPassword, 
     comprobarTokenPasword, 
     crearNuevoPassword, 
     login 
 } from '../controllers/Vendedor_controller.js';
+import { verificarTokenJWT } from '../middlewares/JWT.js';
 
 const router = Router();
 
-// Creación del vendedor (por el administrador)
-router.post('/registro', registro);
-
 // Recuperación de contraseña
-router.post('/recuperarpassword', recuperarPassword);
-router.get('/recuperarpassword/:token', comprobarTokenPasword);
-router.post('/nuevopassword/:token', crearNuevoPassword);
+router.post('/recuperarpassword',verificarTokenJWT, recuperarPassword);
+router.get('/recuperarpassword/:token',verificarTokenJWT, comprobarTokenPasword);
+router.post('/nuevopassword/:token',verificarTokenJWT, crearNuevoPassword);
 
 // Login
-router.post('/login', login);
+router.post('/login',verificarTokenJWT, login);
 
 export default router;
