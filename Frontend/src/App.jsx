@@ -14,7 +14,8 @@ import Create from './pages/Create'
 import Update from './pages/Update'
 import Chat from './pages/Chat'
 import Reset from './pages/Reset'
-
+import Products from './pages/Products'
+import OAuthSuccess from './pages/OAuthSuccess'
 
 
 function App() {
@@ -26,11 +27,12 @@ function App() {
         <Route index element={<Home/>}/>
         <Route path='login' element={<Login/>}/>
         <Route path='register' element={<Register/>}/>
+        <Route path='oauth-success' element={<OAuthSuccess />} />
         <Route path='forgot/:id' element={<Forgot/>}/>
         <Route path='confirm/:token' element={<Confirm/>}/>
         <Route path='reset/:token' element={<Reset/>}/>
         <Route path='*' element={<NotFound />} />
-
+        <Route path='products' element={<Products/>}/>
 
         <Route path='/dashboard' element={<Dashboard/>}>
           <Route index element={<Profile/>}/>

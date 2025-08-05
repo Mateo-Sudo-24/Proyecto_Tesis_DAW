@@ -20,8 +20,11 @@ const clienteSchema = new Schema({
   },
   password: {
     type: String,
-    required: true
-  },
+    required: function () {
+      return this.proveedor === 'local';
+    }
+  }
+,
   telefono: {
     type: String,
     trim: true,
@@ -48,6 +51,11 @@ const clienteSchema = new Schema({
     type: String,
     default: "cliente",
     enum: ["cliente", "administrador", "vendedor"]
+  },
+  proveedor: {
+    type: String,
+    default: "local", // puede ser "local" o "google"
+    enum: ["local", "google"]
   }
 }, {
   timestamps: true

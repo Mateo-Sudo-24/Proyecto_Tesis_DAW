@@ -12,17 +12,17 @@ import { verificarTokenJWT } from '../middlewares/JWT.js';
 const router = Router();
 
 // Registro de cliente
-router.post('/registro',verificarTokenJWT, registro);
+router.post('/registro', registro);
 
 // Confirmar correo electrónico
-router.get('/confirmar/:token',verificarTokenJWT, confirmarMail);
+router.get('/confirmar/:token', confirmarMail);
 
 // Recuperación de contraseña
-router.post('/recuperarpassword',verificarTokenJWT, recuperarPassword);
-router.get('/recuperarpassword/:token', verificarTokenJWT,comprobarTokenPasword);
-router.post('/nuevopassword/:token',verificarTokenJWT, crearNuevoPassword);
+router.post('/recuperarpassword', recuperarPassword);
+router.get('/recuperarpassword/:token',comprobarTokenPasword);
+router.post('/nuevopassword/:token', crearNuevoPassword);
 
 // Login
-router.post('/login',verificarTokenJWT, login);
+router.post('/login', login);
 
 export default router;

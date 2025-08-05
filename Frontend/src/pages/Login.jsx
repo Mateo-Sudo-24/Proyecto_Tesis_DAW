@@ -27,6 +27,11 @@ const Login = () => {
     // Si no funcionó ninguna
     toast.error("Credenciales inválidas o usuario no encontrado");
 };
+
+const loginWithGoogle = () => {
+    window.location.href = 'http://localhost:3000/api/auth/google';
+ };
+
     return (
         <div className="flex flex-col sm:flex-row h-screen">
             <ToastContainer />
@@ -95,7 +100,7 @@ const Login = () => {
                     </div>
 
                     {/* Botón de inicio de sesión con Google */}
-                    <button className="bg-white border py-2 w-full rounded-xl mt-5 flex justify-center items-center text-sm hover:scale-105 duration-300 hover:bg-black hover:text-white">
+                    <button onClick={loginWithGoogle} className="bg-white border py-2 w-full rounded-xl mt-5 flex justify-center items-center text-sm hover:scale-105 duration-300 hover:bg-black hover:text-white">
                         <img className="w-5 mr-2" src="https://cdn-icons-png.flaticon.com/512/281/281764.png" alt="Google icon" />
                         Sign in with Google
                     </button>

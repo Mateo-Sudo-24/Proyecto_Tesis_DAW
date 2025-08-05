@@ -1,7 +1,7 @@
 import Administrador from "../models/Administrador.js";
 import { sendMailToRecoveryPassword } from "../config/nodemailer.js";
 import { crearTokenJWT } from "../middlewares/JWT.js";
-import { registroVendedor } from "./Vendedor_controller.js";
+
 import Vendedor from '../models/Vendedor.js';
 
 // cargar las variables de entorno
