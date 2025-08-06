@@ -1,66 +1,111 @@
-// Requerir los módulos
-import express from 'express'
-import dotenv from 'dotenv'
-import cors from 'cors'
-import routerAdministrador from './routers/Administrador_routers.js';
-import routerClientes from './routers/Clientes_routers.js';
-import routerVendedores from './routers/Vendedor_routers.js';
-import routerProductos from './routers/Producto_routers.js';
-import routerOrdenes from './routers/Orden_routers.js'; // AÑADIR/VERIFICAR
-import routerCarrito from './routers/Carrito_routers.js'; // AÑADIR/VERIFICAR
-import routerBot from './routers/Bot_routers.js'; // AÑADIR/VERIFICAR
-import oAuthRoutes from './routers/Oauth_routers.js';
-import mongoose from 'mongoose'
+// =======================================================================
+// ==                           IMPORTACIONES                           ==
+// =======================================================================
+import express from 'express';
+import dotenv from 'dotenv';
+import cors from 'cors';
+import mongoose from 'mongoose';
+import cloudinary from 'cloudinary';
+import fileUpload from 'express-fileupload';
+import passport from 'passport';
+import session from 'express-session';
 
-// Inicializaciones
-const app = express()
-dotenv.config()
+// --- Tus Routers ---
+// ... (importa todos tus routers aquí)
 
-// Conexión a la base de datos
-mongoose.set('strictQuery', true)
+// --- Configuración de Passport ---
+import './config/passport.js';
 
+
+// =======================================================================
+// ==                         INICIALIZACIONES                          ==
+// =======================================================================
+dotenv.config(); // Carga las variables de .env
+const app = express();
+
+
+// =======================================================================
+// ==                         CONFIGURACIONES                           ==
+// =======================================================================
+// --- Selección de Entorno (La Clave de la Flexibilidad) ---
+const isProduction = process.env.NODE_ENV === 'production';
+
+// --- Puerto y URL Base Dinámicos ---
+const PORT = process.env.PORT || 3000;
+// Selecciona la URL base dependiendo del entorno
+const BASE_URL = isProduction ? process.env.URL_BACKEND_PRODUCTION : process.env.URL_BACKEND_LOCAL;
+app.set('port', PORT);
+
+// --- Configuración de Cloudinary ---
+cloudinary.config({
+    cloud_name: process.env.CLOUDINARY_CLOUD_NAME,
+    api_key: process.env.CLOUDINARY_API_KEY,
+    api_secret: process.env.CLOUDINARY_API_SECRET
+});
+
+// --- Conexión a la Base de Datos Dinámica ---
+mongoose.set('strictQuery', true);
 const connectToDatabase = async () => {
     try {
-        const connectionUri = process.env.MONGODB_URI_PRODUCTION || process.env.MONGODB_URI_LOCAL
-        const connection = await mongoose.connect(connectionUri)
-        const isProduction = connectionUri === process.env.MONGODB_URI_PRODUCTION
+        // Selecciona la URI de la base de datos dependiendo del entorno
+        const connectionUri = isProduction ? process.env.MONGODB_URI_PRODUCTION : process.env.MONGODB_URI_LOCAL;
+        
+        if (!connectionUri) {
+            throw new Error(`La URI de la base de datos para el entorno '${process.env.NODE_ENV}' no está definida.`);
+        }
 
-        console.log(`✅ Conectado a la base de datos (${isProduction ? 'PRODUCCIÓN' : 'LOCAL'})`)
-        console.log(`   Host: ${connection.connection.host} - Puerto: ${connection.connection.port}`)
+        const connection = await mongoose.connect(connectionUri);
+        console.log(`✅ Conectado a la base de datos (${isProduction ? 'PRODUCCIÓN' : 'LOCAL'})`);
+        console.log(`   Host: ${connection.connection.host}:${connection.connection.port}`);
     } catch (error) {
-        console.error('❌ Error al conectar a la base de datos:', error)
-        process.exit(1)
+        console.error(`❌ Error al conectar a la base de datos: ${error.message}`);
+        process.exit(1);
     }
-}
+};
+await connectToDatabase();
 
-// Ejecutar la conexión antes de iniciar el servidor
-await connectToDatabase()
 
-// Configuraciones
-const PORT = process.env.PORT || 3000
-const BASE_URL = process.env.URL_BACKEND || `http://localhost:${PORT}`
+// =======================================================================
+// ==                           MIDDLEWARES                             ==
+// =======================================================================
+// --- Configuración de CORS Dinámica ---
+// Permite que solo tu frontend de producción o local se conecten.
+const corsOptions = {
+    origin: function (origin, callback) {
+        const allowedOrigins = [process.env.URL_FRONTEND, process.env.FRONTEND_URL];
+        if (allowedOrigins.indexOf(origin) !== -1 || !origin) {
+            callback(null, true);
+        } else {
+            callback(new Error('No permitido por CORS'));
+        }
+    }
+};
+app.use(cors(corsOptions));
 
-app.set('port', PORT)
-app.use(cors())
-app.use(express.json())
+app.use(express.json());
+app.use(fileUpload({ useTempFiles: true, tempFileDir: './uploads' }));
 
-// Ruta principal
-app.get('/', (req, res) => {
-    res.send("✅ API Activa - Unitex Backend")
-})
+// --- Middlewares de Sesión y Passport ---
+app.use(session({
+  secret: process.env.SESSION_SECRET, // Es vital que esto esté en .env
+  resave: false,
+  saveUninitialized: false
+}));
+app.use(passport.initialize());
+app.use(passport.session());
 
-// Rutas específicas
-app.use('/api/admin', routerAdministrador);
-app.use('/api/clientes', routerClientes);
-app.use('/api/vendedores', routerVendedores);
-app.use('/api/productos', routerProductos);
-app.use('/api/ordenes', routerOrdenes); // AÑADIR/VERIFICAR
-app.use('/api/carrito', routerCarrito); // AÑADIR/VERIFICAR
-app.use('/api/bot', routerBot); // AÑADIR/VERIFICAR
-app.use('/api/auth', oAuthRoutes);
 
-// Middleware 404
-app.use((req, res) => res.status(404).send("❌ Endpoint no encontrado - 404"))
+// =======================================================================
+// ==                              RUTAS                                ==
+// =======================================================================
+// ... (tu bloque de app.use('/api/admin', ...) aquí)
 
-// Exportar (opcional)
-export default app
+
+// =======================================================================
+// ==                 MANEJO DE ERRORES Y EXPORTACIÓN                   ==
+// =======================================================================
+app.use((req, res) => {
+    res.status(404).send("❌ Endpoint no encontrado - 404");
+});
+
+export default app;
