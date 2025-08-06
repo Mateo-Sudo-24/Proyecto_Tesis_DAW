@@ -164,8 +164,43 @@ const sendMailToRecoveryPassword = async (userMail, token) => {
         console.error("Error enviando correo de recuperación: ", error);
     }
 };
+const sendMailToInviteUser = async (userMail, token) => {
+    let mailOptions = {
+        from: 'admin@unitex.com',
+        to: userMail,
+        subject: "Unitex - ¡Has sido invitado!",
+        html: `
+            <!DOCTYPE html>
+            <html>
+            <!-- ... (usa tu misma plantilla HTML base) ... -->
+            <body>
+                <div class="container">
+                    <h2>Configura tu cuenta en Unitex</h2>
+                    <p>Hola,</p>
+                    <p>
+                        Has sido invitado a unirte a <strong>Unitex</strong>. Para activar tu cuenta y establecer tu contraseña personal, por favor haz clic en el botón de abajo.
+                    </p>
+                    <div class="button-container">
+                        <a href="${process.env.URL_FRONTEND}/setup-account/${token}" class="button">Activar Mi Cuenta</a>
+                    </div>
+                    <p>Este enlace es válido por un tiempo limitado. Si no esperabas esta invitación, puedes ignorar este correo.</p>
+                    <hr>
+                    <footer>© ${new Date().getFullYear()} Unitex</footer>
+                </div>
+            </body>
+            </html>
+        `
+    };
 
+    try {
+        await transporter.sendMail(mailOptions);
+        console.log("Correo de invitación enviado satisfactoriamente.");
+    } catch (error) {
+        console.error("Error enviando correo de invitación: ", error);
+    }
+};
 export {
     sendMailToRegister,
-    sendMailToRecoveryPassword
+    sendMailToRecoveryPassword,
+    sendMailToInviteUser
 };

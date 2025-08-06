@@ -182,6 +182,7 @@ const productosRecientes = async (req, res) => {
 export {
     registrarProducto,
     listarProducto,
+    actualizarProducto,
     eliminarProducto,
     detalleProducto,
     buscarProducto,

@@ -2,7 +2,7 @@ import { Router } from 'express';
 import {
     buscarProductos,
     agregarAlCarrito,
-    verCarrito
+    obtenerResumenCarrito
 } from '../controllers/Bot_controller.js';
 import { verificarBotApiKey } from '../middlewares/AuthBotMiddleware.js';
 import { verificarTokenJWT } from '../middlewares/JWT.js';
@@ -20,6 +20,6 @@ router.get('/buscar-productos', buscarProductos);
 // Para estas rutas, el bot necesita enviar tanto su API Key (ya verificada)
 // como el JWT del usuario.
 router.post('/carrito/agregar', verificarTokenJWT, agregarAlCarrito);
-router.get('/carrito', verificarTokenJWT, verCarrito);
+router.get('/carrito', verificarTokenJWT, obtenerResumenCarrito);
 
 export default router;

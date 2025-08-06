@@ -20,7 +20,12 @@ const vendedorSchema = new Schema({
   },
   password: {
     type: String,
-    required: true
+    required: false // Hacemos que no sea obligatorio inicialmente
+  },
+  status: { // Podrías usar un estado para controlar si la cuenta está activa
+      type: String,
+      enum: ['pendiente', 'activo', 'inactivo'],
+      default: 'pendiente'
   },
   telefono: {
     type: String,

@@ -34,38 +34,159 @@ const actualizarPerfil = async (req, res) => {
         res.status(500).json({ msg: "Error al actualizar el perfil." });
     }
 };
+//Actualizar la contraseña del vendedor autenticado (desde su perfil).
 
 const actualizarPassword = async (req, res) => {
-    const { _id } = req.usuario;
+    const { _id } = req.usuario; // ID del token JWT
     const { passwordActual, passwordNuevo } = req.body;
-    if (!passwordActual || !passwordNuevo) return res.status(400).json({ msg: "Todos los campos son obligatorios." });
-    const vendedor = await Vendedor.findById(_id);
-    if (!await vendedor.matchPassword(passwordActual)) return res.status(401).json({ msg: "La contraseña actual es incorrecta." });
-    vendedor.password = await vendedor.encrypPassword(passwordNuevo);
-    await vendedor.save();
-    res.status(200).json({ msg: "Contraseña actualizada correctamente." });
+
+    if (!passwordActual || !passwordNuevo) {
+        return res.status(400).json({ msg: "Todos los campos son obligatorios." });
+    }
+    if (passwordNuevo.length < 6) {
+        return res.status(400).json({ msg: "La nueva contraseña debe tener al menos 6 caracteres." });
+    }
+
+    try {
+        const vendedor = await Vendedor.findById(_id);
+        if (!vendedor) return res.status(404).json({ msg: "Vendedor no encontrado." });
+
+        if (!await vendedor.matchPassword(passwordActual)) {
+            return res.status(401).json({ msg: "La contraseña actual es incorrecta." });
+        }
+        
+        vendedor.password = await vendedor.encrypPassword(passwordNuevo);
+        await vendedor.save();
+        
+        res.status(200).json({ msg: "Contraseña actualizada correctamente." });
+    } catch (error) {
+        console.error("Error al actualizar la contraseña:", error);
+        res.status(500).json({ msg: "Error en el servidor al actualizar la contraseña." });
+    }
 };
 
-const recuperarPassword = async (req, res) => { /* ...tu código de recuperación aquí... */ };
-const comprobarTokenPasword = async (req, res) => { /* ...tu código de comprobación de token aquí... */ };
-const crearNuevoPassword = async (req, res) => { /* ...tu código de creación de nuevo password aquí... */ };
+//(Paso 1) Solicitar el restablecimiento de contraseña por olvido.
+
+const recuperarPassword = async (req, res) => {
+    const { email } = req.body;
+    if (!email) return res.status(400).json({ msg: "El correo electrónico es obligatorio." });
+
+    try {
+        const vendedor = await Vendedor.findOne({ email });
+        if (!vendedor) return res.status(404).json({ msg: "No existe un vendedor con ese correo." });
+
+        const token = vendedor.crearToken();
+        vendedor.token = token;
+        
+        await sendMailToRecoveryPassword(email, token);
+        await vendedor.save();
+        
+        res.status(200).json({ msg: "Se ha enviado un correo electrónico con las instrucciones para restablecer tu contraseña." });
+    } catch (error) {
+        console.error("Error en la recuperación de contraseña:", error);
+        res.status(500).json({ msg: "Error en el servidor durante la recuperación." });
+    }
+};
+
+//(Paso 2) Comprobar la validez del token de recuperación.
+
+const comprobarTokenPasword = async (req, res) => {
+    const { token } = req.params;
+    try {
+        const vendedor = await Vendedor.findOne({ token });
+        if (!vendedor) return res.status(404).json({ msg: "El enlace no es válido o ya ha expirado." });
+        
+        res.status(200).json({ msg: "Token válido. Ahora puedes establecer tu nueva contraseña." });
+    } catch (error) {
+        console.error("Error al comprobar el token:", error);
+        res.status(500).json({ msg: "Error en el servidor al validar el token." });
+    }
+};
+
+//(Paso 3) Establecer la nueva contraseña usando el token.
+
+const crearNuevoPassword = async (req, res) => {
+    const { token } = req.params;
+    const { password } = req.body;
+
+    if (!password) return res.status(400).json({ msg: "La nueva contraseña es obligatoria." });
+    if (password.length < 6) return res.status(400).json({ msg: "La contraseña debe tener al menos 6 caracteres." });
+
+    try {
+        const vendedor = await Vendedor.findOne({ token });
+        if (!vendedor) return res.status(404).json({ msg: "El enlace no es válido o ya ha expirado." });
+        
+        vendedor.password = await vendedor.encrypPassword(password);
+        vendedor.token = null; // Limpiar el token
+        
+        await vendedor.save();
+        
+        res.status(200).json({ msg: "¡Contraseña restablecida correctamente! Ya puedes iniciar sesión." });
+    } catch (error) {
+        console.error("Error al crear la nueva contraseña:", error);
+        res.status(500).json({ msg: "Error en el servidor al guardar la nueva contraseña." });
+    }
+};
+
 
 // ============================================================================
 // ==      SECCIÓN DE GESTIÓN DE VENDEDORES (CRUD - Solo para ADMINS)      ==
 // ============================================================================
 
 const crearVendedor = async (req, res) => {
-    const { email, password, nombre, apellido } = req.body;
-    if (!email || !password || !nombre || !apellido) return res.status(400).json({ msg: "Los campos nombre, apellido, email y password son obligatorios" });
+    const { email, nombre, apellido, rol } = req.body; // Nota: ya no se pide password
+    if (!email || !nombre || !apellido) {
+        return res.status(400).json({ msg: "Nombre, apellido y email son obligatorios" });
+    }
+
     try {
         const existeVendedor = await Vendedor.findOne({ email });
         if (existeVendedor) return res.status(400).json({ msg: "El email ya se encuentra registrado" });
-        const nuevoVendedor = new Vendedor(req.body);
-        nuevoVendedor.password = await nuevoVendedor.encrypPassword(password);
+
+        // Se crea el vendedor SIN contraseña y con estado 'pendiente'
+        const nuevoVendedor = new Vendedor({ email, nombre, apellido, rol, status: 'pendiente' });
+
+        // Se crea un token de activación
+        const token = nuevoVendedor.crearToken();
+        nuevoVendedor.token = token;
+
         await nuevoVendedor.save();
-        res.status(201).json({ msg: "Vendedor registrado exitosamente." });
+
+        // Se envía el correo de invitación
+        await sendMailToInviteUser(email, token);
+
+        res.status(201).json({ msg: "Invitación enviada al nuevo vendedor. Debe revisar su correo para activar la cuenta." });
+
     } catch (error) {
-        res.status(500).json({ msg: "Error en el servidor al crear el vendedor." });
+        console.error("Error al crear vendedor:", error);
+        res.status(500).json({ msg: "Error en el servidor al invitar al vendedor." });
+    }
+};
+const configurarCuentaYPassword = async (req, res) => {
+    const { token } = req.params;
+    const { password } = req.body;
+
+    if (!password) {
+        return res.status(400).json({ msg: "La contraseña es obligatoria." });
+    }
+
+    try {
+        const vendedor = await Vendedor.findOne({ token });
+        if (!vendedor) {
+            return res.status(404).json({ msg: "El enlace de activación no es válido o ya ha sido utilizado." });
+        }
+
+        // Se establece la contraseña, se activa la cuenta y se limpia el token
+        vendedor.password = await vendedor.encrypPassword(password);
+        vendedor.status = 'activo';
+        vendedor.token = null;
+        
+        await vendedor.save();
+
+        res.status(200).json({ msg: "¡Cuenta activada! Ahora puedes iniciar sesión con tu nueva contraseña." });
+    } catch (error) {
+        console.error("Error al configurar la cuenta:", error);
+        res.status(500).json({ msg: "Error en el servidor al activar la cuenta." });
     }
 };
 
@@ -130,4 +251,5 @@ export {
     obtenerVendedorPorId,
     actualizarVendedor,
     eliminarVendedor,
+    configurarCuentaYPassword
 };

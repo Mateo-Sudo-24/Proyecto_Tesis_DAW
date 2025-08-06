@@ -4,6 +4,7 @@ import {
     recuperarPassword, 
     comprobarTokenPasword, 
     crearNuevoPassword,
+    configurarCuentaYPassword, // Asegúrate de tener este controlador
     perfil,
     actualizarPerfil,
     actualizarPassword,
@@ -18,26 +19,36 @@ import { esAdmin } from '../middlewares/AuthMiddleware.js';
 
 const router = Router();
 
-// --- AUTH ---
+// =======================================================================
+// ==          RUTAS PÚBLICAS (AUTENTICACIÓN Y CONFIGURACIÓN)           ==
+// =======================================================================
 router.post('/login', login);
 router.post('/recuperar-password', recuperarPassword);
 router.get('/recuperar-password/:token', comprobarTokenPasword);
 router.post('/nuevo-password/:token', crearNuevoPassword);
+// Ruta para que el vendedor invitado establezca su contraseña por primera vez
+router.post('/setup-account/:token', configurarCuentaYPassword);
 
-// --- PERFIL DEL VENDEDOR LOGUEADO ---
-router.use(verificarTokenJWT); // Middleware para las rutas de abajo
-router.get('/perfil', perfil);
-router.put('/perfil', actualizarPerfil);
-router.put('/perfil/password', actualizarPassword);
+// =======================================================================
+// ==             RUTAS DE PERFIL (PARA EL VENDEDOR LOGUEADO)           ==
+// =======================================================================
+router.get('/perfil', verificarTokenJWT, perfil);
+router.put('/perfil', verificarTokenJWT, actualizarPerfil);
+router.put('/perfil/password', verificarTokenJWT, actualizarPassword);
 
-// --- GESTIÓN DE VENDEDORES (SÓLO ADMINS) ---
-router.route('/')
-    .get(esAdmin, obtenerVendedores)
-    .post(esAdmin, crearVendedor);
+// =======================================================================
+// ==             RUTAS DE GESTIÓN (SÓLO PARA ADMINS)                   ==
+// =======================================================================
+// GET /api/vendedores/ -> Obtener todos los vendedores
+router.get('/', verificarTokenJWT, esAdmin, obtenerVendedores);
+// POST /api/vendedores/ -> Crear un vendedor (invitación)
+router.post('/', verificarTokenJWT, esAdmin, crearVendedor);
 
-router.route('/:id')
-    .get(esAdmin, obtenerVendedorPorId)
-    .put(esAdmin, actualizarVendedor)
-    .delete(esAdmin, eliminarVendedor);
+// GET /api/vendedores/:id -> Obtener un vendedor por ID
+router.get('/:id', verificarTokenJWT, esAdmin, obtenerVendedorPorId);
+// PUT /api/vendedores/:id -> Actualizar un vendedor por ID
+router.put('/:id', verificarTokenJWT, esAdmin, actualizarVendedor);
+// DELETE /api/vendedores/:id -> Eliminar un vendedor por ID
+router.delete('/:id', verificarTokenJWT, esAdmin, eliminarVendedor);
 
 export default router;

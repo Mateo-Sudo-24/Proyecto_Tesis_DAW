@@ -59,10 +59,99 @@ const actualizarPerfil = async (req, res) => {
     }
 };
 
-const actualizarPassword = async (req, res) => { /* ...lógica similar a la de vendedor... */ };
-const recuperarPassword = async (req, res) => { /* ...lógica similar a la de vendedor... */ };
-const comprobarTokenPasword = async (req, res) => { /* ...lógica similar a la de vendedor... */ };
-const crearNuevoPassword = async (req, res) => { /* ...lógica similar a la de vendedor... */ };
+const actualizarPassword = async (req, res) => {
+    const { _id } = req.usuario; // ID del token JWT
+    const { passwordActual, passwordNuevo } = req.body;
+
+    if (!passwordActual || !passwordNuevo) {
+        return res.status(400).json({ msg: "Todos los campos son obligatorios." });
+    }
+    if (passwordNuevo.length < 6) {
+        return res.status(400).json({ msg: "La nueva contraseña debe tener al menos 6 caracteres." });
+    }
+
+    try {
+        const cliente = await Cliente.findById(_id);
+        if (!cliente) return res.status(404).json({ msg: "Cliente no encontrado." });
+
+        // Verificar que la contraseña actual es correcta
+        if (!await cliente.matchPassword(passwordActual)) {
+            return res.status(401).json({ msg: "La contraseña actual es incorrecta." });
+        }
+        
+        // Encriptar y guardar la nueva contraseña
+        cliente.password = await cliente.encrypPassword(passwordNuevo);
+        await cliente.save();
+        
+        res.status(200).json({ msg: "Contraseña actualizada correctamente." });
+    } catch (error) {
+        console.error("Error al actualizar la contraseña:", error);
+        res.status(500).json({ msg: "Error en el servidor al actualizar la contraseña." });
+    }
+};
+
+//(Paso 1) Solicitar el restablecimiento de contraseña por olvido.
+
+const recuperarPassword = async (req, res) => {
+    const { email } = req.body;
+    if (!email) return res.status(400).json({ msg: "El correo electrónico es obligatorio." });
+
+    try {
+        const cliente = await Cliente.findOne({ email });
+        if (!cliente) return res.status(404).json({ msg: "No existe un cliente con ese correo." });
+
+        const token = cliente.crearToken();
+        cliente.token = token;
+        
+        await sendMailToRecoveryPassword(email, token); // Llama a tu función de nodemailer
+        await cliente.save();
+        
+        res.status(200).json({ msg: "Se ha enviado un correo electrónico con las instrucciones para restablecer tu contraseña." });
+    } catch (error) {
+        console.error("Error en la recuperación de contraseña:", error);
+        res.status(500).json({ msg: "Error en el servidor durante la recuperación." });
+    }
+};
+
+//(Paso 2) Comprobar la validez del token de recuperación.
+
+const comprobarTokenPasword = async (req, res) => {
+    const { token } = req.params;
+    try {
+        const cliente = await Cliente.findOne({ token });
+        if (!cliente) return res.status(404).json({ msg: "El enlace no es válido o ya ha expirado." });
+        
+        res.status(200).json({ msg: "Token válido. Ahora puedes establecer tu nueva contraseña." });
+    } catch (error) {
+        console.error("Error al comprobar el token:", error);
+        res.status(500).json({ msg: "Error en el servidor al validar el token." });
+    }
+};
+
+//(Paso 3) Establecer la nueva contraseña usando el token.
+
+const crearNuevoPassword = async (req, res) => {
+    const { token } = req.params;
+    const { password } = req.body;
+
+    if (!password) return res.status(400).json({ msg: "La nueva contraseña es obligatoria." });
+    if (password.length < 6) return res.status(400).json({ msg: "La contraseña debe tener al menos 6 caracteres." });
+
+    try {
+        const cliente = await Cliente.findOne({ token });
+        if (!cliente) return res.status(404).json({ msg: "El enlace no es válido o ya ha expirado." });
+        
+        cliente.password = await cliente.encrypPassword(password);
+        cliente.token = null; // Limpiar el token para que no se pueda reutilizar
+        
+        await cliente.save();
+        
+        res.status(200).json({ msg: "¡Contraseña restablecida correctamente! Ya puedes iniciar sesión." });
+    } catch (error) {
+        console.error("Error al crear la nueva contraseña:", error);
+        res.status(500).json({ msg: "Error en el servidor al guardar la nueva contraseña." });
+    }
+};
 
 // ============================================================================
 // ==      SECCIÓN DE GESTIÓN DE CLIENTES (CRUD - Solo para ADMINS)        ==
