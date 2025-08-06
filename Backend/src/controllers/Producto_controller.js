@@ -1,6 +1,8 @@
-import Producto from '../models/Producto.js'
-import fs from 'fs-extra'
-import { v2 as cloudinary } from 'cloudinary' 
+import Producto from '../models/Producto.js';
+import Carrito from '../models/Carrito.js'; // <-- AÑADIR IMPORTACIÓN
+import mongoose from 'mongoose';
+import { v2 as cloudinary } from 'cloudinary';
+import fs from 'fs-extra';
 
 
 const registrarProducto = async (req, res) => {
@@ -86,30 +88,37 @@ const listarProducto = async (req, res) => {
 
 const eliminarProducto = async (req, res) => {
   try {
-    const { id } = req.params
+    const { id } = req.params;
 
-    // Validar que el id es válido
     if (!mongoose.Types.ObjectId.isValid(id)) {
-      return res.status(404).json({ msg: "Lo sentimos, no existe ese producto" })
+      return res.status(400).json({ msg: "El formato del ID del producto no es válido." });
     }
 
-    // Intentar eliminar el producto
-    const productoEliminado = await Producto.findByIdAndDelete(id)
+    const productoEliminado = await Producto.findByIdAndDelete(id);
 
-    // Si no existe producto con ese id
     if (!productoEliminado) {
-      return res.status(404).json({ msg: "Producto no encontrado" })
+      return res.status(404).json({ msg: "Producto no encontrado." });
     }
 
     if (productoEliminado.imagenID) {
-      await cloudinary.uploader.destroy(productoEliminado.imagenID)
+      await cloudinary.uploader.destroy(productoEliminado.imagenID);
     }
-    res.status(200).json({ msg: "Producto eliminado exitosamente" })
+    
+    // <-- INICIO DE CAMBIOS -->
+    // Actualizar todos los carritos que contengan este producto
+    await Carrito.updateMany(
+      { 'items.producto': id },
+      { $pull: { items: { producto: id } } }
+    );
+
+    res.status(200).json({ msg: "Producto eliminado exitosamente y carritos actualizados." });
+    // <-- FIN DE CAMBIOS -->
+
   } catch (error) {
-    console.error(error)
-    res.status(500).json({ msg: "Error al eliminar producto" })
+    console.error("Error al eliminar producto:", error);
+    res.status(500).json({ msg: "Error en el servidor al eliminar el producto." });
   }
-}
+};
 
 const detalleProducto = async (req, res) => {
   const { id } = req.params;

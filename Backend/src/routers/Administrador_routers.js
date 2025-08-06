@@ -1,40 +1,29 @@
 import { Router } from 'express';
 import {
-  actualizar,
-  recuperarPassword,
-  comprobarTokenPassword,
-  crearNuevoPassword,
-  cambiarPassword,
-  login,
-  crearAdministrador,
-  registroVendedor
+    login,
+    crearAdministrador,
+    actualizar,
+    cambiarPassword,
+    recuperarPassword,
+    comprobarTokenPassword,
+    crearNuevoPassword
 } from '../controllers/Administrador_controller.js';
 import { verificarTokenJWT } from '../middlewares/JWT.js';
+import { esAdmin } from '../middlewares/AuthMiddleware.js';
 
 const router = Router();
 
-// Actualizar datos del administrador (excepto password)
-router.put('/actualizar', verificarTokenJWT, actualizar);
+// --- RUTAS PÚBLICAS ---
+router.post('/login', login);
+router.post('/recuperar-password', recuperarPassword);
+router.get('/recuperar-password/:token', comprobarTokenPassword);
+router.post('/nuevo-password/:token', crearNuevoPassword);
 
-// Recuperar contraseña (envía correo con token)
-router.post('/recuperarpassword', verificarTokenJWT, recuperarPassword);
+// --- RUTAS PRIVADAS (Requieren ser ADMIN) ---
+router.use(verificarTokenJWT, esAdmin);
 
-// Comprobar token para recuperación de password
-router.get('/recuperarpassword/:token', verificarTokenJWT, comprobarTokenPassword);
-
-// Crear nueva contraseña con token
-router.post('/nuevopassword/:token', verificarTokenJWT, crearNuevoPassword);
-
-// Cambiar contraseña con contraseña actual
-router.put('/cambiarpassword', verificarTokenJWT, cambiarPassword);
-
-// Login del administrador
-router.post('/login', verificarTokenJWT, login);
-
-// Crear un nuevo administrador (solo para el administrador principal)
-router.post('/crear', crearAdministrador);
-
-// Registrar un nuevo vendedor (hecho por el administrador)
-router.post('/vendedor/registro', verificarTokenJWT, registroVendedor);
+router.post('/', crearAdministrador);
+router.put('/perfil', actualizar);
+router.put('/perfil/password', cambiarPassword);
 
 export default router;

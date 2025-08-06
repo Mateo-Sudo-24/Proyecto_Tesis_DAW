@@ -19,12 +19,14 @@ const clienteSchema = new Schema({
     unique: true
   },
   password: {
-    type: String,
-    required: function () {
-      return this.proveedor === 'local';
-    }
-  }
-,
+  type: String,
+  required: function() { return this.proveedor === 'local'; }
+  },
+  proveedor: {
+  type: String,
+  enum: ['local', 'google'],
+  default: 'local'
+},
   telefono: {
     type: String,
     trim: true,

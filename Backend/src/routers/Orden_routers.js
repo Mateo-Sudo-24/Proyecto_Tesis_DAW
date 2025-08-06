@@ -6,15 +6,23 @@ import {
   actualizarEstadoOrden,
   eliminarOrden
 } from "../controllers/Orden_controller.js";
+import { verificarTokenJWT } from '../middlewares/JWT.js';
+import { esVendedor } from '../middlewares/AuthMiddleware.js';
 
 const router = Router();
 
-router.post("/orden/registro", registrarOrden);
-router.get("/orden/lista", listarOrdenes);
-router.get("/orden/:id", detalleOrden);
-router.patch("/orden/actualizar/:id", actualizarEstadoOrden);
-router.get("/orden/id/:id", buscarOrdenId);
-router.get("/orden/nombre", buscarOrdenNombre);
-router.delete("/orden/eliminar/:id", eliminarOrden);
+// TODAS las rutas de órdenes requieren token
+router.use(verificarTokenJWT);
+
+// Cliente crea una orden, Vendedores/Admins gestionan
+router.route('/')
+    .post(registrarOrden)
+    .get(listarOrdenes);
+
+// Vendedores/Admins gestionan órdenes específicas
+router.route('/:id')
+    .get(detalleOrden)
+    .patch(esVendedor, actualizarEstadoOrden)
+    .delete(esVendedor, eliminarOrden);
 
 export default router;

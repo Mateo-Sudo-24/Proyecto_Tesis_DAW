@@ -2,9 +2,14 @@
 import express from 'express'
 import dotenv from 'dotenv'
 import cors from 'cors'
-import routerAdministrador from './routers/Administrador_routers.js'
-import routerClientes from './routers/Clientes_routers.js'
-import routerVendedores from './routers/Vendedor_routers.js'
+import routerAdministrador from './routers/Administrador_routers.js';
+import routerClientes from './routers/Clientes_routers.js';
+import routerVendedores from './routers/Vendedor_routers.js';
+import routerProductos from './routers/Producto_routers.js';
+import routerOrdenes from './routers/Orden_routers.js'; // AÑADIR/VERIFICAR
+import routerCarrito from './routers/Carrito_routers.js'; // AÑADIR/VERIFICAR
+import routerBot from './routers/Bot_routers.js'; // AÑADIR/VERIFICAR
+import oAuthRoutes from './routers/Oauth_routers.js';
 import mongoose from 'mongoose'
 
 // Inicializaciones
@@ -45,21 +50,17 @@ app.get('/', (req, res) => {
 })
 
 // Rutas específicas
-app.use('/api/admin', routerAdministrador)
-app.use('/api/clientes', routerClientes)
-app.use('/api/vendedores', routerVendedores)
+app.use('/api/admin', routerAdministrador);
+app.use('/api/clientes', routerClientes);
+app.use('/api/vendedores', routerVendedores);
+app.use('/api/productos', routerProductos);
+app.use('/api/ordenes', routerOrdenes); // AÑADIR/VERIFICAR
+app.use('/api/carrito', routerCarrito); // AÑADIR/VERIFICAR
+app.use('/api/bot', routerBot); // AÑADIR/VERIFICAR
+app.use('/api/auth', oAuthRoutes);
 
 // Middleware 404
 app.use((req, res) => res.status(404).send("❌ Endpoint no encontrado - 404"))
-
-// Iniciar servidor
-app.listen(PORT, () => {
-    console.log(`🚀 Servidor corriendo en ${BASE_URL}`)
-    console.log(`📡 API disponible en:`)
-    console.log(`   - Admin: ${BASE_URL}/api/admin`)
-    console.log(`   - Clientes: ${BASE_URL}/api/clientes`)
-    console.log(`   - Vendedores: ${BASE_URL}/api/vendedores`)
-})
 
 // Exportar (opcional)
 export default app
