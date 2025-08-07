@@ -1,5 +1,5 @@
 import Vendedor from '../models/Vendedor.js';
-import { sendMailToRecoveryPassword } from "../config/nodemailer.js";
+import { sendMailToRecoveryPassword, sendMailToInviteUser } from "../config/nodemailer.js";
 import { crearTokenJWT } from '../middlewares/JWT.js';
 import mongoose from 'mongoose';
 
