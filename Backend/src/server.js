@@ -9,6 +9,7 @@ import cloudinary from 'cloudinary';
 import fileUpload from 'express-fileupload';
 import passport from 'passport';
 import session from 'express-session';
+import MongoStore from 'connect-mongo';
 
 // --- Tus Routers --- ¡ESTA ES LA SECCIÓN QUE FALTABA! ---
 import routerAdministrador from './routers/Administrador_routers.js';
@@ -94,9 +95,12 @@ app.use(session({
   secret: process.env.SESSION_SECRET,
   resave: false,
   saveUninitialized: false,
-  store: MongoStore.create({ // ¡AÑADIDO PARA SESIONES PERSISTENTES!
+  store: MongoStore.create({ // Ahora 'MongoStore' está definido y funcionará
     mongoUrl: isProduction ? process.env.MONGODB_URI_PRODUCTION : process.env.MONGODB_URI_LOCAL
-  })
+  }),
+  cookie: {
+    maxAge: 1000 * 60 * 60 * 24 // 1 día
+  }
 }));
 app.use(passport.initialize());
 app.use(passport.session());
