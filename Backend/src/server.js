@@ -10,8 +10,15 @@ import fileUpload from 'express-fileupload';
 import passport from 'passport';
 import session from 'express-session';
 
-// --- Tus Routers ---
-// ... (importa todos tus routers aquí)
+// --- Tus Routers --- ¡ESTA ES LA SECCIÓN QUE FALTABA! ---
+import routerAdministrador from './routers/Administrador_routers.js';
+import routerClientes from './routers/Clientes_routers.js';
+import routerVendedores from './routers/Vendedor_routers.js';
+import routerProductos from './routers/Producto_routers.js';
+import routerOrdenes from './routers/Orden_routers.js';
+import routerCarrito from './routers/Carrito_routers.js';
+import routerBot from './routers/Bot_routers.js';
+import oAuthRoutes from './routers/Oauth_routers.js';
 
 // --- Configuración de Passport ---
 import './config/passport.js';
@@ -32,7 +39,6 @@ const isProduction = process.env.NODE_ENV === 'production';
 
 // --- Puerto y URL Base Dinámicos ---
 const PORT = process.env.PORT || 3000;
-// Selecciona la URL base dependiendo del entorno
 const BASE_URL = isProduction ? process.env.URL_BACKEND_PRODUCTION : process.env.URL_BACKEND_LOCAL;
 app.set('port', PORT);
 
@@ -47,7 +53,6 @@ cloudinary.config({
 mongoose.set('strictQuery', true);
 const connectToDatabase = async () => {
     try {
-        // Selecciona la URI de la base de datos dependiendo del entorno
         const connectionUri = isProduction ? process.env.MONGODB_URI_PRODUCTION : process.env.MONGODB_URI_LOCAL;
         
         if (!connectionUri) {
@@ -69,7 +74,6 @@ await connectToDatabase();
 // ==                           MIDDLEWARES                             ==
 // =======================================================================
 // --- Configuración de CORS Dinámica ---
-// Permite que solo tu frontend de producción o local se conecten.
 const corsOptions = {
     origin: function (origin, callback) {
         const allowedOrigins = [process.env.URL_FRONTEND, process.env.FRONTEND_URL];
@@ -87,9 +91,12 @@ app.use(fileUpload({ useTempFiles: true, tempFileDir: './uploads' }));
 
 // --- Middlewares de Sesión y Passport ---
 app.use(session({
-  secret: process.env.SESSION_SECRET, // Es vital que esto esté en .env
+  secret: process.env.SESSION_SECRET,
   resave: false,
-  saveUninitialized: false
+  saveUninitialized: false,
+  store: MongoStore.create({ // ¡AÑADIDO PARA SESIONES PERSISTENTES!
+    mongoUrl: isProduction ? process.env.MONGODB_URI_PRODUCTION : process.env.MONGODB_URI_LOCAL
+  })
 }));
 app.use(passport.initialize());
 app.use(passport.session());
@@ -98,7 +105,20 @@ app.use(passport.session());
 // =======================================================================
 // ==                              RUTAS                                ==
 // =======================================================================
-// ... (tu bloque de app.use('/api/admin', ...) aquí)
+// --- Ruta principal de bienvenida ---
+app.get('/', (req, res) => {
+    res.send("✅ API Activa - Unitex Backend");
+});
+
+// --- Rutas específicas de la API --- ¡ESTE ES EL BLOQUE QUE FALTABA! ---
+app.use('/api/admin', routerAdministrador);
+app.use('/api/clientes', routerClientes);
+app.use('/api/vendedores', routerVendedores);
+app.use('/api/productos', routerProductos);
+app.use('/api/ordenes', routerOrdenes);
+app.use('/api/carrito', routerCarrito);
+app.use('/api/bot', routerBot);
+app.use('/api/auth', oAuthRoutes); // Rutas para OAuth (Google, etc.)
 
 
 // =======================================================================
