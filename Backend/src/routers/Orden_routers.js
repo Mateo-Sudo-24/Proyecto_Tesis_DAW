@@ -11,27 +11,22 @@ import { esVendedor } from '../middlewares/AuthMiddleware.js';
 
 const router = Router();
 
-// TODAS las rutas de órdenes requieren que el usuario esté autenticado.
-// La diferencia de permisos se maneja en cada ruta.
+// Todas las rutas de órdenes requieren que el usuario esté autenticado.
+router.use(verificarTokenJWT);
 
-// =======================================================================
-// ==                RUTAS DE ORDEN (NIVEL COLECCIÓN)                   ==
-// =======================================================================
-// POST /api/ordenes/ -> Un cliente crea una orden para sí mismo
-router.post('/', verificarTokenJWT, registrarOrden);
-// GET /api/ordenes/ -> Un cliente ve sus órdenes, un vendedor/admin ve todas (con filtros)
-router.get('/', verificarTokenJWT, listarOrdenes);
+// POST /api/ordenes -> Un cliente (o vendedor) crea una orden
+router.post('/', registrarOrden);
 
-// =======================================================================
-// ==                RUTAS DE ORDEN (NIVEL ITEM INDIVIDUAL)             ==
-// =======================================================================
+// GET /api/ordenes -> Un cliente ve sus órdenes, un vendedor/admin ve todas
+router.get('/', listarOrdenes);
+
 // GET /api/ordenes/:id -> Ver el detalle de una orden específica
-router.get('/:id', verificarTokenJWT, detalleOrden);
+router.get('/:id', detalleOrden);
 
-// PATCH /api/ordenes/:id -> Actualizar el estado de una orden (solo Vendedor/Admin)
-router.patch('/:id', verificarTokenJWT, esVendedor, actualizarEstadoOrden);
+// PATCH /api/ordenes/:id -> Actualizar el estado (solo Vendedor/Admin)
+router.patch('/:id', esVendedor, actualizarEstadoOrden);
 
 // DELETE /api/ordenes/:id -> Eliminar una orden (solo Vendedor/Admin)
-router.delete('/:id', verificarTokenJWT, esVendedor, eliminarOrden);
+router.delete('/:id', esVendedor, eliminarOrden);
 
 export default router;
