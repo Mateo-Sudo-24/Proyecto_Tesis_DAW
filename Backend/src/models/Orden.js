@@ -42,8 +42,8 @@ const ordenSchema = new Schema({
   },
 
   precioImpuesto: { type: Number, required: true, default: 0.0 },
-  precioEnvio: { type: Number, required: true, default: 0.0 },
-  precioTotal: { type: Number, required: true, default: 0.0 },
+  precioEnvio: { type: Number, default: 0.0 },
+  precioTotal: { type: Number, default: 0.0 },
 
   estadoPago: { type: Boolean, required: true, default: false },
   fechaPago: { type: Date },
