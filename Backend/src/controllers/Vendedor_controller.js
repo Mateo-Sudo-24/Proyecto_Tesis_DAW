@@ -37,28 +37,41 @@ const actualizarPerfil = async (req, res) => {
 //Actualizar la contraseña del vendedor autenticado (desde su perfil).
 
 const actualizarPassword = async (req, res) => {
-    const { _id } = req.usuario; // ID del token JWT
+    // 1. Obtener el ID del usuario desde el token JWT (más seguro)
+    const { _id } = req.usuario;
+    // 2. Extraer las contraseñas del body de la petición
     const { passwordActual, passwordNuevo } = req.body;
 
+    // 3. Validar que ambas contraseñas fueron enviadas
     if (!passwordActual || !passwordNuevo) {
         return res.status(400).json({ msg: "Todos los campos son obligatorios." });
     }
+    // 4. Validar la longitud de la nueva contraseña
     if (passwordNuevo.length < 6) {
         return res.status(400).json({ msg: "La nueva contraseña debe tener al menos 6 caracteres." });
     }
 
     try {
+        // 5. Buscar al vendedor en la base de datos
         const vendedor = await Vendedor.findById(_id);
-        if (!vendedor) return res.status(404).json({ msg: "Vendedor no encontrado." });
+        if (!vendedor) {
+            return res.status(404).json({ msg: "Vendedor no encontrado." });
+        }
 
+        // 6. Verificar que la contraseña actual proporcionada es correcta
         if (!await vendedor.matchPassword(passwordActual)) {
             return res.status(401).json({ msg: "La contraseña actual es incorrecta." });
         }
         
-        vendedor.password = await vendedor.encrypPassword(passwordNuevo);
+        // 7. Asignar la nueva contraseña en TEXTO PLANO.
+        // El middleware pre('save') del modelo se encargará de hashearla.
+        vendedor.password = passwordNuevo;
+        
+        // 8. Guardar los cambios en la base de datos
         await vendedor.save();
         
         res.status(200).json({ msg: "Contraseña actualizada correctamente." });
+
     } catch (error) {
         console.error("Error al actualizar la contraseña:", error);
         res.status(500).json({ msg: "Error en el servidor al actualizar la contraseña." });
@@ -106,22 +119,36 @@ const comprobarTokenPasword = async (req, res) => {
 //(Paso 3) Establecer la nueva contraseña usando el token.
 
 const crearNuevoPassword = async (req, res) => {
+    // 1. Obtener el token de los parámetros de la URL
     const { token } = req.params;
+    // 2. Obtener la nueva contraseña del body
     const { password } = req.body;
 
-    if (!password) return res.status(400).json({ msg: "La nueva contraseña es obligatoria." });
-    if (password.length < 6) return res.status(400).json({ msg: "La contraseña debe tener al menos 6 caracteres." });
+    // 3. Validar que la nueva contraseña fue enviada y tiene la longitud correcta
+    if (!password) {
+        return res.status(400).json({ msg: "La nueva contraseña es obligatoria." });
+    }
+    if (password.length < 6) {
+        return res.status(400).json({ msg: "La contraseña debe tener al menos 6 caracteres." });
+    }
 
     try {
+        // 4. Buscar a un vendedor que tenga ese token de recuperación
         const vendedor = await Vendedor.findOne({ token });
-        if (!vendedor) return res.status(404).json({ msg: "El enlace no es válido o ya ha expirado." });
+        if (!vendedor) {
+            return res.status(404).json({ msg: "El enlace no es válido o ya ha expirado. Por favor, solicita uno nuevo." });
+        }
         
-        vendedor.password = await vendedor.encrypPassword(password);
-        vendedor.token = null; // Limpiar el token
+        // 5. Asignar la nueva contraseña en TEXTO PLANO y limpiar el token.
+        // El middleware pre('save') del modelo la hasheará.
+        vendedor.password = password;
+        vendedor.token = null;
         
+        // 6. Guardar los cambios en la base de datos
         await vendedor.save();
         
         res.status(200).json({ msg: "¡Contraseña restablecida correctamente! Ya puedes iniciar sesión." });
+
     } catch (error) {
         console.error("Error al crear la nueva contraseña:", error);
         res.status(500).json({ msg: "Error en el servidor al guardar la nueva contraseña." });
@@ -163,27 +190,37 @@ const crearVendedor = async (req, res) => {
     }
 };
 const configurarCuentaYPassword = async (req, res) => {
+    // 1. Obtener el token de activación de los parámetros de la URL
     const { token } = req.params;
+    // 2. Obtener la contraseña del body
     const { password } = req.body;
 
+    // 3. Validar que la contraseña fue enviada y tiene la longitud correcta
     if (!password) {
         return res.status(400).json({ msg: "La contraseña es obligatoria." });
     }
+    if (password.length < 6) {
+        return res.status(400).json({ msg: "La contraseña debe tener al menos 6 caracteres." });
+    }
 
     try {
-        const vendedor = await Vendedor.findOne({ token });
+        // 4. Buscar a un vendedor que tenga ese token de activación y esté 'pendiente'
+        const vendedor = await Vendedor.findOne({ token, status: 'pendiente' });
         if (!vendedor) {
-            return res.status(404).json({ msg: "El enlace de activación no es válido o ya ha sido utilizado." });
+            return res.status(404).json({ msg: "El enlace de activación no es válido o la cuenta ya ha sido activada." });
         }
 
-        // Se establece la contraseña, se activa la cuenta y se limpia el token
-        vendedor.password = await vendedor.encrypPassword(password);
+        // 5. Asignar la contraseña en TEXTO PLANO, cambiar el estado a 'activo' y limpiar el token.
+        // El middleware pre('save') del modelo se encargará del hasheo.
+        vendedor.password = password;
         vendedor.status = 'activo';
         vendedor.token = null;
         
+        // 6. Guardar los cambios en la base de datos
         await vendedor.save();
 
         res.status(200).json({ msg: "¡Cuenta activada! Ahora puedes iniciar sesión con tu nueva contraseña." });
+
     } catch (error) {
         console.error("Error al configurar la cuenta:", error);
         res.status(500).json({ msg: "Error en el servidor al activar la cuenta." });

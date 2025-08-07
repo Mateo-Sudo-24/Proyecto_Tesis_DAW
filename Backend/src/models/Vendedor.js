@@ -20,12 +20,12 @@ const vendedorSchema = new Schema({
   },
   password: {
     type: String,
-    required: false // Hacemos que no sea obligatorio inicialmente
+    required: false // Correcto: no es obligatorio hasta que el vendedor activa su cuenta
   },
-  status: { // Podrías usar un estado para controlar si la cuenta está activa
-      type: String,
-      enum: ['pendiente', 'activo', 'inactivo'],
-      default: 'pendiente'
+  status: { // <-- LA ÚNICA Y CORRECTA DEFINICIÓN
+    type: String,
+    enum: ['pendiente', 'activo', 'inactivo'],
+    default: 'pendiente'
   },
   telefono: {
     type: String,
@@ -37,42 +37,56 @@ const vendedorSchema = new Schema({
     trim: true,
     default: null
   },
-  status: {
-    type: Boolean,
-    default: true
-  },
   token: {
     type: String,
     default: null
   },
+  // El campo confirmEmail no es tan necesario si usas el flujo de activación,
+  // pero lo dejamos por si lo usas en otro lado.
   confirmEmail: {
     type: Boolean,
-    default: false
+    default: false 
   },
   rol: {
     type: String,
     default: "vendedor",
-    enum: ["vendedor", "administrador", "cliente"]
+    enum: ["vendedor"] // Un vendedor solo puede tener el rol de vendedor
   }
 }, {
   timestamps: true
 });
 
-// Encriptar contraseña
-vendedorSchema.methods.encrypPassword = async function (password) {
-  const salt = await bcrypt.genSalt(10);
-  return await bcrypt.hash(password, salt);
-};
+// --- Middleware para encriptar password ANTES de guardar ---
+// Es vital para que la contraseña se guarde hasheada
+vendedorSchema.pre('save', async function(next) {
+    if (!this.isModified('password')) {
+        return next();
+    }
+    try {
+        const salt = await bcrypt.genSalt(10);
+        this.password = await bcrypt.hash(this.password, salt);
+        next();
+    } catch (error) {
+        next(error);
+    }
+});
 
-// Comparar contraseñas
+
+// --- MÉTODOS DEL MODELO ---
+
+// Comparar contraseñas en el LOGIN
 vendedorSchema.methods.matchPassword = async function (password) {
+  // Compara la contraseña del formulario con el hash guardado
+  // Si el campo password está vacío (antes de la activación), la comparación fallará (lo cual es correcto)
+  if (!this.password) return false;
   return await bcrypt.compare(password, this.password);
 };
 
-// Generar token
+// Generar token para recuperación o activación
 vendedorSchema.methods.crearToken = function () {
-  this.token = Math.random().toString(36).slice(2);
-  return this.token;
+  const tokenGenerado = Math.random().toString(36).slice(2);
+  this.token = tokenGenerado;
+  return tokenGenerado;
 };
 
 export default model("Vendedor", vendedorSchema);
