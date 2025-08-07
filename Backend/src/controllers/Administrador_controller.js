@@ -2,10 +2,7 @@ import Administrador from "../models/Administrador.js";
 import { sendMailToRecoveryPassword } from "../config/nodemailer.js";
 import { crearTokenJWT } from "../middlewares/JWT.js";
 
-// Crear el primer administrador o administradores adicionales (solo por otro admin)
 const crearAdministrador = async (req, res) => {
-    // Puedes añadir una lógica para verificar si ya existe un admin principal
-    // y solo permitir la creación si el que hace la petición es un super-admin.
     try {
         const { email, password, nombre, apellido } = req.body;
         if (!email || !password || !nombre || !apellido) {
@@ -15,15 +12,21 @@ const crearAdministrador = async (req, res) => {
         if (existeAdmin) {
             return res.status(400).json({ msg: "El email ya se encuentra registrado para un administrador." });
         }
+        
+        // Se crea la instancia pasando los datos del body.
+        // La contraseña se queda en TEXTO PLANO aquí.
         const nuevoAdmin = new Administrador(req.body);
-        nuevoAdmin.password = await nuevoAdmin.encrypPassword(password);
+        
+        // Al ejecutar .save(), el middleware pre('save') de tu modelo
+        // se encargará de hashear la contraseña automáticamente ANTES de que se guarde.
         await nuevoAdmin.save();
+        
         res.status(201).json({ msg: "Administrador creado exitosamente." });
     } catch (error) {
+        console.error("Error al crear administrador:", error);
         res.status(500).json({ msg: "Error en el servidor al crear el administrador." });
     }
 };
-
 // Login de administrador
 const login = async (req, res) => {
     const { email, password } = req.body;
