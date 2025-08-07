@@ -1,6 +1,6 @@
 import Administrador from '../models/Administrador.js';
 import { verificarTokenJWT } from './JWT.js';
-import { esAdmin } from './AuthBotMiddleware.js';
+import { esAdmin } from './AuthtMiddleware.js';
 
 // Este es un middleware "combinado"
 export const protegerRutaCrearAdmin = async (req, res, next) => {
