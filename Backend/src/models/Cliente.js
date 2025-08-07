@@ -16,17 +16,19 @@ const clienteSchema = new Schema({
     type: String,
     required: true,
     trim: true,
-    unique: true
+    unique: true,
+    lowercase: true
   },
   password: {
-  type: String,
-  required: function() { return this.proveedor === 'local'; }
+    type: String,
+    // La contraseña solo es requerida si el proveedor es 'local' (registro tradicional)
+    required: function() { return this.proveedor === 'local'; }
   },
   proveedor: {
-  type: String,
-  enum: ['local', 'google'],
-  default: 'local'
-},
+    type: String,
+    enum: ['local', 'google'], // Solo se permiten estos dos valores
+    default: 'local'
+  },
   telefono: {
     type: String,
     trim: true,
@@ -52,32 +54,40 @@ const clienteSchema = new Schema({
   rol: {
     type: String,
     default: "cliente",
-    enum: ["cliente", "administrador", "vendedor"]
-  },
-  proveedor: {
-    type: String,
-    default: "local", // puede ser "local" o "google"
-    enum: ["local", "google"]
+    enum: ["cliente"] // Un cliente solo puede tener el rol de cliente
   }
 }, {
   timestamps: true
 });
 
-// Encriptar contraseña
-clienteSchema.methods.encrypPassword = async function (password) {
-  const salt = await bcrypt.genSalt(10);
-  return await bcrypt.hash(password, salt);
-};
+// --- Middleware para hashear la contraseña automáticamente ANTES de guardar ---
+clienteSchema.pre('save', async function(next) {
+    // Si el password no ha sido modificado, o si no hay password (login con Google), no hagas nada.
+    if (!this.isModified('password') || !this.password) {
+        return next();
+    }
+    try {
+        const salt = await bcrypt.genSalt(10);
+        this.password = await bcrypt.hash(this.password, salt);
+        next();
+    } catch (error) {
+        next(error);
+    }
+});
 
-// Comparar contraseñas
+// --- Métodos del Modelo ---
+
+// Comparar contraseñas en el LOGIN
 clienteSchema.methods.matchPassword = async function (password) {
+  if (!this.password) return false; // Si el usuario se registró con Google, no tiene password para comparar
   return await bcrypt.compare(password, this.password);
 };
 
-// Generar token
+// Generar token para recuperación o activación
 clienteSchema.methods.crearToken = function () {
-  this.token = Math.random().toString(36).slice(2);
-  return this.token;
+  const tokenGenerado = Math.random().toString(36).slice(2);
+  this.token = tokenGenerado;
+  return tokenGenerado;
 };
 
 export default model("Cliente", clienteSchema);

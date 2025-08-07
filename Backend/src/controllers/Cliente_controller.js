@@ -4,43 +4,142 @@ import { crearTokenJWT } from '../middlewares/JWT.js';
 import mongoose from 'mongoose';
 
 // ============================================================================
-// ==          SECCIÓN DE REGISTRO Y AUTENTICACIÓN (PARA CLIENTES)         ==
+// ==        BLOQUE 1: RUTAS PÚBLICAS (Registro y Autenticación)           ==
 // ============================================================================
 
+/*Registrar un nuevo cliente con email y contraseña.
+POST /api/clientes/registro*/
 const registro = async (req, res) => {
-    const { email, password } = req.body;
-    if (Object.values(req.body).includes("")) return res.status(400).json({ msg: "Todos los campos son obligatorios" });
-    const verificarEmailBDD = await Cliente.findOne({ email });
-    if (verificarEmailBDD) return res.status(400).json({ msg: "El email ya se encuentra registrado" });
-    const nuevoCliente = new Cliente(req.body);
-    nuevoCliente.password = await nuevoCliente.encrypPassword(password);
-    const token = nuevoCliente.crearToken();
-    await sendMailToRegister(email, token);
-    await nuevoCliente.save();
-    res.status(200).json({ msg: "Revisa tu correo electrónico para confirmar tu cuenta" });
+    const { email } = req.body;
+    if (Object.values(req.body).includes("")) {
+        return res.status(400).json({ msg: "Todos los campos son obligatorios" });
+    }
+
+    try {
+        const existeCliente = await Cliente.findOne({ email });
+        if (existeCliente) {
+            return res.status(400).json({ msg: "El email ya se encuentra registrado" });
+        }       
+        // Se crea la instancia con la contraseña en texto plano.
+        const nuevoCliente = new Cliente(req.body);
+        
+        const token = nuevoCliente.crearToken();
+        await sendMailToRegister(email, token);
+        
+        await nuevoCliente.save(); 
+        
+        res.status(200).json({ msg: "Registro exitoso. Revisa tu correo para confirmar tu cuenta." });
+    } catch (error) {
+        console.error("Error en el registro de cliente:", error);
+        res.status(500).json({ msg: "Error en el servidor durante el registro." });
+    }
 };
 
+/*Confirmar la cuenta de un nuevo cliente usando un token.
+ @route   GET /api/clientes/confirmar/:token */
 const confirmarEmail = async (req, res) => {
     const { token } = req.params;
-    const clienteBDD = await Cliente.findOne({ token });
-    if (!clienteBDD?.token) return res.status(404).json({ msg: "La cuenta ya ha sido confirmada o el token es inválido" });
-    clienteBDD.token = null;
-    clienteBDD.confirmEmail = true;
-    await clienteBDD.save();
-    res.status(200).json({ msg: "Token confirmado, ya puedes iniciar sesión" });
+    try {
+        const cliente = await Cliente.findOne({ token });
+        if (!cliente) {
+            return res.status(404).json({ msg: "El enlace no es válido o la cuenta ya ha sido confirmada." });
+        }
+
+        cliente.token = null;
+        cliente.confirmEmail = true;
+        await cliente.save();
+        
+        res.status(200).json({ msg: "¡Cuenta confirmada exitosamente! Ya puedes iniciar sesión." });
+    } catch (error) {
+        console.error("Error al confirmar email:", error);
+        res.status(500).json({ msg: "Error en el servidor al confirmar la cuenta." });
+    }
 };
 
+/*Iniciar sesión para un cliente.
+POST /api/clientes/login*/
 const login = async (req, res) => {
     const { email, password } = req.body;
-    if (!email || !password) return res.status(400).json({ msg: "Todos los campos son obligatorios" });
-    const cliente = await Cliente.findOne({ email });
-    if (!cliente) return res.status(404).json({ msg: "Usuario no encontrado." });
-    if (!cliente.confirmEmail) return res.status(403).json({ msg: "Debes confirmar tu cuenta antes de iniciar sesión." });
-    if (cliente.proveedor !== 'local' || !await cliente.matchPassword(password)) return res.status(401).json({ msg: "Contraseña incorrecta." });
-    const token = crearTokenJWT(cliente._id, cliente.rol);
-    const { _id, nombre, rol } = cliente;
-    res.status(200).json({ token, _id, nombre, email: cliente.email, rol });
+    if (!email || !password) {
+        return res.status(400).json({ msg: "Todos los campos son obligatorios" });
+    }
+
+    try {
+        const cliente = await Cliente.findOne({ email });
+        if (!cliente) return res.status(404).json({ msg: "Usuario no encontrado." });
+        if (!cliente.confirmEmail) return res.status(403).json({ msg: "Debes confirmar tu cuenta antes de iniciar sesión." });
+        if (cliente.proveedor !== 'local') return res.status(400).json({ msg: "Esta cuenta fue registrada usando Google. Por favor, inicia sesión con Google." });
+        
+        if (!await cliente.matchPassword(password)) {
+            return res.status(401).json({ msg: "Contraseña incorrecta." });
+        }
+        
+        const token = crearTokenJWT(cliente._id, cliente.rol);
+        const { _id, nombre, rol } = cliente;
+        
+        res.status(200).json({ token, _id, nombre, email: cliente.email, rol });
+    } catch (error) {
+        console.error("Error en el login:", error);
+        res.status(500).json({ msg: "Error en el servidor al iniciar sesión." });
+    }
 };
+
+// ============================================================================
+// ==         BLOQUE 2: RUTAS PÚBLICAS (Recuperación de Contraseña)        ==
+// ============================================================================
+
+const recuperarPassword = async (req, res) => {
+    const { email } = req.body;
+    if (!email) return res.status(400).json({ msg: "El correo electrónico es obligatorio." });
+
+    try {
+        const cliente = await Cliente.findOne({ email, proveedor: 'local' });
+        if (!cliente) return res.status(404).json({ msg: "No existe una cuenta local con ese correo." });
+
+        const token = cliente.crearToken();
+        await sendMailToRecoveryPassword(email, token);
+        await cliente.save();
+        
+        res.status(200).json({ msg: "Se ha enviado un correo con las instrucciones." });
+    } catch (error) {
+        res.status(500).json({ msg: "Error en el servidor durante la recuperación." });
+    }
+};
+
+const comprobarTokenPasword = async (req, res) => {
+    const { token } = req.params;
+    try {
+        const cliente = await Cliente.findOne({ token });
+        if (!cliente) return res.status(404).json({ msg: "El enlace no es válido o ya ha expirado." });
+        
+        res.status(200).json({ msg: "Token válido." });
+    } catch (error) {
+        res.status(500).json({ msg: "Error al validar el token." });
+    }
+};
+
+const crearNuevoPassword = async (req, res) => {
+    const { token } = req.params;
+    const { password } = req.body;
+    if (!password || password.length < 6) return res.status(400).json({ msg: "La contraseña es obligatoria y debe tener al menos 6 caracteres." });
+
+    try {
+        const cliente = await Cliente.findOne({ token });
+        if (!cliente) return res.status(404).json({ msg: "El enlace no es válido o ya ha expirado." });
+        
+        cliente.password = password; // Se asigna en texto plano
+        cliente.token = null;
+        await cliente.save(); // El modelo se encarga de hashear
+        
+        res.status(200).json({ msg: "¡Contraseña restablecida correctamente! Ya puedes iniciar sesión." });
+    } catch (error) {
+        res.status(500).json({ msg: "Error al guardar la nueva contraseña." });
+    }
+};
+
+// ============================================================================
+// ==          BLOQUE 3: RUTAS PRIVADAS (Gestión de Perfil Propio)         ==
+// ============================================================================
 
 const perfil = async (req, res) => {
     const cliente = await Cliente.findById(req.usuario._id).select("-password -token -__v");
@@ -60,113 +159,40 @@ const actualizarPerfil = async (req, res) => {
 };
 
 const actualizarPassword = async (req, res) => {
-    const { _id } = req.usuario; // ID del token JWT
+    const { _id } = req.usuario;
     const { passwordActual, passwordNuevo } = req.body;
-
-    if (!passwordActual || !passwordNuevo) {
-        return res.status(400).json({ msg: "Todos los campos son obligatorios." });
-    }
-    if (passwordNuevo.length < 6) {
-        return res.status(400).json({ msg: "La nueva contraseña debe tener al menos 6 caracteres." });
-    }
-
+    if (!passwordActual || !passwordNuevo || passwordNuevo.length < 6) return res.status(400).json({ msg: "Todos los campos son obligatorios y la nueva contraseña debe tener al menos 6 caracteres." });
+    
     try {
         const cliente = await Cliente.findById(_id);
         if (!cliente) return res.status(404).json({ msg: "Cliente no encontrado." });
-
-        // Verificar que la contraseña actual es correcta
-        if (!await cliente.matchPassword(passwordActual)) {
-            return res.status(401).json({ msg: "La contraseña actual es incorrecta." });
-        }
+        if (!await cliente.matchPassword(passwordActual)) return res.status(401).json({ msg: "La contraseña actual es incorrecta." });
         
-        // Encriptar y guardar la nueva contraseña
-        cliente.password = await cliente.encrypPassword(passwordNuevo);
-        await cliente.save();
+        cliente.password = passwordNuevo; // Se asigna en texto plano
+        await cliente.save(); // El modelo se encarga de hashear
         
         res.status(200).json({ msg: "Contraseña actualizada correctamente." });
     } catch (error) {
-        console.error("Error al actualizar la contraseña:", error);
-        res.status(500).json({ msg: "Error en el servidor al actualizar la contraseña." });
-    }
-};
-
-//(Paso 1) Solicitar el restablecimiento de contraseña por olvido.
-
-const recuperarPassword = async (req, res) => {
-    const { email } = req.body;
-    if (!email) return res.status(400).json({ msg: "El correo electrónico es obligatorio." });
-
-    try {
-        const cliente = await Cliente.findOne({ email });
-        if (!cliente) return res.status(404).json({ msg: "No existe un cliente con ese correo." });
-
-        const token = cliente.crearToken();
-        cliente.token = token;
-        
-        await sendMailToRecoveryPassword(email, token); // Llama a tu función de nodemailer
-        await cliente.save();
-        
-        res.status(200).json({ msg: "Se ha enviado un correo electrónico con las instrucciones para restablecer tu contraseña." });
-    } catch (error) {
-        console.error("Error en la recuperación de contraseña:", error);
-        res.status(500).json({ msg: "Error en el servidor durante la recuperación." });
-    }
-};
-
-//(Paso 2) Comprobar la validez del token de recuperación.
-
-const comprobarTokenPasword = async (req, res) => {
-    const { token } = req.params;
-    try {
-        const cliente = await Cliente.findOne({ token });
-        if (!cliente) return res.status(404).json({ msg: "El enlace no es válido o ya ha expirado." });
-        
-        res.status(200).json({ msg: "Token válido. Ahora puedes establecer tu nueva contraseña." });
-    } catch (error) {
-        console.error("Error al comprobar el token:", error);
-        res.status(500).json({ msg: "Error en el servidor al validar el token." });
-    }
-};
-
-//(Paso 3) Establecer la nueva contraseña usando el token.
-
-const crearNuevoPassword = async (req, res) => {
-    const { token } = req.params;
-    const { password } = req.body;
-
-    if (!password) return res.status(400).json({ msg: "La nueva contraseña es obligatoria." });
-    if (password.length < 6) return res.status(400).json({ msg: "La contraseña debe tener al menos 6 caracteres." });
-
-    try {
-        const cliente = await Cliente.findOne({ token });
-        if (!cliente) return res.status(404).json({ msg: "El enlace no es válido o ya ha expirado." });
-        
-        cliente.password = await cliente.encrypPassword(password);
-        cliente.token = null; // Limpiar el token para que no se pueda reutilizar
-        
-        await cliente.save();
-        
-        res.status(200).json({ msg: "¡Contraseña restablecida correctamente! Ya puedes iniciar sesión." });
-    } catch (error) {
-        console.error("Error al crear la nueva contraseña:", error);
-        res.status(500).json({ msg: "Error en el servidor al guardar la nueva contraseña." });
+        res.status(500).json({ msg: "Error al actualizar la contraseña." });
     }
 };
 
 // ============================================================================
-// ==      SECCIÓN DE GESTIÓN DE CLIENTES (CRUD - Solo para ADMINS)        ==
+// ==         BLOQUE 4: RUTAS PRIVADAS (Gestión por Administrador)         ==
 // ============================================================================
 
 const crearClientePorAdmin = async (req, res) => {
     const { email, password, nombre } = req.body;
     if (!email || !password || !nombre) return res.status(400).json({ msg: "Nombre, email y password son obligatorios" });
+
     try {
         const existeCliente = await Cliente.findOne({ email });
         if (existeCliente) return res.status(400).json({ msg: "El email ya se encuentra registrado" });
+        
         const nuevoCliente = new Cliente(req.body);
-        nuevoCliente.password = await nuevoCliente.encrypPassword(password);
         nuevoCliente.confirmEmail = true; // El admin crea usuarios ya confirmados
-        await nuevoCliente.save();
+        await nuevoCliente.save(); // El modelo se encarga de hashear
+        
         res.status(201).json({ msg: "Cliente creado por el administrador." });
     } catch (error) {
         res.status(500).json({ msg: "Error al crear el cliente." });
@@ -213,26 +239,29 @@ const eliminarCliente = async (req, res) => {
     try {
         const clienteEliminado = await Cliente.findByIdAndDelete(id);
         if (!clienteEliminado) return res.status(404).json({ msg: "Cliente no encontrado." });
-        // Opcional: Podrías eliminar también su carrito de compras si existe.
         res.status(200).json({ msg: "Cliente eliminado exitosamente." });
     } catch (error) {
         res.status(500).json({ msg: "Error al eliminar el cliente." });
     }
 };
 
-
+// ============================================================================
+// ==                           EXPORTACIONES                            ==
+// ============================================================================
 export {
-    // Para Clientes
+    // Bloque 1
     registro,
     confirmarEmail,
     login,
-    perfil,
-    actualizarPerfil,
-    actualizarPassword,
+    // Bloque 2
     recuperarPassword,
     comprobarTokenPasword,
     crearNuevoPassword,
-    // PARA ADMINISTRADORES
+    // Bloque 3
+    perfil,
+    actualizarPerfil,
+    actualizarPassword,
+    // Bloque 4
     crearClientePorAdmin,
     obtenerClientes,
     obtenerClientePorId,
