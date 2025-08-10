@@ -2,19 +2,19 @@ import { Schema, model } from "mongoose";
 
 const productoSchema = new Schema({
     nombre: {
-        type : String,
-        required : true,
+        type: String,
+        required: true,
         trim: true
     },
     descripcion: {
         type: String,
         required: true,
-        trim:true
+        trim: true
     },
     categoria: {
-        type: String,
+        type: Schema.Types.ObjectId, // <-- CAMBIO: Referencia a otra colección
+        ref: 'Categoria',
         required: true,
-        trim:true,
     },
     precio: {
         type: Number,
@@ -26,40 +26,47 @@ const productoSchema = new Schema({
         required: true,
         default: 0
     },
-    imagen:{
-        type:  String,
-        required: false
+    // --- CAMPOS DE IMAGEN CORREGIDOS Y REQUERIDOS ---
+    imagenUrl: {
+        type: String,
+        required: true
     },
-
-    descuento:{
+    imagenID: {
+        type: String,
+        required: true
+    },
+    descuento: {
         type: Number,
         required: true,
         default: 0
     },
     color: {
-    type: String,
-    trim: true
+        type: String,
+        trim: true
     },
-    // 🔥 Visibilidad o estado del producto
     estado: {
-      type: String,
-      enum: ['activo', 'inactivo', 'agotado'],
-      default: 'activo'
+        type: String,
+        enum: ['activo', 'inactivo', 'agotado'],
+        default: 'activo'
     },
-
-    // ⭐ Calificación promedio del producto (puedes luego enlazarlo con reviews)
     calificacionPromedio: {
-      type: Number,
-      default: 0
+        type: Number,
+        default: 0
     },
-
-    // 🏷️ Etiquetas o palabras clave (para filtros, SEO interno, etc.)
     etiquetas: [{
-      type: String,
-      trim: true
+        type: String,
+        trim: true
     }],
-
-    // 📅 Fechas automáticas
+    // --- CAMPOS DE ATRIBUCIÓN AÑADIDOS ---
+    creadoPor: {
+        type: Schema.Types.ObjectId,
+        ref: 'Vendedor',
+        required: true
+    },
+    ultimaModificacionPor: {
+        type: Schema.Types.ObjectId,
+        ref: 'Vendedor'
+    }
 }, { timestamps: true });
 
 export default model("Producto", productoSchema);

@@ -7,7 +7,7 @@ import fs from 'fs-extra';
 // POST /api/productos
 // Crear un nuevo producto
 const registrarProducto = async (req, res) => {
-    // Validación explícita de campos
+    // 1. Validación explícita de campos
     const { nombre, descripcion, precio, stock, categoria } = req.body;
     if (!nombre || !descripcion || !precio || !stock || !categoria) {
         return res.status(400).json({ msg: "Todos los campos de texto son obligatorios." });
@@ -17,21 +17,22 @@ const registrarProducto = async (req, res) => {
     }
 
     try {
-        // Crear instancia del producto con datos del body y del token
+        // 2. Crear instancia del producto con datos del body y del token
         const nuevoProducto = new Producto({
             ...req.body,
             creadoPor: req.usuario._id
         });
 
-        // Subir imagen a Cloudinary
+        // 3. Subir imagen a Cloudinary
         const resultadoCloudinary = await cloudinary.uploader.upload(req.files.imagen.tempFilePath, {
             folder: 'Productos'
         });
         
-        // Asignar datos de la imagen
+        // 4. Asignar datos de la imagen a los campos CORRECTOS
         nuevoProducto.imagenUrl = resultadoCloudinary.secure_url;
         nuevoProducto.imagenID = resultadoCloudinary.public_id;
         
+        // 5. Guardar y limpiar
         await nuevoProducto.save();
         await fs.unlink(req.files.imagen.tempFilePath);
 
@@ -68,6 +69,7 @@ const actualizarProducto = async (req, res) => {
             const resultadoCloudinary = await cloudinary.uploader.upload(req.files.imagen.tempFilePath, {
                 folder: 'Productos'
             });
+            // Asignar a los campos CORRECTOS
             producto.imagenUrl = resultadoCloudinary.secure_url;
             producto.imagenID = resultadoCloudinary.public_id;
             await fs.unlink(req.files.imagen.tempFilePath);
@@ -81,8 +83,9 @@ const actualizarProducto = async (req, res) => {
     }
 };
 
-// GET /api/productos
-// Listar productos con filtros, paginación y ordenamiento
+// --- EL RESTO DE TUS FUNCIONES SE MANTIENEN IGUAL ---
+
+// GET /api/productos (con la versión de filtros)
 const listarProducto = async (req, res) => {
     try {
         const { categoria, precioMin, precioMax, busqueda, enStock, ordenarPor, orden, pagina = 1, limite = 10 } = req.query;
@@ -106,7 +109,7 @@ const listarProducto = async (req, res) => {
         if (ordenarPor) {
             sort[ordenarPor] = orden === 'desc' ? -1 : 1;
         } else {
-            sort.createdAt = -1; // Ordenar por más nuevos por defecto
+            sort.createdAt = -1;
         }
 
         const skip = (pagina - 1) * limite;
@@ -125,7 +128,6 @@ const listarProducto = async (req, res) => {
 };
 
 // DELETE /api/productos/:id
-// Eliminar un producto
 const eliminarProducto = async (req, res) => {
   const { id } = req.params;
   if (!mongoose.Types.ObjectId.isValid(id)) {
@@ -142,7 +144,6 @@ const eliminarProducto = async (req, res) => {
       await cloudinary.uploader.destroy(productoEliminado.imagenID);
     }
     
-    // Actualizar todos los carritos que contengan este producto
     await Carrito.updateMany(
       { 'items.producto': id },
       { $pull: { items: { producto: id } } }
@@ -156,7 +157,6 @@ const eliminarProducto = async (req, res) => {
 };
 
 // GET /api/productos/:id
-// Obtener el detalle de un solo producto
 const detalleProducto = async (req, res) => {
   const { id } = req.params;
   if (!mongoose.Types.ObjectId.isValid(id)) {
@@ -175,7 +175,6 @@ const detalleProducto = async (req, res) => {
 };
 
 // GET /api/productos/recientes
-// Obtener los productos más recientes
 const productosRecientes = async (req, res) => {
   try {
     const productos = await Producto.find({ estado: "activo" })
@@ -196,4 +195,3 @@ export {
     detalleProducto,
     productosRecientes
 };
-
