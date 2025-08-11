@@ -20,6 +20,7 @@ function useFetch() {
             // El backend simplemente lo ignorará si la ruta es pública.
             const authToken = JSON.parse(localStorage.getItem("auth-token"))?.state?.token || '';
 
+            // Construir options dinámicamente
             const options = {
                 method,
                 url,
@@ -27,8 +28,12 @@ function useFetch() {
                     "Content-Type": "application/json",
                     "Authorization": `Bearer ${authToken}`,
                 },
-                data,
             };
+
+            // Solo agrega 'data' si el método lo requiere y hay datos
+            if (["POST", "PUT", "PATCH"].includes(method) && data) {
+                options.data = data;
+            }
 
             const response = await axios(options);
             

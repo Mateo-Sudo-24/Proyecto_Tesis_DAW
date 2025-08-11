@@ -1,68 +1,77 @@
-import { useForm } from "react-hook-form";
-import { useNavigate } from "react-router-dom";
-import { toast, ToastContainer } from "react-toastify";
+import { useState, useEffect } from "react";
 import useFetch from "../../hooks/useFetch";
+import { useNavigate } from "react-router-dom";
+import { useForm } from "react-hook-form";
+import { toast, ToastContainer } from "react-toastify";
 
-// Mantenemos el nombre 'Form' como lo tenías para evitar errores de importación.
-export const Form = () => {
+// Puedes pasar vendedorToUpdate como prop para modo edición
+export const Form = ({ vendedorToUpdate }) => {
     const navigate = useNavigate();
-    // Se simplifica el hook useForm, ya que no necesitamos 'setValue' ni 'watch'
-    const { register, handleSubmit, formState: { errors } } = useForm();
+    const { register, handleSubmit, formState: { errors }, reset } = useForm();
     const { fetchDataBackend } = useFetch();
+    const [isSubmitting, setIsSubmitting] = useState(false);
 
-    // Función adaptada y corregida para registrar VENDEDORES
-    const registerVendedor = async (data) => {
-        // El objeto 'data' que recibimos del formulario ahora tendrá los nombres correctos:
-        // { nombre: "...", apellido: "...", email: "..." }
+    // Pre-carga datos si es edición
+    useEffect(() => {
+        if (vendedorToUpdate) {
+            reset({
+                nombre: vendedorToUpdate?.nombre || "",
+                apellido: vendedorToUpdate?.apellido || "",
+                email: vendedorToUpdate?.email || "",
+                direccion: vendedorToUpdate?.direccion || "",
+                telefono: vendedorToUpdate?.telefono || "",
+            });
+        }
+    }, [vendedorToUpdate, reset]);
 
-        // 1. URL del endpoint correcto
-        const url = `${import.meta.env.VITE_BACKEND_URL}/vendedores`;
-
-        // 2. Cabeceras y validación del token de autenticación
+    const onSubmit = async (data) => {
+        setIsSubmitting(true);
         const storedUser = JSON.parse(localStorage.getItem("auth-token"));
         if (!storedUser?.state?.token) {
             toast.error("No estás autenticado. Por favor, inicia sesión de nuevo.");
+            setIsSubmitting(false);
             return;
         }
         const headers = {
-            // CORREGIDO: El Content-Type debe ser 'application/json' porque no estamos enviando archivos.
             "Content-Type": "application/json",
             Authorization: `Bearer ${storedUser.state.token}`,
         };
 
-        // 3. Manejo de errores con try...catch para una mayor robustez
-        try {
-            // CORREGIDO: Enviamos el objeto 'data' directamente como JSON. Ya no se usa FormData.
-            const response = await fetchDataBackend(url, data, "POST", headers);
+        let url = `${import.meta.env.VITE_BACKEND_URL}/vendedores`;
+        let method = "POST";
+        if (vendedorToUpdate?._id) {
+            url = `${import.meta.env.VITE_BACKEND_URL}/vendedores/${vendedorToUpdate._id}`;
+            method = "PUT";
+        }
 
-            // Si la petición es exitosa (useFetch no lanza error)
+        try {
+            const response = await fetchDataBackend(url, data, method, headers);
             if (response) {
-                // El toast de éxito ya lo maneja tu hook useFetch.
-                // Simplemente redirigimos al usuario después de un momento.
+                toast.success(
+                    vendedorToUpdate
+                        ? "Vendedor actualizado correctamente"
+                        : "Vendedor registrado correctamente"
+                );
                 setTimeout(() => {
                     navigate("/dashboard/listar");
-                }, 2000);
+                }, 1500);
             }
         } catch (error) {
-            // El toast de error también lo maneja tu hook useFetch.
-            // Aquí solo dejamos un log para depuración en caso de que algo falle.
-            console.error("Error detallado al registrar el vendedor:", error);
+            toast.error("Ocurrió un error al guardar el vendedor.");
+        } finally {
+            setIsSubmitting(false);
         }
     };
 
     return (
-        // El formulario ahora llama a la función correcta 'registerVendedor'
-        <form onSubmit={handleSubmit(registerVendedor)}>
+        <form onSubmit={handleSubmit(onSubmit)}>
             <ToastContainer />
-
             <fieldset className="border-2 border-gray-500 p-6 rounded-lg shadow-lg">
                 <legend className="text-xl font-bold text-gray-700 bg-gray-200 px-4 py-1 rounded-md">
-                    Información del Vendedor
+                    {vendedorToUpdate ? "Editar Vendedor" : "Registrar Vendedor"}
                 </legend>
 
-                {/* --- SECCIÓN DE FORMULARIO CORREGIDA --- */}
-
-                {/* 4. Campo de Nombres (corregido) */}
+                {/* Nombres */}
                 <div className="mb-5">
                     <label className="mb-2 block text-sm font-semibold">Nombres</label>
                     <input
@@ -74,7 +83,7 @@ export const Form = () => {
                     {errors.nombre && <p className="text-red-800">{errors.nombre.message}</p>}
                 </div>
 
-                {/* 5. Campo de Apellidos (nuevo y requerido por la API) */}
+                {/* Apellidos */}
                 <div className="mb-5">
                     <label className="mb-2 block text-sm font-semibold">Apellidos</label>
                     <input
@@ -86,7 +95,7 @@ export const Form = () => {
                     {errors.apellido && <p className="text-red-800">{errors.apellido.message}</p>}
                 </div>
 
-                {/* 6. Campo de Email (nombre corregido) */}
+                {/* Correo electrónico */}
                 <div className="mb-5">
                     <label className="mb-2 block text-sm font-semibold">Correo electrónico</label>
                     <input
@@ -98,14 +107,43 @@ export const Form = () => {
                     {errors.email && <p className="text-red-800">{errors.email.message}</p>}
                 </div>
 
-                {/* Se eliminó el campo de celular, ya que no es requerido por la API para la creación */}
+                {/* Dirección */}
+                <div className="mb-5">
+                    <label className="mb-2 block text-sm font-semibold">Dirección</label>
+                    <input
+                        type="text"
+                        placeholder="Ingresa la dirección"
+                        className="block w-full rounded-md border border-gray-300 py-1 px-2 text-gray-500"
+                        {...register("direccion", { required: "La dirección es obligatoria" })}
+                    />
+                    {errors.direccion && <p className="text-red-800">{errors.direccion.message}</p>}
+                </div>
+
+                {/* Teléfono */}
+                <div className="mb-5">
+                    <label className="mb-2 block text-sm font-semibold">Teléfono</label>
+                    <input
+                        type="text"
+                        placeholder="Ingresa el teléfono"
+                        className="block w-full rounded-md border border-gray-300 py-1 px-2 text-gray-500"
+                        {...register("telefono", {
+                            required: "El teléfono es obligatorio",
+                            pattern: {
+                                value: /^[0-9]{7,15}$/,
+                                message: "El teléfono debe tener entre 7 y 15 dígitos"
+                            }
+                        })}
+                    />
+                    {errors.telefono && <p className="text-red-800">{errors.telefono.message}</p>}
+                </div>
             </fieldset>
 
             <input
                 type="submit"
                 className="bg-gray-800 w-full p-2 mt-5 text-slate-300 uppercase font-bold rounded-lg 
                 hover:bg-gray-600 cursor-pointer transition-all"
-                value="Registrar Vendedor"
+                value={isSubmitting ? "Guardando..." : vendedorToUpdate ? "Actualizar Vendedor" : "Registrar Vendedor"}
+                disabled={isSubmitting}
             />
         </form>
     );
