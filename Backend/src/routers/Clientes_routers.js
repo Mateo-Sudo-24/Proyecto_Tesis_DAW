@@ -13,7 +13,7 @@ import {
     registro, 
     confirmarEmail, 
     recuperarPassword, 
-    comprobarTokenPasword, 
+    comprobarTokenPassword, 
     crearNuevoPassword, 
     login,
     perfil,
@@ -35,7 +35,7 @@ router.post('/registro', validateClienteRegistro, registro);
 router.get('/confirmar/:token', confirmarEmail);
 router.post('/login', validateLogin, login);
 router.post('/recuperar-password', validatePasswordRecovery, recuperarPassword);
-router.get('/recuperar-password/:token', comprobarTokenPasword);
+router.get('/recuperar-password/:token', comprobarTokenPassword);
 router.post('/nuevo-password/:token', validatePasswordReset, crearNuevoPassword);
 
 // --- RUTAS DE PERFIL (con validación) ---
