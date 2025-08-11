@@ -14,7 +14,7 @@ const Dashboard = () => {
         <div className='md:flex md:min-h-screen'>
             <div className='md:w-1/5 bg-gray-800 px-5 py-4'>
 
-                <h2 className='text-4xl font-black text-center text-slate-200'>Intex</h2>
+                <h2 className='text-4xl font-black text-center text-slate-200'>SmartVET</h2>
 
                 <img src="https://cdn-icons-png.flaticon.com/512/2138/2138508.png" alt="img-client" className="m-auto mt-8 p-1 border-2 border-slate-500 rounded-full" width={120} height={120} />
                 <p className='text-slate-400 text-center my-4 text-sm'> <span className='bg-green-600 w-3 h-3 inline-block rounded-full'>
