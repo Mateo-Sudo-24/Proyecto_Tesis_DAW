@@ -1,23 +1,28 @@
 import { useState } from "react";
-import { Link } from "react-router";
+import { Link, useNavigate } from "react-router-dom"; // Corregido a react-router-dom
 import { useForm } from "react-hook-form";
-import axios from 'axios';
-import { ToastContainer, toast } from 'react-toastify';
+import { ToastContainer } from 'react-toastify';
+import useFetch from '../hooks/useFetch'; // Importamos el hook
 
 export const Register = () => {
     const [showPassword, setShowPassword] = useState(false);
     const { register, handleSubmit, formState: { errors } } = useForm();
-
+    const { fetchDataBackend, isLoading } = useFetch(); // Obtenemos la función y el estado de carga
+    const navigate = useNavigate();
 
     const registro = async (data) => {
-        try {
-            const url = "https://unitex.up.railway.app/api/clientes/registro"; // URL del endpoint de registro
-            const respuesta = await axios.post(url,data)
-            toast.success(respuesta.data.msg)
-        } catch (error) {
-            toast.error(error.response.data.msg)
+        // Construimos la URL dinámicamente
+        const url = `${import.meta.env.VITE_BACKEND_URL}/clientes/registro`;
+        // Usamos nuestro hook centralizado
+        const response = await fetchDataBackend(url, data, 'POST');
+
+        if (response) {
+            // Si el registro es exitoso, esperamos un poco y redirigimos al login
+            setTimeout(() => {
+                navigate('/login');
+            }, 2000);
         }
-    }
+    };
 
     return (
         <div className="flex flex-col sm:flex-row h-screen">
