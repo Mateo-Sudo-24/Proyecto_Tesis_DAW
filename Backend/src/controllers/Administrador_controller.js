@@ -82,16 +82,35 @@ const actualizar = async (req, res) => {
 const cambiarPassword = async (req, res) => {
     const { _id } = req.usuario;
     const { passwordActual, passwordNuevo } = req.body;
+
     if (!passwordActual || !passwordNuevo) {
         return res.status(400).json({ msg: "Todos los campos son obligatorios." });
     }
-    const admin = await Administrador.findById(_id);
-    if (!await admin.matchPassword(passwordActual)) {
-        return res.status(401).json({ msg: "La contraseña actual es incorrecta." });
+    if (passwordNuevo.length < 8) { // Usando la validación de 8 caracteres
+        return res.status(400).json({ msg: "La nueva contraseña debe tener al menos 8 caracteres." });
     }
-    admin.password = await admin.encrypPassword(passwordNuevo);
-    await admin.save();
-    res.status(200).json({ msg: "Contraseña actualizada correctamente." });
+
+    try {
+        const admin = await Administrador.findById(_id);
+        if (!admin) return res.status(404).json({ msg: "Administrador no encontrado." });
+
+        if (!await admin.matchPassword(passwordActual)) {
+            return res.status(401).json({ msg: "La contraseña actual es incorrecta." });
+        }
+        
+        // --- ¡CORRECCIÓN! ---
+        // Se asigna la nueva contraseña en TEXTO PLANO.
+        admin.password = passwordNuevo;
+        
+        // Al guardar, el hook pre('save') se encargará de hashearla automáticamente.
+        await admin.save();
+        
+        res.status(200).json({ msg: "Contraseña actualizada correctamente." });
+
+    } catch (error) {
+        console.error("Error al cambiar la contraseña:", error);
+        res.status(500).json({ msg: "Error en el servidor al cambiar la contraseña." });
+    }
 };
 
 // --- Recuperación de Contraseña ---
@@ -114,16 +133,36 @@ const comprobarTokenPassword = async (req, res) => {
     res.status(200).json({ msg: "Token válido." });
 };
 
+// ...
 const crearNuevoPassword = async (req, res) => {
     const { token } = req.params;
     const { password } = req.body;
-    if (!password) return res.status(400).json({ msg: "La nueva contraseña es obligatoria." });
-    const admin = await Administrador.findOne({ token });
-    if (!admin) return res.status(404).json({ msg: "Token no válido o expirado." });
-    admin.password = await admin.encrypPassword(password);
-    admin.token = null;
-    await admin.save();
-    res.status(200).json({ msg: "Contraseña actualizada correctamente." });
+    
+    if (!password) {
+        return res.status(400).json({ msg: "La nueva contraseña es obligatoria." });
+    }
+    if (password.length < 8) {
+        return res.status(400).json({ msg: "La contraseña debe tener al menos 8 caracteres." });
+    }
+
+    try {
+        const admin = await Administrador.findOne({ token });
+        if (!admin) return res.status(404).json({ msg: "Token no válido o expirado." });
+        
+        // --- ¡CORRECCIÓN! ---
+        // Se asigna la nueva contraseña en TEXTO PLANO.
+        admin.password = password;
+        admin.token = null;
+        
+        // Al guardar, el hook pre('save') se encargará de hashearla automáticamente.
+        await admin.save();
+        
+        res.status(200).json({ msg: "Contraseña actualizada correctamente." });
+
+    } catch (error) {
+        console.error("Error al crear nueva contraseña:", error);
+        res.status(500).json({ msg: "Error en el servidor al crear la nueva contraseña." });
+    }
 };
 
 export {

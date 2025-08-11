@@ -7,30 +7,24 @@ import mongoose from 'mongoose';
 // ==        BLOQUE 1: RUTAS PÚBLICAS (Registro y Autenticación)           ==
 // ============================================================================
 
-/*Registrar un nuevo cliente con email y contraseña.
-POST /api/clientes/registro*/
 const registro = async (req, res) => {
     const { email } = req.body;
-    if (Object.values(req.body).includes("")) {
-        return res.status(400).json({ msg: "Todos los campos son obligatorios" });
-    }
-
+    if (Object.values(req.body).includes("")) return res.status(400).json({ msg: "Todos los campos son obligatorios." });
     try {
         const existeCliente = await Cliente.findOne({ email });
-        if (existeCliente) {
-            return res.status(400).json({ msg: "El email ya se encuentra registrado" });
-        }       
+        if (existeCliente) return res.status(400).json({ msg: "El email ya se encuentra registrado." });
+        
         // Se crea la instancia con la contraseña en texto plano.
         const nuevoCliente = new Cliente(req.body);
         
         const token = nuevoCliente.crearToken();
         await sendMailToRegister(email, token);
         
+        // El middleware pre('save') del modelo se encargará del hasheo.
         await nuevoCliente.save(); 
         
         res.status(200).json({ msg: "Registro exitoso. Revisa tu correo para confirmar tu cuenta." });
     } catch (error) {
-        console.error("Error en el registro de cliente:", error);
         res.status(500).json({ msg: "Error en el servidor durante el registro." });
     }
 };
@@ -51,7 +45,6 @@ const confirmarEmail = async (req, res) => {
         
         res.status(200).json({ msg: "¡Cuenta confirmada exitosamente! Ya puedes iniciar sesión." });
     } catch (error) {
-        console.error("Error al confirmar email:", error);
         res.status(500).json({ msg: "Error en el servidor al confirmar la cuenta." });
     }
 };
@@ -61,7 +54,7 @@ POST /api/clientes/login*/
 const login = async (req, res) => {
     const { email, password } = req.body;
     if (!email || !password) {
-        return res.status(400).json({ msg: "Todos los campos son obligatorios" });
+        return res.status(400).json({ msg: "Todos los campos son obligatorios." });
     }
 
     try {
@@ -79,7 +72,6 @@ const login = async (req, res) => {
         
         res.status(200).json({ token, _id, nombre, email: cliente.email, rol });
     } catch (error) {
-        console.error("Error en el login:", error);
         res.status(500).json({ msg: "Error en el servidor al iniciar sesión." });
     }
 };
@@ -106,7 +98,7 @@ const recuperarPassword = async (req, res) => {
     }
 };
 
-const comprobarTokenPasword = async (req, res) => {
+const comprobarTokenPassword = async (req, res) => {
     const { token } = req.params;
     try {
         const cliente = await Cliente.findOne({ token });
@@ -122,14 +114,13 @@ const crearNuevoPassword = async (req, res) => {
     const { token } = req.params;
     const { password } = req.body;
     if (!password || password.length < 6) return res.status(400).json({ msg: "La contraseña es obligatoria y debe tener al menos 6 caracteres." });
-
     try {
         const cliente = await Cliente.findOne({ token });
         if (!cliente) return res.status(404).json({ msg: "El enlace no es válido o ya ha expirado." });
         
-        cliente.password = password; // Se asigna en texto plano
+        cliente.password = password;
         cliente.token = null;
-        await cliente.save(); // El modelo se encarga de hashear
+        await cliente.save();
         
         res.status(200).json({ msg: "¡Contraseña restablecida correctamente! Ya puedes iniciar sesión." });
     } catch (error) {
@@ -152,7 +143,7 @@ const actualizarPerfil = async (req, res) => {
     const { password, rol, ...datosActualizar } = req.body;
     try {
         const clienteActualizado = await Cliente.findByIdAndUpdate(_id, datosActualizar, { new: true }).select("-password -token -__v");
-        res.status(200).json({ msg: "Perfil actualizado correctamente", cliente: clienteActualizado });
+        res.status(200).json({ msg: "Perfil actualizado correctamente.", cliente: clienteActualizado });
     } catch (error) {
         res.status(500).json({ msg: "Error al actualizar el perfil." });
     }
@@ -168,8 +159,8 @@ const actualizarPassword = async (req, res) => {
         if (!cliente) return res.status(404).json({ msg: "Cliente no encontrado." });
         if (!await cliente.matchPassword(passwordActual)) return res.status(401).json({ msg: "La contraseña actual es incorrecta." });
         
-        cliente.password = passwordNuevo; // Se asigna en texto plano
-        await cliente.save(); // El modelo se encarga de hashear
+        cliente.password = passwordNuevo;
+        await cliente.save();
         
         res.status(200).json({ msg: "Contraseña actualizada correctamente." });
     } catch (error) {
@@ -183,15 +174,14 @@ const actualizarPassword = async (req, res) => {
 
 const crearClientePorAdmin = async (req, res) => {
     const { email, password, nombre } = req.body;
-    if (!email || !password || !nombre) return res.status(400).json({ msg: "Nombre, email y password son obligatorios" });
-
+    if (!email || !password || !nombre) return res.status(400).json({ msg: "Nombre, email y password son obligatorios." });
     try {
         const existeCliente = await Cliente.findOne({ email });
-        if (existeCliente) return res.status(400).json({ msg: "El email ya se encuentra registrado" });
+        if (existeCliente) return res.status(400).json({ msg: "El email ya se encuentra registrado." });
         
         const nuevoCliente = new Cliente(req.body);
-        nuevoCliente.confirmEmail = true; // El admin crea usuarios ya confirmados
-        await nuevoCliente.save(); // El modelo se encarga de hashear
+        nuevoCliente.confirmEmail = true;
+        await nuevoCliente.save();
         
         res.status(201).json({ msg: "Cliente creado por el administrador." });
     } catch (error) {
@@ -227,7 +217,7 @@ const actualizarClientePorAdmin = async (req, res) => {
     try {
         const clienteActualizado = await Cliente.findByIdAndUpdate(id, datosActualizar, { new: true }).select("-password -token -__v");
         if (!clienteActualizado) return res.status(404).json({ msg: "Cliente no encontrado." });
-        res.status(200).json({ msg: "Cliente actualizado exitosamente", cliente: clienteActualizado });
+        res.status(200).json({ msg: "Cliente actualizado exitosamente.", cliente: clienteActualizado });
     } catch (error) {
         res.status(500).json({ msg: "Error al actualizar el cliente." });
     }
@@ -255,7 +245,7 @@ export {
     login,
     // Bloque 2
     recuperarPassword,
-    comprobarTokenPasword,
+    comprobarTokenPassword,
     crearNuevoPassword,
     // Bloque 3
     perfil,
