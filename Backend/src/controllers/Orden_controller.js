@@ -3,9 +3,9 @@ import Cliente from "../models/Cliente.js";
 import Carrito from '../models/Carrito.js';
 import Producto from '../models/Producto.js';
 import mongoose from "mongoose";
-import { stripe } from 'stripe'
+import { Stripe } from 'stripe'
 
-const stripe = new stripe(process.env.STRIPE_PRIVATE_KEY);
+const stripe = new Stripe(process.env.STRIPE_PRIVATE_KEY);
 
 // POST /api/ordenes
 // Crear una nueva orden
