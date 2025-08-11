@@ -3,12 +3,14 @@ import { useForm } from 'react-hook-form';
 import { Link, useNavigate } from 'react-router';
 import useFetch from '../hooks/useFetch';
 import { ToastContainer,toast } from 'react-toastify';
+import storeAuth from '../context/storeAuth';
 
 const Login = () => {
     const navigate = useNavigate()
     const [showPassword, setShowPassword] = useState(false);
     const { register, handleSubmit, formState: { errors } } = useForm()
     const { fetchDataBackend } = useFetch()
+    const {setToken , setRol} = storeAuth() 
 
     const loginUser = async (data) => {
     const baseUrl = import.meta.env.VITE_BACKEND_URL;
@@ -17,7 +19,8 @@ const Login = () => {
     for (let role of roles) {
         const url = `${baseUrl}/${role}/login`;
         const response = await fetchDataBackend(url, data, 'POST');
-
+        setToken(response.token);
+        setRol(response.role);
         if (response) {
             navigate('/dashboard');
             return;
