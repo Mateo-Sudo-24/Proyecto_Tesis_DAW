@@ -24,22 +24,19 @@ const registrarOrden = async (req, res) => {
         }
 
         let precioTotal = 0;
-        const productosPedido = [];
-        
-        for (const item of carrito.items) {
+        const productosPedido = carrito.items.map(item => {
             if (!item.producto) throw new Error(`Un producto en tu carrito ya no está disponible.`);
             if (item.producto.stock < item.cantidad) throw new Error(`Stock insuficiente para: ${item.producto.nombre}`);
             
             precioTotal += item.cantidad * item.producto.precio;
-            
-            productosPedido.push({
+            return {
                 nombre: item.producto.nombre,
                 cantidad: item.cantidad,
-                imagen: item.producto.imagenUrl, // Si es undefined, no se añadirá, lo cual es correcto
+                imagen: item.producto.imagenUrl,
                 precio: item.producto.precio,
                 producto: item.producto._id
-            });
-        }
+            };
+        });
         
         const orden = new Orden({
             cliente: clienteId,
@@ -61,7 +58,6 @@ const registrarOrden = async (req, res) => {
         await carrito.save();
 
         res.status(201).json({ msg: "Orden creada exitosamente", orden });
-
     } catch (error) {
         if (error.message.startsWith('Stock insuficiente') || error.message.startsWith('Un producto en tu carrito')) {
             return res.status(400).json({ msg: error.message });
@@ -166,7 +162,7 @@ const eliminarOrden = async (req, res) => {
 
 // POST /api/pagos/crear-intento-pago
 // Procesar un pago de orden con Stripe
-export const procesarPagoOrden = async (req, res) => {
+const procesarPagoOrden = async (req, res) => {
     const { ordenId, paymentMethodId } = req.body;
     const clienteId = req.usuario._id;
 
@@ -208,7 +204,6 @@ export const procesarPagoOrden = async (req, res) => {
         } else {
             return res.status(400).json({ msg: "El pago no pudo ser procesado por Stripe." });
         }
-
     } catch (error) {
         console.error("Error al procesar el pago:", error);
         return res.status(500).json({ msg: "Error en el servidor al procesar el pago.", error: error.message });
