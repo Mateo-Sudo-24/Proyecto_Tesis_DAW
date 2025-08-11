@@ -108,13 +108,13 @@ const crearNuevoPassword = async (req, res) => {
 // ============================================================================
 
 const crearVendedor = async (req, res) => {
-    const { email, nombre, apellido, rol } = req.body;
-    if (!email || !nombre || !apellido) return res.status(400).json({ msg: "Nombre, apellido y email son obligatorios." });
+    const { email, nombre, apellido, telefono, direccion, rol } = req.body;
+    if (!email || !nombre || !apellido || !telefono || !direccion) return res.status(400).json({ msg: "Nombre, apellido, email, teléfono y dirección son obligatorios." });
     try {
         const existeVendedor = await Vendedor.findOne({ email });
         if (existeVendedor) return res.status(400).json({ msg: "El email ya se encuentra registrado." });
 
-        const nuevoVendedor = new Vendedor({ email, nombre, apellido, rol, status: 'pendiente' });
+        const nuevoVendedor = new Vendedor({ email, nombre, apellido, telefono, direccion, rol, status: 'pendiente' });
         const token = nuevoVendedor.crearToken();
         await nuevoVendedor.save();
         await sendMailToInviteUser(email, token);

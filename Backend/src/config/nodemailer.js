@@ -2,6 +2,7 @@ import nodemailer from "nodemailer";
 import dotenv from 'dotenv';
 dotenv.config();
 
+// Configuración del transportador de correo (usando tus credenciales de Gmail)
 let transporter = nodemailer.createTransport({
     service: 'gmail',
     host: process.env.HOST_MAILTRAP,
@@ -12,6 +13,7 @@ let transporter = nodemailer.createTransport({
     }
 });
 
+// Paleta de colores y estilos base para todos los correos
 const COLORS = {
     primary: '#B2753B',
     background: '#FEFAF1',
@@ -20,187 +22,117 @@ const COLORS = {
 
 const baseStyle = `
     <style>
-        body {
-            margin: 0;
-            padding: 0;
-            background-color: ${COLORS.background};
-            font-family: Arial, sans-serif;
-            color: ${COLORS.text};
-        }
-        .container {
-            max-width: 600px;
-            margin: 20px auto;
-            background: #fff;
-            border: 1px solid ${COLORS.primary}33;
-            border-radius: 8px;
-            padding: 30px;
-        }
-        h2 {
-            color: ${COLORS.primary};
-            text-align: center;
-        }
-        p {
-            font-size: 16px;
-            line-height: 1.5;
-        }
-        .button {
-            display: inline-block;
-            background-color: ${COLORS.primary};
-            color: #fff;
-            padding: 14px 28px;
-            border-radius: 5px;
-            text-decoration: none;
-            font-weight: bold;
-        }
-        .button-container {
-            text-align: center;
-            margin: 40px 0;
-        }
-        hr {
-            border: none;
-            border-top: 1px solid ${COLORS.primary}33;
-            margin: 40px 0;
-        }
-        footer {
-            font-size: 12px;
-            color: #888;
-            text-align: center;
-        }
-        @media only screen and (max-width: 600px) {
-            .container {
-                padding: 20px;
-                margin: 10px;
-            }
-            .button {
-                display: block;
-                width: 100%;
-                text-align: center;
-                box-sizing: border-box;
-            }
-        }
+        body { margin: 0; padding: 0; background-color: ${COLORS.background}; font-family: Arial, sans-serif; color: ${COLORS.text}; }
+        .container { max-width: 600px; margin: 20px auto; background: #fff; border: 1px solid #e0e0e0; border-radius: 8px; padding: 30px; }
+        h2 { color: ${COLORS.primary}; text-align: center; }
+        p { font-size: 16px; line-height: 1.5; }
+        .button-container { text-align: center; margin: 30px 0; }
+        .button { display: inline-block; background-color: ${COLORS.primary}; color: #ffffff !important; padding: 14px 28px; border-radius: 5px; text-decoration: none; font-weight: bold; }
+        hr { border: none; border-top: 1px solid #e0e0e0; margin: 30px 0; }
+        footer { font-size: 12px; color: #888; text-align: center; }
     </style>
-`;    
+`;
 
+// --- PLANTILLAS DE CORREO ---
+
+/**
+ * Correo para confirmar la cuenta de un nuevo usuario (Cliente o Admin).
+ * @param {string} userMail - El email del destinatario.
+ * @param {string} token - El token de confirmación.
+ */
 const sendMailToRegister = async (userMail, token) => {
-    let mailOptions = {
-        from: 'admin@unitex.com',
+    const confirmationLink = `${process.env.URL_FRONTEND}/confirmar/${token}`;
+    const mailOptions = {
+        from: `"Soporte Unitex" <${process.env.USER_MAILTRAP}>`,
         to: userMail,
-        subject: "Unitex - Confirmación de cuenta",
+        subject: "Unitex - Confirma tu cuenta",
         html: `
-            <!DOCTYPE html>
-        <html lang="es">
-        <head>
-            <meta charset="UTF-8">
-            <meta name="viewport" content="width=device-width, initial-scale=1.0">
-            ${baseStyle}
-        </head>
-        <body>
+            <!DOCTYPE html><html lang="es"><head><meta charset="UTF-8">${baseStyle}</head><body>
             <div class="container">
                 <h2>¡Bienvenido a Unitex!</h2>
-                <p>Hola,</p>
-                <p>
-                    Gracias por unirte a <strong>Unitex</strong>. Para completar tu registro, confirma tu correo electrónico haciendo clic en el siguiente botón:
-                </p>
+                <p>Gracias por registrarte. Para completar tu registro y activar tu cuenta, por favor haz clic en el siguiente botón:</p>
                 <div class="button-container">
-                    <a href="${process.env.URL_FRONTEND}/confirm/${token}" class="button">Confirmar Cuenta</a>
+                    <a href="${confirmationLink}" class="button">Confirmar Mi Cuenta</a>
                 </div>
-                <p>Si no realizaste esta solicitud, ignora este correo.</p>
+                <p>Si no realizaste esta solicitud, puedes ignorar este correo de forma segura.</p>
                 <hr>
-                <footer>
-                    © ${new Date().getFullYear()} Unitex - Todos los derechos reservados.
-                </footer>
-            </div>
-        </body>
-        </html>
-        `
+                <footer>© ${new Date().getFullYear()} Unitex. Todos los derechos reservados.</footer>
+            </div></body></html>`
     };
-
-    try {
-        let info = await transporter.sendMail(mailOptions);
-        console.log("Mensaje enviado satisfactoriamente: ", info.messageId);
-    } catch (error) {
-        console.error("Error enviando correo de confirmación: ", error);
-    }
-};
-
-const sendMailToRecoveryPassword = async (userMail, token) => {
-    let mailOptions = {
-        from: 'admin@unitex.com',
-        to: userMail,
-        subject: "Unitex - Reestablece tu contraseña",
-        html: `
-            <!DOCTYPE html>
-        <html lang="es">
-        <head>
-            <meta charset="UTF-8">
-            <meta name="viewport" content="width=device-width, initial-scale=1.0">
-            ${baseStyle}
-        </head>
-        <body>
-            <div class="container">
-                <h2>Restablece tu contraseña</h2>
-                <p>Hola,</p>
-                <p>
-                    Hemos recibido una solicitud para restablecer la contraseña de tu cuenta de <strong>Unitex</strong>. Para continuar, haz clic en el siguiente botón:
-                </p>
-                <div class="button-container">
-                    <a href="${process.env.URL_FRONTEND}/reset/${token}" class="button">Restablecer Contraseña</a>
-                </div>
-                <p>Si no solicitaste este cambio, ignora este correo. Tu contraseña actual permanecerá segura.</p>
-                <hr>
-                <footer>
-                    © ${new Date().getFullYear()} Unitex - Todos los derechos reservados.
-                </footer>
-            </div>
-        </body>
-        </html>
-        `
-    };
-
-    try {
-        let info = await transporter.sendMail(mailOptions);
-        console.log("Mensaje enviado satisfactoriamente: ", info.messageId);
-    } catch (error) {
-        console.error("Error enviando correo de recuperación: ", error);
-    }
-};
-const sendMailToInviteUser = async (userMail, token) => {
-    let mailOptions = {
-        from: 'admin@unitex.com',
-        to: userMail,
-        subject: "Unitex - ¡Has sido invitado!",
-        html: `
-            <!DOCTYPE html>
-            <html>
-            <!-- ... (usa tu misma plantilla HTML base) ... -->
-            <body>
-                <div class="container">
-                    <h2>Configura tu cuenta en Unitex</h2>
-                    <p>Hola,</p>
-                    <p>
-                        Has sido invitado a unirte a <strong>Unitex</strong>. Para activar tu cuenta y establecer tu contraseña personal, por favor haz clic en el botón de abajo.
-                    </p>
-                    <div class="button-container">
-                        <a href="${process.env.URL_FRONTEND}/setup-account/${token}" class="button">Activar Mi Cuenta</a>
-                    </div>
-                    <p>Este enlace es válido por un tiempo limitado. Si no esperabas esta invitación, puedes ignorar este correo.</p>
-                    <hr>
-                    <footer>© ${new Date().getFullYear()} Unitex</footer>
-                </div>
-            </body>
-            </html>
-        `
-    };
-
     try {
         await transporter.sendMail(mailOptions);
-        console.log("Correo de invitación enviado satisfactoriamente.");
+        console.log("Correo de confirmación enviado a:", userMail);
     } catch (error) {
-        console.error("Error enviando correo de invitación: ", error);
+        console.error("Error al enviar correo de confirmación:", error);
     }
 };
-export {
-    sendMailToRegister,
-    sendMailToRecoveryPassword,
-    sendMailToInviteUser
+
+/**
+ * Correo para permitir a un usuario restablecer su contraseña olvidada.
+ * @param {string} userMail - El email del destinatario.
+ * @param {string} token - El token de recuperación.
+ */
+const sendMailToRecoveryPassword = async (userMail, token) => {
+    const recoveryLink = `${process.env.URL_FRONTEND}/reset/${token}`;
+    const mailOptions = {
+        from: `"Soporte Unitex" <${process.env.USER_MAILTRAP}>`,
+        to: userMail,
+        subject: "Unitex - Restablece tu contraseña",
+        html: `
+            <!DOCTYPE html><html lang="es"><head><meta charset="UTF-8">${baseStyle}</head><body>
+            <div class="container">
+                <h2>Restablece tu Contraseña</h2>
+                <p>Hemos recibido una solicitud para restablecer la contraseña de tu cuenta. Para crear una nueva, haz clic en el siguiente botón:</p>
+                <div class="button-container">
+                    <a href="${recoveryLink}" class="button">Crear Nueva Contraseña</a>
+                </div>
+                <p>Si tú no solicitaste este cambio, por favor ignora este correo. Tu cuenta permanece segura.</p>
+                <hr>
+                <footer>© ${new Date().getFullYear()} Unitex. Todos los derechos reservados.</footer>
+            </div></body></html>`
+    };
+    try {
+        await transporter.sendMail(mailOptions);
+        console.log("Correo de recuperación enviado a:", userMail);
+    } catch (error) {
+        console.error("Error al enviar correo de recuperación:", error);
+    }
+};
+
+/**
+ * Correo para invitar a un nuevo Vendedor a activar su cuenta.
+ * @param {string} userMail - El email del destinatario.
+ * @param {string} token - El token de activación.
+ */
+const sendMailToInviteUser = async (userMail, token) => {
+    const inviteLink = `${process.env.URL_FRONTEND}/vendedores/setup-account/${token}`;
+    const mailOptions = {
+        from: `"Soporte Unitex" <${process.env.USER_MAILTRAP}>`,
+        to: userMail,
+        subject: "Unitex - ¡Has sido invitado a unirte!",
+        html: `
+            <!DOCTYPE html><html lang="es"><head><meta charset="UTF-8">${baseStyle}</head><body>
+            <div class="container">
+                <h2>¡Bienvenido al Equipo Unitex!</h2>
+                <p>Has sido invitado a unirte a la plataforma de Unitex como vendedor. Para activar tu cuenta y establecer tu contraseña personal, haz clic en el botón de abajo:</p>
+                <div class="button-container">
+                    <a href="${inviteLink}" class="button">Activar Mi Cuenta</a>
+                </div>
+                <p>Este enlace es de un solo uso y expirará por seguridad. Si no esperabas esta invitación, puedes ignorar este correo.</p>
+                <hr>
+                <footer>© ${new Date().getFullYear()} Unitex. Todos los derechos reservados.</footer>
+            </div></body></html>`
+    };
+    try {
+        await transporter.sendMail(mailOptions);
+        console.log("Correo de invitación enviado a:", userMail);
+    } catch (error) {
+        console.error("Error al enviar correo de invitación:", error);
+    }
+};
+
+export { 
+    sendMailToRegister, 
+    sendMailToRecoveryPassword, 
+    sendMailToInviteUser 
 };

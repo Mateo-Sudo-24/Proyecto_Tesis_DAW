@@ -5,6 +5,7 @@ import Login from './pages/Login'
 import { Register } from './pages/Register'
 import { Forgot } from './pages/Forgot'
 import { Confirm } from './pages/Confirm'
+import  SetupAccount  from './pages/setupAccount'
 import { NotFound } from './pages/NotFound'
 import Dashboard from './layout/Dashboard'
 import Profile from './pages/Profile'
@@ -47,6 +48,7 @@ function App() {
             <Route path='register' element={<Register />} />
             <Route path='forgot/:id' element={<Forgot />} />
             <Route path='confirm/:token' element={<Confirm />} />
+            <Route path="/vendedores/setup-account/:token" element={<SetupAccount />} />
             <Route path='reset/:token' element={<Reset />} />
             <Route path='*' element={<NotFound />} />
 

@@ -56,23 +56,32 @@ const Table = () => {
         );
     }
     const deleteVendedor = async (id) => {
+        // --- INICIO DE LA MODIFICACIÓN ---
+        // 1. Mostramos por consola el ID que se va a eliminar
+        console.log("ID del vendedor a eliminar:", id);
+        // --- FIN DE LA MODIFICACIÓN ---
+
         const confirmDelete = window.confirm("Vas a eliminar este vendedor de forma permanente. ¿Estás seguro?");
         if (confirmDelete) {
             try {
                 const url = `${import.meta.env.VITE_BACKEND_URL}/vendedores/${id}`;
                 const storedUser = JSON.parse(localStorage.getItem("auth-token"));
+                
+                // Cabeceras correctas: Solo autorización para DELETE
                 const headers = {
                     Authorization: `Bearer ${storedUser.state.token}`,
                 };
-                // No envíes undefined como segundo parámetro, solo headers
-                const response = await fetchDataBackend(url, null, "DELETE", headers);
-
+                
+                const response = await fetchDataBackend(url, undefined, "DELETE", headers);
+                
                 if (response?.msg) {
                     setVendedores((prevVendedores) => prevVendedores.filter(vendedor => vendedor._id !== id));
+                    // El toast de éxito ya lo maneja useFetch si está configurado para ello
                 } else {
                     toast.error(response?.msg || "No se pudo eliminar el vendedor.");
                 }
             } catch (error) {
+                // El toast de error ya lo maneja useFetch
                 console.error("Error detallado al eliminar el vendedor:", error);
             }
         }
@@ -117,7 +126,6 @@ const Table = () => {
                             <MdPublishedWithChanges
                                 title="Actualizar"
                                 className="h-7 w-7 text-slate-800 cursor-pointer inline-block mr-2 hover:text-blue-600"
-                             onClick={() => navigate(`/dashboard/actualizar/${vendedor._id}`)}
                             />
                             <MdInfo
                                 title="Más información"
@@ -137,4 +145,4 @@ const Table = () => {
     );
 };
 
-export default Table;
+export default Table;   
