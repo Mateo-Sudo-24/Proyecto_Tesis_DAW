@@ -44,7 +44,28 @@ const login = async (req, res) => {
     const { _id, nombre, rol } = admin;
     res.status(200).json({ token, _id, nombre, email: admin.email, rol });
 };
+// GET /api/admin/perfil -> Obtener el perfil del PROPIO administrador autenticado
+const perfil = async (req, res) => {
+    // La información ya fue verificada y adjuntada por el middleware verificarTokenJWT
+    // req.usuario contiene los datos del admin que hace la petición
+    const admin = await Administrador.findById(req.usuario._id).select('-password -token -__v');
+    if (!admin) {
+        return res.status(404).json({ msg: "Administrador no encontrado." });
+    }
+    res.status(200).json(admin);
+};
 
+// GET /api/admin/ -> Obtener la lista de TODOS los administradores
+const obtenerAdministradores = async (req, res) => {
+    try {
+        // Busca todos los documentos y excluye campos sensibles
+        const administradores = await Administrador.find().select('-password -token -__v');
+        res.status(200).json(administradores);
+    } catch (error) {
+        console.error("Error al obtener administradores:", error);
+        res.status(500).json({ msg: "Error en el servidor al obtener la lista de administradores." });
+    }
+};
 // Actualizar el perfil del propio administrador
 const actualizar = async (req, res) => {
     const { _id } = req.usuario; // Se obtiene del token JWT
@@ -108,6 +129,8 @@ const crearNuevoPassword = async (req, res) => {
 export {
     crearAdministrador,
     login,
+    perfil,
+    obtenerAdministradores,
     actualizar,
     cambiarPassword,
     recuperarPassword,
