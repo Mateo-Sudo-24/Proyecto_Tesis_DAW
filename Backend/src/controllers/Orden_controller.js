@@ -3,6 +3,9 @@ import Cliente from "../models/Cliente.js";
 import Carrito from '../models/Carrito.js';
 import Producto from '../models/Producto.js';
 import mongoose from "mongoose";
+import { stripe } from 'stripe'
+
+const stripe = new stripe(process.env.STRIPE_PRIVATE_KEY);
 
 // POST /api/ordenes
 // Crear una nueva orden
@@ -160,10 +163,63 @@ const eliminarOrden = async (req, res) => {
   }
 };
 
+
+// POST /api/pagos/crear-intento-pago
+// Procesar un pago de orden con Stripe
+export const procesarPagoOrden = async (req, res) => {
+    const { ordenId, paymentMethodId } = req.body;
+    const clienteId = req.usuario._id;
+
+    if (!ordenId || !paymentMethodId) {
+        return res.status(400).json({ msg: "Se requiere el ID de la orden y el método de pago." });
+    }
+
+    try {
+        const orden = await Orden.findById(ordenId).populate('cliente');
+        if (!orden) return res.status(404).json({ msg: "Orden no encontrada." });
+        if (orden.cliente._id.toString() !== clienteId.toString()) return res.status(403).json({ msg: "No tienes permiso para pagar esta orden." });
+        if (orden.estadoPago) return res.status(400).json({ msg: "Esta orden ya ha sido pagada." });
+
+        let clienteStripe;
+        const clientesStripe = await stripe.customers.list({ email: orden.cliente.email, limit: 1 });
+        if (clientesStripe.data.length > 0) {
+            clienteStripe = clientesStripe.data[0];
+        } else {
+            clienteStripe = await stripe.customers.create({ name: `${orden.cliente.nombre} ${orden.cliente.apellido}`, email: orden.cliente.email });
+        }
+
+        const paymentIntent = await stripe.paymentIntents.create({
+            amount: Math.round(orden.precioTotal * 100),
+            currency: "usd",
+            description: `Pago por Orden #${orden.codigoOrden}`,
+            payment_method: paymentMethodId,
+            customer: clienteStripe.id,
+            confirm: true,
+            automatic_payment_methods: { enabled: true, allow_redirects: "never" }
+        });
+
+        if (paymentIntent.status === 'succeeded') {
+            orden.estadoPago = true;
+            orden.estadoOrden = 'pagado';
+            orden.fechaPago = new Date();
+            orden.pagoStripeId = paymentIntent.id;
+            await orden.save();
+            return res.status(200).json({ msg: "El pago se realizó exitosamente." });
+        } else {
+            return res.status(400).json({ msg: "El pago no pudo ser procesado por Stripe." });
+        }
+
+    } catch (error) {
+        console.error("Error al procesar el pago:", error);
+        return res.status(500).json({ msg: "Error en el servidor al procesar el pago.", error: error.message });
+    }
+};
+
 export {
   registrarOrden,
   listarOrdenes,
   detalleOrden,
   actualizarEstadoOrden,
-  eliminarOrden
+  eliminarOrden,
+  procesarPagoOrden
 };

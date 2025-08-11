@@ -4,8 +4,7 @@ import {
   listarOrdenes,
   detalleOrden,
   actualizarEstadoOrden,
-  eliminarOrden
-} from "../controllers/Orden_controller.js";
+  eliminarOrden,procesarPagoOrden} from "../controllers/Orden_controller.js";
 import { verificarTokenJWT } from '../middlewares/JWT.js';
 import { esVendedor } from '../middlewares/AuthMiddleware.js';
 
@@ -28,5 +27,8 @@ router.patch('/:id', esVendedor, actualizarEstadoOrden);
 
 // DELETE /api/ordenes/:id -> Eliminar una orden (solo Vendedor/Admin)
 router.delete('/:id', esVendedor, eliminarOrden);
+
+// POST /api/ordenes/procesar-pago -> Procesar el pago de una orden
+router.post('/procesar-pago', procesarPagoOrden);
 
 export default router;
