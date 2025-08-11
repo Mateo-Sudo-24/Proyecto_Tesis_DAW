@@ -1,4 +1,14 @@
 import { Router } from 'express';
+import {
+    validateClienteRegistro,
+    validateLogin,
+    validatePasswordRecovery,
+    validatePasswordReset,
+    validateProfileUpdate,
+    validatePasswordChange,
+    validateAdminClienteCreation,
+    validateMongoId
+} from '../middlewares/validators.js'; // <-- Importar validadores
 import { 
     registro, 
     confirmarEmail, 
@@ -20,36 +30,25 @@ import { esAdmin } from '../middlewares/AuthMiddleware.js';
 
 const router = Router();
 
-// =======================================================================
-// ==                RUTAS PÚBLICAS (PARA CUALQUIER VISITANTE)          ==
-// =======================================================================
-router.post('/registro', registro);
+// --- RUTAS PÚBLICAS (con validación) ---
+router.post('/registro', validateClienteRegistro, registro);
 router.get('/confirmar/:token', confirmarEmail);
-router.post('/login', login);
-router.post('/recuperar-password', recuperarPassword);
+router.post('/login', validateLogin, login);
+router.post('/recuperar-password', validatePasswordRecovery, recuperarPassword);
 router.get('/recuperar-password/:token', comprobarTokenPasword);
-router.post('/nuevo-password/:token', crearNuevoPassword);
+router.post('/nuevo-password/:token', validatePasswordReset, crearNuevoPassword);
 
-// =======================================================================
-// ==                RUTAS DE PERFIL (PARA EL CLIENTE LOGUEADO)         ==
-// =======================================================================
+// --- RUTAS DE PERFIL (con validación) ---
 router.get('/perfil', verificarTokenJWT, perfil);
-router.put('/perfil', verificarTokenJWT, actualizarPerfil);
-router.put('/password', verificarTokenJWT, actualizarPassword);
+router.put('/perfil', verificarTokenJWT, validateProfileUpdate, actualizarPerfil);
+router.put('/password', verificarTokenJWT, validatePasswordChange, actualizarPassword);
 
-// =======================================================================
-// ==                RUTAS DE GESTIÓN (SÓLO PARA ADMINS)                ==
-// =======================================================================
-// GET /api/clientes/ -> Obtener todos los clientes
+// --- RUTAS DE GESTIÓN (SÓLO ADMINS, con validación) ---
 router.get('/', verificarTokenJWT, esAdmin, obtenerClientes);
-// POST /api/clientes/ -> Crear un cliente (por un admin)
-router.post('/', verificarTokenJWT, esAdmin, crearClientePorAdmin);
+router.post('/', verificarTokenJWT, esAdmin, validateAdminClienteCreation, crearClientePorAdmin);
 
-// GET /api/clientes/:id -> Obtener un cliente por su ID
-router.get('/:id', verificarTokenJWT, esAdmin, obtenerClientePorId);
-// PUT /api/clientes/:id -> Actualizar un cliente por su ID
-router.put('/:id', verificarTokenJWT, esAdmin, actualizarClientePorAdmin);
-// DELETE /api/clientes/:id -> Eliminar un cliente por su ID
-router.delete('/:id', verificarTokenJWT, esAdmin, eliminarCliente);
+router.get('/:id', verificarTokenJWT, esAdmin, validateMongoId, obtenerClientePorId);
+router.put('/:id', verificarTokenJWT, esAdmin, validateMongoId, validateProfileUpdate, actualizarClientePorAdmin);
+router.delete('/:id', verificarTokenJWT, esAdmin, validateMongoId, eliminarCliente);
 
 export default router;

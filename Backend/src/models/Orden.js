@@ -1,16 +1,14 @@
 import mongoose, { Schema, model } from "mongoose";
 import shortid from 'shortid';
 
-// Sub-esquema para los productos dentro del pedido
 const itemPedidoSchema = new Schema({
     nombre: { type: String, required: true },
     cantidad: { type: Number, required: true },
-    imagen: { type: String, required: false }, // La imagen es opcional
+    imagen: { type: String, required: false },
     precio: { type: Number, required: true },
     producto: { type: mongoose.Schema.Types.ObjectId, ref: 'Producto', required: true }
 }, { _id: false });
 
-// Sub-esquema para la dirección de envío
 const direccionEnvioSchema = new Schema({
     direccion: { type: String, required: true },
     ciudad: { type: String, required: true },
@@ -29,6 +27,7 @@ const ordenSchema = new Schema({
         required: true,
         enum: ['Tarjeta de Crédito', 'Transferencia Bancaria', 'PayPal', 'Contra Entrega', 'Efectivo', 'Stripe']
     },
+    pagoStripeId: { type: String }, // <-- NUEVO CAMPO PARA ID DE PAGO
     precioTotal: { type: Number, required: true },
     estadoOrden: {
         type: String,

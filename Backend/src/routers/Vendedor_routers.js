@@ -1,10 +1,20 @@
 import { Router } from 'express';
+import {
+    validateLogin,
+    validatePasswordRecovery,
+    validatePasswordReset,
+    validateVendedorInvitation,
+    validateAccountSetup,
+    validateProfileUpdate,
+    validatePasswordChange,
+    validateMongoId
+} from '../middlewares/validators.js'; // <-- Importar validadores
 import { 
     login,
     recuperarPassword, 
     comprobarTokenPasword, 
     crearNuevoPassword,
-    configurarCuentaYPassword, // Asegúrate de tener este controlador
+    configurarCuentaYPassword,
     perfil,
     actualizarPerfil,
     actualizarPassword,
@@ -19,36 +29,24 @@ import { esAdmin } from '../middlewares/AuthMiddleware.js';
 
 const router = Router();
 
-// =======================================================================
-// ==          RUTAS PÚBLICAS (AUTENTICACIÓN Y CONFIGURACIÓN)           ==
-// =======================================================================
-router.post('/login', login);
-router.post('/recuperar-password', recuperarPassword);
+// --- RUTAS PÚBLICAS (con validación) ---
+router.post('/login', validateLogin, login);
+router.post('/recuperar-password', validatePasswordRecovery, recuperarPassword);
 router.get('/recuperar-password/:token', comprobarTokenPasword);
-router.post('/nuevo-password/:token', crearNuevoPassword);
-// Ruta para que el vendedor invitado establezca su contraseña por primera vez
-router.post('/setup-account/:token', configurarCuentaYPassword);
+router.post('/nuevo-password/:token', validatePasswordReset, crearNuevoPassword);
+router.post('/setup-account/:token', validateAccountSetup, configurarCuentaYPassword);
 
-// =======================================================================
-// ==             RUTAS DE PERFIL (PARA EL VENDEDOR LOGUEADO)           ==
-// =======================================================================
+// --- RUTAS DE PERFIL (con validación) ---
 router.get('/perfil', verificarTokenJWT, perfil);
-router.put('/perfil', verificarTokenJWT, actualizarPerfil);
-router.put('/perfil/password', verificarTokenJWT, actualizarPassword);
+router.put('/perfil', verificarTokenJWT, validateProfileUpdate, actualizarPerfil);
+router.put('/perfil/password', verificarTokenJWT, validatePasswordChange, actualizarPassword);
 
-// =======================================================================
-// ==             RUTAS DE GESTIÓN (SÓLO PARA ADMINS)                   ==
-// =======================================================================
-// GET /api/vendedores/ -> Obtener todos los vendedores
+// --- RUTAS DE GESTIÓN (SÓLO ADMINS, con validación) ---
 router.get('/', verificarTokenJWT, esAdmin, obtenerVendedores);
-// POST /api/vendedores/ -> Crear un vendedor (invitación)
-router.post('/', verificarTokenJWT, esAdmin, crearVendedor);
+router.post('/', verificarTokenJWT, esAdmin, validateVendedorInvitation, crearVendedor);
 
-// GET /api/vendedores/:id -> Obtener un vendedor por ID
-router.get('/:id', verificarTokenJWT, esAdmin, obtenerVendedorPorId);
-// PUT /api/vendedores/:id -> Actualizar un vendedor por ID
-router.put('/:id', verificarTokenJWT, esAdmin, actualizarVendedor);
-// DELETE /api/vendedores/:id -> Eliminar un vendedor por ID
-router.delete('/:id', verificarTokenJWT, esAdmin, eliminarVendedor);
+router.get('/:id', verificarTokenJWT, esAdmin, validateMongoId, obtenerVendedorPorId);
+router.put('/:id', verificarTokenJWT, esAdmin, validateMongoId, validateProfileUpdate, actualizarVendedor);
+router.delete('/:id', verificarTokenJWT, esAdmin, validateMongoId, eliminarVendedor);
 
 export default router;
