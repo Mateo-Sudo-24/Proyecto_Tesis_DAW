@@ -1,4 +1,3 @@
-
 import { BrowserRouter, Route, Routes } from 'react-router'
 import { Home } from './pages/Home'
 import Login from './pages/Login'
@@ -20,21 +19,18 @@ import ProtectedRoute from './routes/ProtectedRoute'
 import storeProfile from './context/storeProfile'
 import storeAuth from './context/storeAuth'
 import { useEffect } from 'react'
-
-
+import Nosotros from './pages/Nosotros'
+import Products from './pages/Products'
 
 function App() {
-  const { profile} = storeProfile()
+  const { profile } = storeProfile()
   const { token } = storeAuth()
 
   useEffect(() => {
-    if(token){
+    if (token) {
       profile()
     }
   }, [token])
-  
-
-  
 
   return (
     <>
@@ -50,10 +46,11 @@ function App() {
             <Route path='confirm/:token' element={<Confirm />} />
             <Route path="/vendedores/setup-account/:token" element={<SetupAccount />} />
             <Route path='reset/:token' element={<Reset />} />
+            <Route path='nosotros' element={<Nosotros />} />
+            <Route path='products' element={<Products />} />
             <Route path='*' element={<NotFound />} />
 
           </Route>
-
 
           <Route path='dashboard/*' element={
             <ProtectedRoute>
@@ -69,7 +66,6 @@ function App() {
               </Routes>
             </ProtectedRoute>
           } />
-
 
         </Routes>
       </BrowserRouter>
