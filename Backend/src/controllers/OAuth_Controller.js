@@ -11,8 +11,9 @@ export const googleCallback = (req, res) => {
 
   const token = crearTokenJWT(cliente._id, cliente.rol);
   const FRONTEND_REDIRECT = process.env.NODE_ENV === 'production'
-  ? process.env.URL_FRONTEND
-  : process.env.FRONTEND_URL;
+    ? process.env.URL_FRONTEND
+    : process.env.FRONTEND_URL;
+
 
   res.redirect(`${FRONTEND_REDIRECT}/oauth-success?token=${token}`);
 
