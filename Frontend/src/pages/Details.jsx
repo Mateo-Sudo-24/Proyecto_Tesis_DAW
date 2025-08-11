@@ -1,119 +1,142 @@
-/* eslint-disable no-unused-vars */
-import { useState } from "react"
-import TableTreatments from "../components/treatments/Table"
-import ModalTreatments from "../components/treatments/Modal"
-
-
+import { useEffect, useState } from "react";
+import { useParams } from "react-router-dom";
+import useFetch from "../hooks/useFetch";
+import { toast } from "react-toastify"; // Es buena práctica tenerlo para errores
 
 const Details = () => {
+    // 1. OBTENER EL ID DEL VENDEDOR DE LA URL
+    const { id } = useParams();
     
+    // 2. ESTADO ADAPTADO PARA VENDEDOR
+    // Empezar con null es mejor para manejar el estado de carga
+    const [vendedor, setVendedor] = useState(null); 
+    const { fetchDataBackend } = useFetch();
 
-    const [treatments, setTreatments] = useState(["demo"])
+    // 3. FUNCIÓN DE FETCH ADAPTADA Y ROBUSTA
+    const getVendedorDetails = async () => {
+        try {
+            const url = `${import.meta.env.VITE_BACKEND_URL}/vendedores/${id}`;
+            const storedUser = JSON.parse(localStorage.getItem("auth-token"));
+
+            if (!storedUser?.state?.token) {
+                toast.error("No estás autenticado.");
+                return;
+            }
+
+            const headers = {
+                "Content-Type": "application/json",
+                Authorization: `Bearer ${storedUser.state.token}`,
+            };
+            const response = await fetchDataBackend(url, null, "GET", headers);
+            if(response) {
+                setVendedor(response);
+            }
+        } catch (error) {
+            console.error("Error al obtener los detalles del vendedor:", error);
+            toast.error("No se pudieron cargar los datos del vendedor.");
+        }
+    };
+
+    const formatDate = (date) => {
+        if (!date) return 'N/A';
+        return new Date(date).toLocaleDateString('es-ES', { 
+            year: 'numeric', 
+            month: 'long', 
+            day: 'numeric',
+            timeZone: 'UTC' 
+        });
+    };
+
+    useEffect(() => {
+        getVendedorDetails();
+    }, [id]); // Es buena práctica añadir el 'id' como dependencia
 
 
+    // 4. ESTADO DE CARGA MIENTRAS SE OBTIENEN LOS DATOS
+    if (!vendedor) {
+        return (
+            <div className="p-4 mt-5 text-center">
+                <p className="font-medium text-gray-500">Cargando detalles del vendedor...</p>
+            </div>
+        );
+    }
 
     return (
         <>
             <div>
-                <h1 className='font-black text-4xl text-gray-500'>Visualizar</h1>
+                {/* 5. TÍTULOS ADAPTADOS */}
+                <h1 className='font-black text-4xl text-gray-500'>Detalle del Vendedor</h1>
                 <hr className='my-4 border-t-2 border-gray-300' />
-                <p className='mb-8'>Este módulo te permite visualizar todos los datos</p>
+                <p className='mb-8'>Este módulo te permite visualizar los datos del vendedor seleccionado.</p>
             </div>
-            <div>
+            
+            <div className='bg-white shadow-lg p-8 rounded-xl'>
+                <div className='flex flex-col md:flex-row justify-between gap-10'>
 
-                <div className='m-5 flex justify-between'>
-
+                    {/* SECCIÓN DE INFORMACIÓN DEL VENDEDOR (CORREGIDA) */}
                     <div>
-                        <ul className="list-disc pl-5">
-
-                            {/* Datos del paciente */}
-                            <li className="text-md text-gray-00 mt-4 font-bold text-xl">Datos del dueño</li>
-
-                            <ul className="pl-5">
-                                <li className="text-md text-gray-00 mt-2">
-                                    <span className="text-gray-600 font-bold">Cédula: </span>
-                                </li>
-
-                                <li className="text-md text-gray-00 mt-2">
-                                    <span className="text-gray-600 font-bold">Nombres completos: </span>
-                                </li>
-
-                                <li className="text-md text-gray-00 mt-2">
-                                    <span className="text-gray-600 font-bold">Correo electrónico: </span>
-                                </li>
-
-                                <li className="text-md text-gray-00 mt-2">
-                                <span className="text-gray-600 font-bold">Celular: </span>
-                                </li>
-                            </ul>
-
-
-                            {/* Datos del dueño */}
-                            <li className="text-md text-gray-00 mt-4 font-bold text-xl">Datos del paciente</li>
-
-                            <ul className="pl-5">
-                                <li className="text-md text-gray-00 mt-2">
-                                    <span className="text-gray-600 font-bold">Nombre: </span>
-                                </li>
-
-                                <li className="text-md text-gray-00 mt-2">
-                                    <span className="text-gray-600 font-bold">Tipo: </span>
-                                </li>
-
-                                <li className="text-md text-gray-00 mt-2">
-                                    <span className="text-gray-600 font-bold">Fecha de nacimiento: </span>
-                                </li>
-
-                                <li className="text-md text-gray-00 mt-2">
-                                    <span className="text-gray-600 font-bold">Estado: </span>
-                                    <span className="bg-blue-100 text-green-500 text-xs font-medium mr-2 px-2.5 py-0.5 rounded dark:bg-blue-900 dark:text-blue-300">
-                                    </span>
-                                </li>
-
-                                <li className="text-md text-gray-00 mt-4">
-                                    <span className="text-gray-600 font-bold">Síntoma u Observación: </span>
-                                </li>
-
-                            </ul>
+                        <ul className="space-y-3">
+                            <li className="text-md text-gray-800">
+                                <span className="font-bold text-gray-600 w-40 inline-block">Nombre:</span> 
+                                {`${vendedor.nombre} ${vendedor.apellido}`}
+                            </li>
+                            <li className="text-md text-gray-800">
+                                <span className="font-bold text-gray-600 w-40 inline-block">Email:</span> 
+                                {vendedor.email}
+                            </li>
+                            <li className="text-md text-gray-800">
+                                <span className="font-bold text-gray-600 w-40 inline-block">Teléfono:</span> 
+                                {vendedor.telefono || 'No registrado'}
+                            </li>
+                            <li className="text-md text-gray-800">
+                                <span className="font-bold text-gray-600 w-40 inline-block">Dirección:</span> 
+                                {vendedor.direccion || 'No registrada'}
+                            </li>
+                            <li className="text-md text-gray-800">
+                                <span className="font-bold text-gray-600 w-40 inline-block">Estado:</span> 
+                                <span className={`text-xs font-medium px-2.5 py-0.5 rounded-full ${
+                                // Si el estado es 'activo', usa clases de color verde
+                                vendedor.status === 'activo'
+                                ? 'bg-green-100 text-green-800'
+                                // Si el estado es 'pendiente', usa clases de color amarillo
+                                : vendedor.status === 'pendiente'
+                                ? 'bg-yellow-100 text-yellow-800'
+                                // Para cualquier otro estado (ej. 'inactivo'), usa clases de color rojo
+                                : 'bg-red-100 text-red-800'
+                            }`}>
+                                {/* Capitaliza la primera letra del estado para que se vea mejor */}
+                                {vendedor.status ? vendedor.status.charAt(0).toUpperCase() + vendedor.status.slice(1) : 'N/A'}
+                            </span>
+                            </li>
+                             <li className="text-md text-gray-800">
+                                <span className="font-bold text-gray-600 w-40 inline-block">Email Confirmado:</span> 
+                                 <span className={vendedor.confirmEmail ? 'text-green-600' : 'text-red-600'}>
+                                    {vendedor.confirmEmail ? 'Sí' : 'No'}
+                                 </span>
+                            </li>
+                            <li className="text-md text-gray-800">
+                                <span className="font-bold text-gray-600 w-40 inline-block">Fecha de Creación:</span> 
+                                {formatDate(vendedor.createdAt)}
+                            </li>
                         </ul>
                     </div>
 
-                    <div>
-                    <img src="https://cdn-icons-png.flaticon.com/512/2138/2138440.png" alt="dogandcat" className='h-80 w-80' />
+                    {/* 6. SECCIÓN DE AVATAR ADAPTADA */}
+                    <div className="flex-shrink-0 flex items-center justify-center">
+                        {/* Como la API no devuelve un avatar, mostramos un placeholder genérico */}
+                         <div className="h-48 w-48 bg-gray-200 rounded-full flex items-center justify-center">
+                             <svg xmlns="http://www.w3.org/2000/svg" className="h-24 w-24 text-gray-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1} d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" />
+                             </svg>
+                         </div>
                     </div>
                 </div>
 
-                <hr className='my-4 border-t-2 border-gray-300' />
-
-                <div className='flex justify-between items-center'>
-
-                    <p>Este módulo te permite gestionar tratamientos</p>
-                    {
-                        true &&
-                        (
-                            <button className="px-5 py-2 bg-green-800 text-white rounded-lg hover:bg-green-700">
-                                Registrar
-                            </button>
-                        )
-                    }
-
-                    {false  && (<ModalTreatments/>)}
-
-                </div>
-
-                {
-                    treatments.length == 0
-                        ?
-                        <div className="p-4 mb-4 text-sm text-red-800 rounded-lg bg-red-50 dark:bg-gray-800 dark:text-red-400" role="alert">
-                            <span className="font-medium">No existen registros</span>
-                        </div>
-                        :
-                        <TableTreatments treatments={treatments} />
-                }
+                {/* 7. SECCIÓN DE TRATAMIENTOS ELIMINADA */}
+                {/* Ya no hay necesidad de mostrar una tabla o modal de tratamientos */}
             </div>
         </>
-
-    )
+    );
 }
 
-export default Details
+export default Details;
