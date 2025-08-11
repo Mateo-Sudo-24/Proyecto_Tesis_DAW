@@ -12,7 +12,7 @@ import {
 import { 
     login,
     recuperarPassword, 
-    comprobarTokenPasword, 
+    comprobarTokenPassword, 
     crearNuevoPassword,
     configurarCuentaYPassword,
     perfil,
@@ -32,7 +32,7 @@ const router = Router();
 // --- RUTAS PÚBLICAS (con validación) ---
 router.post('/login', validateLogin, login);
 router.post('/recuperar-password', validatePasswordRecovery, recuperarPassword);
-router.get('/recuperar-password/:token', comprobarTokenPasword);
+router.get('/recuperar-password/:token', comprobarTokenPassword);
 router.post('/nuevo-password/:token', validatePasswordReset, crearNuevoPassword);
 router.post('/setup-account/:token', validateAccountSetup, configurarCuentaYPassword);
 
