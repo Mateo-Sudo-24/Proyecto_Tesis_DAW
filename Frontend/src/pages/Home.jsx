@@ -1,9 +1,8 @@
-
 import logoDogCatMain from '../assets/Textured-Fabric-Display.png'
 import AppStoreImage from '../assets/appstore.png'
 import GooglePlayImage from '../assets/googleplay.png'
 import logoDog from '../assets/isha-jain-dupe.png'
-import { Link } from 'react-router'
+import { Link } from 'react-router-dom'
 import { PiTextAaBold } from "react-icons/pi";
 import { LuShoppingBag } from "react-icons/lu";
 import { BiRecycle } from "react-icons/bi";
@@ -19,9 +18,9 @@ export const Home = () => {
             <header className="container mx-auto h-40 text-center py-4 md:flex justify-between items-center px-4 md:h-15">
                 <h1 className='font-bold text-2xl my-2 text-orange-300'>IN<span className='text-stone-900'>TEX</span></h1>
                 <ul className='flex gap-5 justify-center my-4 flex-wrap'>
-                    <li><a href="#" className='font-bold hover:text-orange-300 hover:underline'>Inicio</a></li>
-                    <li><a href="#" className='font-bold hover:text-orange-300 hover:underline'>Nosotros</a></li>
-                    <li><a href="#" className='font-bold hover:text-orange-300 hover:underline'>Productos</a></li>
+                    <li><Link to="/" className='font-bold hover:text-orange-300 hover:underline'>Inicio</Link></li>
+                    <li><Link to="/nosotros" className='font-bold hover:text-orange-300 hover:underline'>Nosotros</Link></li>
+                    <li><Link to="/products" className='font-bold hover:text-orange-300 hover:underline'>Productos</Link></li>
                     <li><a href="#" className='font-bold hover:text-orange-300 hover:underline'>Contacto</a></li>
                 </ul>
                 <ul className='flex justify-center items-center gap-5 my-4'>
