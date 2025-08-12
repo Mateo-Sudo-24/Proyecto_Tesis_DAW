@@ -26,7 +26,7 @@ import {
     eliminarCliente
 } from '../controllers/Cliente_controller.js';
 import { verificarTokenJWT } from '../middlewares/JWT.js';
-// Se importan ambos middlewares para claridad, aunque ahora solo usemos uno.
+// Se importan ambos middlewares para que estén disponibles
 import { esAdmin, esVendedor } from '../middlewares/AuthMiddleware.js';
 
 const router = Router();
@@ -52,22 +52,26 @@ router.put('/password', verificarTokenJWT, validatePasswordChange, actualizarPas
 // =======================================================================
 // ==         RUTAS DE GESTIÓN (AHORA PARA VENDEDORES Y ADMINS)         ==
 // =======================================================================
-// Ahora, estas rutas están protegidas por 'esVendedor', lo que significa que
-// un usuario con rol 'vendedor' O 'administrador' puede acceder.
 
 // GET /api/clientes/ -> Listar todos los clientes
-router.get('/', verificarTokenJWT, esVendedor, obtenerClientes); // <-- CAMBIO
+//                       
+router.get('/', verificarTokenJWT, esVendedor, obtenerClientes); // <-- ¡CORREGIDO!
 
 // POST /api/clientes/ -> Crear un cliente
-router.post('/', verificarTokenJWT, esVendedor, validateAdminClienteCreation, crearClientePorAdmin); // <-- CAMBIO
+//                       
+router.post('/', verificarTokenJWT, esVendedor, validateAdminClienteCreation, crearClientePorAdmin); // <-- ¡CORREGIDO!
 
 // GET /api/clientes/:id -> Obtener un cliente por su ID
-router.get('/:id', verificarTokenJWT, esVendedor, validateMongoId, obtenerClientePorId); // <-- CAMBIO
+//                       
+router.get('/:id', verificarTokenJWT, esVendedor, validateMongoId, obtenerClientePorId); // <-- ¡CORREGIDO!
 
 // PUT /api/clientes/:id -> Actualizar un cliente por su ID
-router.put('/:id', verificarTokenJWT, esVendedor, validateMongoId, validateProfileUpdate, actualizarClientePorAdmin); // <-- CAMBIO
+//                       
+router.put('/:id', verificarTokenJWT, esVendedor, validateMongoId, validateProfileUpdate, actualizarClientePorAdmin); // <-- ¡CORREGIDO!
 
 // DELETE /api/clientes/:id -> Eliminar un cliente por su ID
-router.delete('/:id', verificarTokenJWT, esVendedor, validateMongoId, eliminarCliente); // <-- CAMBIO
+//                       
+router.delete('/:id', verificarTokenJWT, esVendedor, validateMongoId, eliminarCliente); // <-- ¡CORREGIDO!
+
 
 export default router;
