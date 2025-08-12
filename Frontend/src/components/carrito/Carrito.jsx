@@ -1,7 +1,7 @@
 import { useEffect, useState } from "react";
 import { toast } from "react-toastify";
 import { Link, useNavigate } from "react-router-dom";
-import useFetch from "../hooks/useFetch";
+import useFetch from "../../hooks/useFetch"; // Asegúrate de que la ruta sea correcta
 import ModalPago from "./ModalPago.jsx"; // ajusta la ruta si es diferente
 
 const Carrito = () => {
