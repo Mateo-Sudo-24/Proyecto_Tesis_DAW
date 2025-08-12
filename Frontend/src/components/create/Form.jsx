@@ -11,7 +11,6 @@ export const Form = ({ usuarioToUpdate }) => {
     const [isSubmitting, setIsSubmitting] = useState(false);
     const [tipoUsuario, setTipoUsuario] = useState(usuarioToUpdate?.rol || "vendedor");
 
-    // Pre-carga datos si es edición
     useEffect(() => {
         if (usuarioToUpdate) {
             reset({
@@ -33,12 +32,12 @@ export const Form = ({ usuarioToUpdate }) => {
             setIsSubmitting(false);
             return;
         }
+
         const headers = {
             "Content-Type": "application/json",
             Authorization: `Bearer ${storedUser.state.token}`,
         };
 
-        // URL y método dinámicos según tipo
         let baseUrl = tipoUsuario === "cliente" ? "/clientes" : "/vendedores";
         let url = `${import.meta.env.VITE_BACKEND_URL}${baseUrl}`;
         let method = "POST";
@@ -67,86 +66,84 @@ export const Form = ({ usuarioToUpdate }) => {
         }
     };
 
+    const inputStyle = "block w-full rounded-lg border border-gray-300 py-2 px-3 text-gray-700 focus:outline-none focus:ring-2 focus:ring-blue-500 shadow-sm transition-all";
+    const labelStyle = "mb-1 block text-sm font-semibold text-gray-700";
+    const errorStyle = "text-sm text-red-600 mt-1";
+
     return (
-        <form onSubmit={handleSubmit(onSubmit)}>
+        <form onSubmit={handleSubmit(onSubmit)} className="max-w-xl mx-auto bg-white p-6 rounded-xl shadow-md">
             <ToastContainer />
-            <fieldset className="border-2 border-gray-500 p-6 rounded-lg shadow-lg">
-                <legend className="text-xl font-bold text-gray-700 bg-gray-200 px-4 py-1 rounded-md">
+            <fieldset className="border border-gray-300 p-5 rounded-lg">
+                <legend className="text-lg font-bold text-gray-800 px-2">
                     {usuarioToUpdate
                         ? `Editar ${tipoUsuario.charAt(0).toUpperCase() + tipoUsuario.slice(1)}`
                         : `Registrar ${tipoUsuario.charAt(0).toUpperCase() + tipoUsuario.slice(1)}`}
                 </legend>
 
-                {/* Selector de tipo de usuario si es administrador */}
                 <div className="mb-5">
-                    <label className="mb-2 block text-sm font-semibold">Tipo de usuario</label>
+                    <label className={labelStyle}>Tipo de usuario</label>
                     <select
                         value={tipoUsuario}
                         onChange={(e) => setTipoUsuario(e.target.value)}
-                        className="block w-full rounded-md border border-gray-300 py-1 px-2 text-gray-500"
+                        className={inputStyle}
                     >
                         <option value="vendedor">Vendedor</option>
                         <option value="cliente">Cliente</option>
                     </select>
                 </div>
 
-                {/* Nombre */}
                 <div className="mb-5">
-                    <label className="mb-2 block text-sm font-semibold">Nombre</label>
+                    <label className={labelStyle}>Nombre</label>
                     <input
                         type="text"
                         placeholder="Nombre"
-                        className="block w-full rounded-md border border-gray-300 py-1 px-2 text-gray-500"
+                        className={inputStyle}
                         {...register("nombre", { required: "El nombre es obligatorio" })}
                     />
-                    {errors.nombre && <p className="text-red-800">{errors.nombre.message}</p>}
+                    {errors.nombre && <p className={errorStyle}>{errors.nombre.message}</p>}
                 </div>
 
-                {/* Apellido solo para vendedor */}
                 {tipoUsuario === "vendedor" && (
                     <div className="mb-5">
-                        <label className="mb-2 block text-sm font-semibold">Apellido</label>
+                        <label className={labelStyle}>Apellido</label>
                         <input
                             type="text"
                             placeholder="Apellido"
-                            className="block w-full rounded-md border border-gray-300 py-1 px-2 text-gray-500"
+                            className={inputStyle}
                             {...register("apellido", { required: "El apellido es obligatorio" })}
                         />
-                        {errors.apellido && <p className="text-red-800">{errors.apellido.message}</p>}
+                        {errors.apellido && <p className={errorStyle}>{errors.apellido.message}</p>}
                     </div>
                 )}
 
-                {/* Email */}
                 <div className="mb-5">
-                    <label className="mb-2 block text-sm font-semibold">Correo electrónico</label>
+                    <label className={labelStyle}>Correo electrónico</label>
                     <input
                         type="email"
                         placeholder="Correo electrónico"
-                        className="block w-full rounded-md border border-gray-300 py-1 px-2 text-gray-500"
+                        className={inputStyle}
                         {...register("email", { required: "El correo electrónico es obligatorio" })}
                     />
-                    {errors.email && <p className="text-red-800">{errors.email.message}</p>}
+                    {errors.email && <p className={errorStyle}>{errors.email.message}</p>}
                 </div>
 
-                {/* Dirección */}
                 <div className="mb-5">
-                    <label className="mb-2 block text-sm font-semibold">Dirección</label>
+                    <label className={labelStyle}>Dirección</label>
                     <input
                         type="text"
                         placeholder="Dirección"
-                        className="block w-full rounded-md border border-gray-300 py-1 px-2 text-gray-500"
+                        className={inputStyle}
                         {...register("direccion", { required: "La dirección es obligatoria" })}
                     />
-                    {errors.direccion && <p className="text-red-800">{errors.direccion.message}</p>}
+                    {errors.direccion && <p className={errorStyle}>{errors.direccion.message}</p>}
                 </div>
 
-                {/* Teléfono */}
                 <div className="mb-5">
-                    <label className="mb-2 block text-sm font-semibold">Teléfono</label>
+                    <label className={labelStyle}>Teléfono</label>
                     <input
                         type="text"
                         placeholder="Teléfono"
-                        className="block w-full rounded-md border border-gray-300 py-1 px-2 text-gray-500"
+                        className={inputStyle}
                         {...register("telefono", {
                             required: "El teléfono es obligatorio",
                             pattern: {
@@ -155,17 +152,18 @@ export const Form = ({ usuarioToUpdate }) => {
                             }
                         })}
                     />
-                    {errors.telefono && <p className="text-red-800">{errors.telefono.message}</p>}
+                    {errors.telefono && <p className={errorStyle}>{errors.telefono.message}</p>}
                 </div>
             </fieldset>
 
-            <input
+            <button
                 type="submit"
-                className="bg-gray-800 w-full p-2 mt-5 text-slate-300 uppercase font-bold rounded-lg 
-                hover:bg-gray-600 cursor-pointer transition-all"
-                value={isSubmitting ? "Guardando..." : usuarioToUpdate ? "Actualizar" : "Registrar"}
+                className={`w-full py-2 mt-6 font-bold rounded-lg text-white transition-all 
+                ${isSubmitting ? "bg-gray-500 cursor-not-allowed" : "bg-blue-600 hover:bg-blue-700"}`}
                 disabled={isSubmitting}
-            />
+            >
+                {isSubmitting ? "Guardando..." : usuarioToUpdate ? "Actualizar" : "Registrar"}
+            </button>
         </form>
     );
 };

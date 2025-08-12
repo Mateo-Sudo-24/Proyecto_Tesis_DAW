@@ -1,65 +1,120 @@
+// /components/treatments/ModalTreatments.jsx (o donde lo tengas)
 
+import { useForm } from "react-hook-form";
+// 1. CAMBIAMOS EL STORE A USAR
+import useOrderStore from "../../stores/useOrderStore"; 
 
-const ModalTreatments = () => {
+// 2. CAMBIAMOS EL NOMBRE DEL PROP PARA MAYOR CLARIDAD
+const ModalTreatments = ({ clientID }) => {
+
+    const { register, handleSubmit, formState: { errors } } = useForm();
+    
+    // 3. APUNTAMOS A LAS ACCIONES DEL STORE DE ÓRDENES
+    // Asumimos que agregarás 'createCustomOrder' y 'toggleModal' a tu store
+    const { createCustomOrder, toggleModal, loading } = useOrderStore();
+
+    // 4. LA FUNCIÓN AHORA PREPARA Y ENVÍA LOS DATOS DE UNA ORDEN
+    const handleCreateOrder = (data) => {
+        // Añadimos el ID del cliente a los datos del formulario
+        const orderData = { ...data, cliente: clientID };
+        
+        // Llamamos a la nueva acción en el store para crear la orden
+        createCustomOrder(orderData);
+    };
 
     return (
-        <div className="fixed inset-0 flex items-center justify-center">
+        // El overlay oscuro del fondo
+        <div className="fixed inset-0 bg-black bg-opacity-60 flex items-center justify-center z-50 p-4">
 
-            <div className="bg-gray-800 rounded-lg shadow-lg overflow-y-auto  max-w-lg w-full border border-gray-700 relative">
-
-                <p className="text-white font-bold text-lg text-center mt-4">Tratamiento</p>
-
-                <form className="p-10">
+            {/* Contenedor del Modal */}
+            <div className="relative w-full max-w-lg bg-white rounded-lg shadow-2xl">
+                
+                {/* Encabezado del Modal */}
+                <div className="flex justify-between items-center p-4 border-b">
+                    <h3 className="text-xl font-semibold text-gray-800">
+                        Registrar Nueva Orden
+                    </h3>
+                    <button 
+                        type="button"
+                        className="text-gray-400 bg-transparent hover:bg-gray-200 hover:text-gray-900 rounded-lg text-sm p-1.5 ml-auto inline-flex items-center"
+                        onClick={toggleModal}
+                        disabled={loading}
+                    >
+                        <svg className="w-5 h-5" fill="currentColor" viewBox="0 0 20 20" xmlns="http://www.w3.org/2000/svg"><path fillRule="evenodd" d="M4.293 4.293a1 1 0 011.414 0L10 8.586l4.293-4.293a1 1 0 111.414 1.414L11.414 10l4.293 4.293a1 1 0 01-1.414 1.414L10 11.414l-4.293 4.293a1 1 0 01-1.414-1.414L8.586 10 4.293 5.707a1 1 0 010-1.414z" clipRule="evenodd"></path></svg>
+                    </button>
+                </div>
+                
+                {/* Formulario de la Orden */}
+                <form className="p-6 space-y-4" onSubmit={handleSubmit(handleCreateOrder)}>
                     <div>
-                        <label className="mb-2 block text-sm font-semibold text-gray-50">Nombre</label>
+                        <label htmlFor="concepto" className="block mb-2 text-sm font-medium text-gray-700">Concepto de la Orden</label>
                         <input
                             type="text"
-                            placeholder="Ingresa el nombre"
-                            className="block w-full rounded-md border border-gray-300 py-1 px-2 text-gray-500 mb-5 bg-gray-50"
-                            
+                            id="concepto"
+                            placeholder="Ej: Servicio de mantenimiento, Producto X"
+                            className="bg-gray-50 border border-gray-300 text-gray-900 text-sm rounded-lg focus:ring-orange-500 focus:border-orange-500 block w-full p-2.5"
+                            {...register("concepto", { required: "El concepto es obligatorio" })}
                         />
-                            
+                        {errors.concepto && <p className="mt-1 text-xs text-red-600">{errors.concepto.message}</p>}
                     </div>
                     <div>
-                        <label className="mb-2 block text-sm font-semibold text-gray-50">Descripción</label>
+                        <label htmlFor="descripcion" className="block mb-2 text-sm font-medium text-gray-700">Descripción</p>
                         <textarea
-                            type="text"
-                            placeholder="Ingresa la descripción"
-                            className="block w-full rounded-md border border-gray-300 py-1 px-2 text-gray-500 mb-5 bg-gray-50"
+                            id="descripcion"
+                            rows="3"
+                            placeholder="Detalles del servicio, productos personalizados, etc."
+                            className="bg-gray-50 border border-gray-300 text-gray-900 text-sm rounded-lg focus:ring-orange-500 focus:border-orange-500 block w-full p-2.5"
+                            {...register("descripcion")}
                         />
                     </div>
                     <div>
-                        <label className="mb-2 block text-sm font-semibold text-gray-50">Prioridad</label>
-                        <select
-                            id="prioridad"
-                            className="block w-full rounded-md border border-gray-300 py-1 px-2 text-gray-500 mb-5 bg-gray-50"
-                        >
-                            <option value="">--- Seleccionar ---</option>
-                            <option value="Baja">Baja</option>
-                            <option value="Media">Media</option>
-                            <option value="Alta">Alta</option>
-                        </select>
-                    </div>
-                    <div>
-                        <label className="mb-2 block text-sm font-semibold text-gray-50">Precio</label>
+                        <label htmlFor="total" className="block mb-2 text-sm font-medium text-gray-700">Monto Total ($)</p>
                         <input
                             type="number"
-                            step="any" 
-                            placeholder="Ingresa el precio"
-                            className="block w-full rounded-md border border-gray-300 py-1 px-2 text-gray-500 mb-5 bg-gray-50"
-
+                            id="total"
+                            step="0.01" 
+                            placeholder="Ej: 150.50"
+                            className="bg-gray-50 border border-gray-300 text-gray-900 text-sm rounded-lg focus:ring-orange-500 focus:border-orange-500 block w-full p-2.5"
+                            {...register("total", {
+                                required: "El monto total es obligatorio",
+                                valueAsNumber: true,
+                                min: { value: 0.01, message: "El monto debe ser positivo" }
+                            })}
                         />
-                    </div> 
+                        {errors.total && <p className="mt-1 text-xs text-red-600">{errors.total.message}</p>}
+                    </div>
+                    <div>
+                        <label htmlFor="metodoPago" className="block mb-2 text-sm font-medium text-gray-700">Método de Pago</p>
+                        <select
+                            id="metodoPago"
+                            className="bg-gray-50 border border-gray-300 text-gray-900 text-sm rounded-lg focus:ring-orange-500 focus:border-orange-500 block w-full p-2.5"
+                            {...register("metodoPago", { required: "Debes seleccionar un método de pago" })}
+                        >
+                            <option value="">--- Seleccionar ---</option>
+                            <option value="Efectivo">Efectivo</option>
+                            <option value="Transferencia Bancaria">Transferencia Bancaria</option>
+                            <option value="Tarjeta de Crédito">Tarjeta de Crédito</option>
+                            <option value="Otro">Otro</option>
+                        </select>
+                        {errors.metodoPago && <p className="mt-1 text-xs text-red-600">{errors.metodoPago.message}</p>}
+                    </div>
 
-                    <div className="flex justify-center gap-5">
-                        <input
-                            type="submit"
-                            className="bg-green-700 px-6 text-slate-300 rounded-lg hover:bg-green-900 cursor-pointer"
-                            value="Registrar"
-                        />
-                        <button className="sm:w-auto leading-3 text-center text-white px-6 py-4 rounded-lg bg-red-700 hover:bg-red-900"
+                    {/* Botones de Acción */}
+                    <div className="flex items-center justify-end pt-4 gap-4 border-t border-gray-200">
+                        <button
+                            type="button"
+                            className="text-gray-500 bg-white hover:bg-gray-100 focus:ring-4 focus:outline-none focus:ring-orange-300 rounded-lg border border-gray-200 text-sm font-medium px-5 py-2.5 hover:text-gray-900"
+                            onClick={toggleModal}
+                            disabled={loading}
                         >
                             Cancelar
+                        </button>
+                        <button
+                            type="submit"
+                            className="text-white bg-orange-500 hover:bg-orange-600 focus:ring-4 focus:outline-none focus:ring-orange-300 font-medium rounded-lg text-sm px-5 py-2.5 text-center disabled:bg-orange-300"
+                            disabled={loading}
+                        >
+                            {loading ? "Creando..." : "Crear Orden"}
                         </button>
                     </div>
                 </form>

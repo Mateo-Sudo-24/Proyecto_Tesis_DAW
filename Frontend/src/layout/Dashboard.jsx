@@ -8,92 +8,130 @@ const Dashboard = () => {
     const { clearToken } = storeAuth()
     const { user } = storeProfile()
 
-    // Mostrar nombre según tipo de usuario
     const displayName = user?.nombre || user?.nombrePropietario || "Usuario"
-
-    // Mostrar menú según rol
     const isVendedor = user?.rol === "vendedor"
     const isCliente = user?.rol === "cliente"
-    const isAdmin = user?.rol === "administrador" // Nuevo
+    const isAdmin = user?.rol === "administrador"
 
     return (
-        <div className='md:flex md:min-h-screen'>
-            <div className='md:w-1/5 bg-gray-800 px-5 py-4'>
+        <div className='md:flex md:min-h-screen bg-orange-50'>
+            {/* Sidebar */}
+            <div className='md:w-1/5 bg-amber-900 px-5 py-6 rounded-r-2xl shadow-lg'>
+                <h2 className='text-3xl font-extrabold text-center text-orange-300'>Intex</h2>
 
-                <h2 className='text-4xl font-black text-center text-slate-200'>SmartVET</h2>
-
-                <img src="https://cdn-icons-png.flaticon.com/512/2138/2138508.png" alt="img-client" className="m-auto mt-8 p-1 border-2 border-slate-500 rounded-full" width={120} height={120} />
-                <p className='text-slate-400 text-center my-4 text-sm'>
+                <img
+                    src="https://cdn-icons-png.flaticon.com/512/2138/2138508.png"
+                    alt="img-client"
+                    className="m-auto mt-8 p-1 border-4 border-orange-300 rounded-full"
+                    width={120}
+                    height={120}
+                />
+                <p className='text-orange-200 text-center my-4 text-sm'>
                     <span className='bg-green-600 w-3 h-3 inline-block rounded-full'></span> Bienvenido - {displayName}
                 </p>
-                <p className='text-slate-400 text-center my-4 text-sm'> Rol - {user?.rol}</p>
-                <hr className="mt-5 border-slate-500" />
+                <p className='text-orange-200 text-center my-2 text-sm'>Rol - {user?.rol}</p>
 
-                <ul className="mt-5">
-                    <li className="text-center">
-                        <Link to='/dashboard' className={`${urlActual === '/dashboard' ? 'text-slate-200 bg-gray-900 px-3 py-2 rounded-md' : 'text-slate-600'} text-xl block mt-2 hover:text-slate-600`}>Perfil</Link>
+                <ul className="mt-6 space-y-3">
+                    <li>
+                        <Link
+                            to='/dashboard'
+                            className={`block text-center py-2 rounded-lg font-semibold transition 
+                                ${urlActual === '/dashboard' ? 'bg-amber-700 text-white' : 'text-orange-100 hover:bg-amber-800'}`}
+                        >
+                            Perfil
+                        </Link>
                     </li>
 
-                    {/* Vendedor o Admin */}
                     {(isVendedor || isAdmin) && (
                         <>
-                            <li className="text-center">
-                                <Link to='/dashboard/listar' className={`${urlActual === '/dashboard/listar' ? 'text-slate-200 bg-gray-900 px-3 py-2 rounded-md' : 'text-slate-600'} text-xl block mt-2 hover:text-slate-600`}>Listar</Link>
+                            <li>
+                                <Link
+                                    to='/dashboard/listar'
+                                    className={`block text-center py-2 rounded-lg font-semibold transition 
+                                        ${urlActual === '/dashboard/listar' ? 'bg-amber-700 text-white' : 'text-orange-100 hover:bg-amber-800'}`}
+                                >
+                                    Listar
+                                </Link>
                             </li>
-                            <li className="text-center">
-                                <Link to='/dashboard/crear' className={`${urlActual === '/dashboard/crear' ? 'text-slate-100 bg-gray-900 px-3 py-2 rounded-md' : 'text-slate-600'} text-xl block mt-2 hover:text-slate-600`}>Crear</Link>
+                            <li>
+                                <Link
+                                    to='/dashboard/crear'
+                                    className={`block text-center py-2 rounded-lg font-semibold transition 
+                                        ${urlActual === '/dashboard/crear' ? 'bg-amber-700 text-white' : 'text-orange-100 hover:bg-amber-800'}`}
+                                >
+                                    Crear
+                                </Link>
                             </li>
                         </>
                     )}
 
-                    {/* Cliente o Admin */}
                     {(isCliente || isAdmin) && (
                         <>
-                            <li className="text-center">
-                                <Link to='/dashboard/productos' className={`${urlActual === '/dashboard/productos' ? 'text-slate-200 bg-gray-900 px-3 py-2 rounded-md' : 'text-slate-600'} text-xl block mt-2 hover:text-slate-600`}>
+                            <li>
+                                <Link
+                                    to='/dashboard/productos'
+                                    className={`block text-center py-2 rounded-lg font-semibold transition 
+                                        ${urlActual === '/dashboard/productos' ? 'bg-amber-700 text-white' : 'text-orange-100 hover:bg-amber-800'}`}
+                                >
                                     Productos
                                 </Link>
                             </li>
-                            <li className="text-center">
-                                <Link to='/dashboard/carrito' className={`${urlActual === '/dashboard/carrito' ? 'text-slate-200 bg-gray-900 px-3 py-2 rounded-md' : 'text-slate-600'} text-xl block mt-2 hover:text-slate-600`}>
+                            <li>
+                                <Link
+                                    to='/dashboard/carrito'
+                                    className={`block text-center py-2 rounded-lg font-semibold transition 
+                                        ${urlActual === '/dashboard/carrito' ? 'bg-amber-700 text-white' : 'text-orange-100 hover:bg-amber-800'}`}
+                                >
                                     Carrito
                                 </Link>
                             </li>
                         </>
                     )}
-                    
 
-
-                    {/* Chat para todos */}
-                    <li className="text-center">
-                        <Link to='/dashboard/chat' className={`${urlActual === '/dashboard/chat' ? 'text-slate-100 bg-gray-900 px-3 py-2 rounded-md' : 'text-slate-600'} text-xl block mt-2 hover:text-slate-600`}>Chat</Link>
+                    <li>
+                        <Link
+                            to='/dashboard/chat'
+                            className={`block text-center py-2 rounded-lg font-semibold transition 
+                                ${urlActual === '/dashboard/chat' ? 'bg-amber-700 text-white' : 'text-orange-100 hover:bg-amber-800'}`}
+                        >
+                            Chat
+                        </Link>
                     </li>
                 </ul>
-
             </div>
 
-            <div className='flex-1 flex flex-col justify-between h-screen bg-gray-100'>
-                <div className='bg-gray-800 py-2 flex md:justify-end items-center gap-5 justify-center'>
-                    <div className='text-md font-semibold text-slate-100'>
+            {/* Contenido principal */}
+            <div className='flex-1 flex flex-col justify-between h-screen'>
+                {/* Topbar */}
+                <div className='bg-amber-900 py-3 flex md:justify-end justify-center items-center gap-5 px-6 rounded-b-2xl shadow-md'>
+                    <div className='text-md font-semibold text-orange-200'>
                         Usuario - {displayName}
                     </div>
-                    <div>
-                        <img src="https://cdn-icons-png.flaticon.com/512/4715/4715329.png" alt="img-client" className="border-2 border-green-600 rounded-full" width={50} height={50} />
-                    </div>
-                    <div>
-                        <button
-                            className="text-white mr-3 text-md block hover:bg-red-900 text-center bg-red-800 px-4 py-1 rounded-lg"
-                            onClick={() => clearToken()}
-                        >
-                            Salir
-                        </button>
-                    </div>
+                    <img
+                        src="https://cdn-icons-png.flaticon.com/512/4715/4715329.png"
+                        alt="img-client"
+                        className="border-2 border-orange-300 rounded-full"
+                        width={50}
+                        height={50}
+                    />
+                    <button
+                        className='bg-orange-300 hover:bg-orange-700 text-white px-4 py-1 rounded-lg transition'
+                        onClick={() => clearToken()}
+                    >
+                        Salir
+                    </button>
                 </div>
+
+                {/* Vista principal */}
                 <div className='overflow-y-scroll p-8'>
                     <Outlet />
                 </div>
-                <div className='bg-gray-800 h-12'>
-                    <p className='text-center text-slate-100 leading-[2.9rem] underline'>Todos los derechos reservados</p>
+
+                {/* Footer */}
+                <div className='bg-amber-900 h-12 flex items-center justify-center'>
+                    <p className='text-orange-200 font-semibold'>
+                        © 2025 Intex Textiles. Todos los derechos reservados.
+                    </p>
                 </div>
             </div>
         </div>
