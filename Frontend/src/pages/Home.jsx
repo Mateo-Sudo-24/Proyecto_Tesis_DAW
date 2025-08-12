@@ -39,10 +39,7 @@ export const Home = () => {
 
                     <p className='font-bold text-left my-4 md:text-xl'>Síguenos</p>
 
-                    <div className="flex justify-center gap-4">
-                        <a href="#"><img src={AppStoreImage} alt="App Store" /></a>
-                        <a href="#"><img src={GooglePlayImage} alt="Google Play" /></a>
-                    </div>
+                    
                 </div>
                 <div className='hidden md:block'>
                     <img src={logoDogCatMain} alt="textiles premium" />
@@ -146,9 +143,7 @@ export const Home = () => {
   <div className='flex flex-col sm:flex-row justify-between items-center gap-4'>
     <h3 className='text-3xl font-extrabold text-orange-300'>Contáctanos</h3>
     <ul className='flex gap-4 text-orange-300'>
-      <li><FaFacebook className='text-2xl hover:scale-110 transition' /></li>
-      <li><FaSquareInstagram className='text-2xl hover:scale-110 transition' /></li>
-      <li><FaXTwitter className='text-2xl hover:scale-110 transition' /></li>
+      
     </ul>
   </div>
 

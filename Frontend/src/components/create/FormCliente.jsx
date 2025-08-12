@@ -4,32 +4,28 @@ import { useNavigate } from "react-router-dom";
 import { useForm } from "react-hook-form";
 import { toast, ToastContainer } from "react-toastify";
 
-export const Form = ({ usuarioToUpdate }) => {
+export const FormCliente = ({ clienteToUpdate }) => {
     const navigate = useNavigate();
     const { register, handleSubmit, formState: { errors }, reset } = useForm();
     const { fetchDataBackend } = useFetch();
     const [isSubmitting, setIsSubmitting] = useState(false);
-    const [tipoUsuario, setTipoUsuario] = useState(usuarioToUpdate?.rol || "vendedor");
 
-    // Pre-carga datos si es edición
     useEffect(() => {
-        if (usuarioToUpdate) {
+        if (clienteToUpdate) {
             reset({
-                nombre: usuarioToUpdate?.nombre || "",
-                apellido: usuarioToUpdate?.apellido || "",
-                email: usuarioToUpdate?.email || "",
-                direccion: usuarioToUpdate?.direccion || "",
-                telefono: usuarioToUpdate?.telefono || "",
+                nombre: clienteToUpdate?.nombre || "",
+                email: clienteToUpdate?.email || "",
+                direccion: clienteToUpdate?.direccion || "",
+                telefono: clienteToUpdate?.telefono || "",
             });
-            setTipoUsuario(usuarioToUpdate?.rol || "vendedor");
         }
-    }, [usuarioToUpdate, reset]);
+    }, [clienteToUpdate, reset]);
 
     const onSubmit = async (data) => {
         setIsSubmitting(true);
         const storedUser = JSON.parse(localStorage.getItem("auth-token"));
         if (!storedUser?.state?.token) {
-            toast.error("No estás autenticado. Por favor, inicia sesión de nuevo.");
+            toast.error("No estás autenticado.");
             setIsSubmitting(false);
             return;
         }
@@ -38,30 +34,27 @@ export const Form = ({ usuarioToUpdate }) => {
             Authorization: `Bearer ${storedUser.state.token}`,
         };
 
-        // URL y método dinámicos según tipo
-        let baseUrl = tipoUsuario === "cliente" ? "/clientes" : "/vendedores";
-        let url = `${import.meta.env.VITE_BACKEND_URL}${baseUrl}`;
+        let url = `${import.meta.env.VITE_BACKEND_URL}/clientes`;
         let method = "POST";
-
-        if (usuarioToUpdate?._id) {
-            url = `${import.meta.env.VITE_BACKEND_URL}${baseUrl}/${usuarioToUpdate._id}`;
+        if (clienteToUpdate?._id) {
+            url = `${import.meta.env.VITE_BACKEND_URL}/clientes/${clienteToUpdate._id}`;
             method = "PUT";
         }
 
         try {
-            const response = await fetchDataBackend(url, { ...data, rol: tipoUsuario }, method, headers);
+            const response = await fetchDataBackend(url, data, method, headers);
             if (response) {
                 toast.success(
-                    usuarioToUpdate
-                        ? `${tipoUsuario} actualizado correctamente`
-                        : `${tipoUsuario} registrado correctamente`
+                    clienteToUpdate
+                        ? "Cliente actualizado correctamente"
+                        : "Cliente registrado correctamente"
                 );
                 setTimeout(() => {
-                    navigate("/dashboard/listar");
+                    navigate("/dashboard/listar-clientes");
                 }, 1500);
             }
         } catch (error) {
-            toast.error("Ocurrió un error al guardar.");
+            toast.error("Ocurrió un error al guardar el cliente.");
         } finally {
             setIsSubmitting(false);
         }
@@ -72,80 +65,47 @@ export const Form = ({ usuarioToUpdate }) => {
             <ToastContainer />
             <fieldset className="border-2 border-gray-500 p-6 rounded-lg shadow-lg">
                 <legend className="text-xl font-bold text-gray-700 bg-gray-200 px-4 py-1 rounded-md">
-                    {usuarioToUpdate
-                        ? `Editar ${tipoUsuario.charAt(0).toUpperCase() + tipoUsuario.slice(1)}`
-                        : `Registrar ${tipoUsuario.charAt(0).toUpperCase() + tipoUsuario.slice(1)}`}
+                    {clienteToUpdate ? "Editar Cliente" : "Registrar Cliente"}
                 </legend>
 
-                {/* Selector de tipo de usuario si es administrador */}
-                <div className="mb-5">
-                    <label className="mb-2 block text-sm font-semibold">Tipo de usuario</label>
-                    <select
-                        value={tipoUsuario}
-                        onChange={(e) => setTipoUsuario(e.target.value)}
-                        className="block w-full rounded-md border border-gray-300 py-1 px-2 text-gray-500"
-                    >
-                        <option value="vendedor">Vendedor</option>
-                        <option value="cliente">Cliente</option>
-                    </select>
-                </div>
-
-                {/* Nombre */}
                 <div className="mb-5">
                     <label className="mb-2 block text-sm font-semibold">Nombre</label>
                     <input
                         type="text"
-                        placeholder="Nombre"
+                        placeholder="Nombre del cliente"
                         className="block w-full rounded-md border border-gray-300 py-1 px-2 text-gray-500"
                         {...register("nombre", { required: "El nombre es obligatorio" })}
                     />
                     {errors.nombre && <p className="text-red-800">{errors.nombre.message}</p>}
                 </div>
 
-                {/* Apellido solo para vendedor */}
-                {tipoUsuario === "vendedor" && (
-                    <div className="mb-5">
-                        <label className="mb-2 block text-sm font-semibold">Apellido</label>
-                        <input
-                            type="text"
-                            placeholder="Apellido"
-                            className="block w-full rounded-md border border-gray-300 py-1 px-2 text-gray-500"
-                            {...register("apellido", { required: "El apellido es obligatorio" })}
-                        />
-                        {errors.apellido && <p className="text-red-800">{errors.apellido.message}</p>}
-                    </div>
-                )}
-
-                {/* Email */}
                 <div className="mb-5">
                     <label className="mb-2 block text-sm font-semibold">Correo electrónico</label>
                     <input
                         type="email"
-                        placeholder="Correo electrónico"
+                        placeholder="Correo del cliente"
                         className="block w-full rounded-md border border-gray-300 py-1 px-2 text-gray-500"
                         {...register("email", { required: "El correo electrónico es obligatorio" })}
                     />
                     {errors.email && <p className="text-red-800">{errors.email.message}</p>}
                 </div>
 
-                {/* Dirección */}
                 <div className="mb-5">
                     <label className="mb-2 block text-sm font-semibold">Dirección</label>
                     <input
                         type="text"
-                        placeholder="Dirección"
+                        placeholder="Dirección del cliente"
                         className="block w-full rounded-md border border-gray-300 py-1 px-2 text-gray-500"
                         {...register("direccion", { required: "La dirección es obligatoria" })}
                     />
                     {errors.direccion && <p className="text-red-800">{errors.direccion.message}</p>}
                 </div>
 
-                {/* Teléfono */}
                 <div className="mb-5">
                     <label className="mb-2 block text-sm font-semibold">Teléfono</label>
                     <input
                         type="text"
-                        placeholder="Teléfono"
+                        placeholder="Teléfono del cliente"
                         className="block w-full rounded-md border border-gray-300 py-1 px-2 text-gray-500"
                         {...register("telefono", {
                             required: "El teléfono es obligatorio",
@@ -163,7 +123,7 @@ export const Form = ({ usuarioToUpdate }) => {
                 type="submit"
                 className="bg-gray-800 w-full p-2 mt-5 text-slate-300 uppercase font-bold rounded-lg 
                 hover:bg-gray-600 cursor-pointer transition-all"
-                value={isSubmitting ? "Guardando..." : usuarioToUpdate ? "Actualizar" : "Registrar"}
+                value={isSubmitting ? "Guardando..." : clienteToUpdate ? "Actualizar Cliente" : "Registrar Cliente"}
                 disabled={isSubmitting}
             />
         </form>

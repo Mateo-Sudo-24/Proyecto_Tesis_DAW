@@ -26,12 +26,8 @@ const Contact = () => {
                         <p className="mb-2 font-semibold">📞 Teléfono: <span className="font-normal">0995644186</span></p>
                         <p className="mb-2 font-semibold">🏢 Dirección: <span className="font-normal">Av. de los Textiles S/N, Quito, Ecuador</span></p>
                         <div className="mt-6">
-                            <h4 className="font-bold mb-2">Síguenos en redes:</h4>
-                            <ul className="flex gap-4 text-orange-300">
-                                <li><a href="#" aria-label="Facebook"><FaFacebook className="text-2xl hover:scale-110 transition" /></a></li>
-                                <li><a href="#" aria-label="Instagram"><FaSquareInstagram className="text-2xl hover:scale-110 transition" /></a></li>
-                                <li><a href="#" aria-label="Twitter"><FaXTwitter className="text-2xl hover:scale-110 transition" /></a></li>
-                            </ul>
+                            
+                            
                         </div>
                     </div>
                     {/* Formulario de contacto */}
