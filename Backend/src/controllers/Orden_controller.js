@@ -13,6 +13,13 @@ const registrarOrden = async (req, res) => {
     const clienteId = req.usuario._id;
     const { direccionEnvio, metodoPago } = req.body;
 
+    // --- ¡VALIDACIÓN AÑADIDA! ---
+    // Verificar que direccionEnvio sea un objeto antes de continuar.
+    if (typeof direccionEnvio !== 'object' || direccionEnvio === null) {
+        return res.status(400).json({ msg: "El campo 'direccionEnvio' debe ser un objeto con los detalles de la dirección." });
+    }
+    // --- FIN DE LA VALIDACIÓN ---
+
     if (!direccionEnvio || !metodoPago) {
         return res.status(400).json({ msg: "La dirección de envío y el método de pago son obligatorios." });
     }
