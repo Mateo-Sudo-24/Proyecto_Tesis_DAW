@@ -11,7 +11,7 @@ import { MdDesignServices } from "react-icons/md";
 import { FaIndustry } from "react-icons/fa";
 import { TbCertificate } from "react-icons/tb";
 import { FaFacebook, FaSquareInstagram, FaXTwitter } from "react-icons/fa6";
-import Contact from './Contact';
+import Contact from './Contact.jsx';
 
 export const Home = () => {
     return (
