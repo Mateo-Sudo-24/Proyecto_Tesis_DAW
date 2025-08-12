@@ -51,11 +51,15 @@ const clienteSchema = new Schema({
     type: Boolean,
     default: false
   },
+  creadoPor: { // <-- AÑADE ESTE CAMPO
+      type: mongoose.Schema.Types.ObjectId,
+      ref: 'Vendedor' // O un modelo genérico 'Usuario' si prefieres
+  },
   rol: {
     type: String,
     default: "cliente",
     enum: ["cliente"] // Un cliente solo puede tener el rol de cliente
-  }
+  },
 }, {
   timestamps: true
 });
