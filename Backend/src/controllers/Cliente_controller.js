@@ -172,6 +172,8 @@ const actualizarPassword = async (req, res) => {
 // ==         BLOQUE 4: RUTAS PRIVADAS (Gestión por Vendedor/Admin)        ==
 // ============================================================================
 
+// La función 'crearClientePorAdmin' se mantiene igual, ya que atribuye la creación
+// al usuario actual, lo cual sigue siendo una buena práctica.
 const crearClientePorAdmin = async (req, res) => {
     const { email, password, nombre } = req.body;
     if (!email || !password || !nombre) return res.status(400).json({ msg: "Nombre, email y password son obligatorios." });
@@ -181,88 +183,70 @@ const crearClientePorAdmin = async (req, res) => {
         
         const nuevoCliente = new Cliente(req.body);
         nuevoCliente.confirmEmail = true;
-        
-        // <-- LÓGICA DE ROL: Atribuir el cliente al usuario que lo crea
-        nuevoCliente.creadoPor = req.usuario._id;
+        nuevoCliente.creadoPor = req.usuario._id; // <-- Mantenemos la atribución
         
         await nuevoCliente.save();
-        
         res.status(201).json({ msg: "Cliente creado exitosamente." });
     } catch (error) {
         res.status(500).json({ msg: "Error al crear el cliente." });
     }
 };
 
+// --- FUNCIÓN MODIFICADA ---
+// GET /api/clientes -> Obtener todos los clientes (sin filtro de propiedad)
 const obtenerClientes = async (req, res) => {
     try {
-        let filtro = {};
-        
-        // <-- LÓGICA DE ROL: Si es vendedor, solo muestra sus clientes
-        if (req.usuario.rol === 'vendedor') {
-            filtro.creadoPor = req.usuario._id;
-        }
-        
-        const clientes = await Cliente.find(filtro).select("-password -token -__v");
+        // Se elimina la lógica 'if (req.usuario.rol === 'vendedor')'.
+        // Ahora siempre busca todos los clientes.
+        const clientes = await Cliente.find().select("-password -token -__v");
         res.status(200).json(clientes);
     } catch (error) {
         res.status(500).json({ msg: "Error al obtener los clientes." });
     }
 };
 
+// --- FUNCIÓN MODIFICADA ---
+// GET /api/clientes/:id -> Obtener un cliente por ID (sin filtro de propiedad)
 const obtenerClientePorId = async (req, res) => {
     const { id } = req.params;
     if (!mongoose.Types.ObjectId.isValid(id)) return res.status(400).json({ msg: "ID de cliente no válido." });
     try {
+        // Se elimina la lógica de verificación de propiedad.
+        // Cualquier vendedor o admin puede ver a cualquier cliente.
         const cliente = await Cliente.findById(id).select("-password -token -__v");
         if (!cliente) return res.status(404).json({ msg: "Cliente no encontrado." });
-
-        // <-- LÓGICA DE ROL: Un vendedor solo puede ver clientes que él creó
-        if (req.usuario.rol === 'vendedor' && cliente.creadoPor?.toString() !== req.usuario._id.toString()) {
-            return res.status(403).json({ msg: "Acceso denegado. No tienes permiso para ver este cliente." });
-        }
-        
         res.status(200).json(cliente);
     } catch (error) {
         res.status(500).json({ msg: "Error al obtener el cliente." });
     }
 };
 
+// --- FUNCIÓN MODIFICADA ---
+// PUT /api/clientes/:id -> Actualizar un cliente por ID (sin filtro de propiedad)
 const actualizarClientePorAdmin = async (req, res) => {
     const { id } = req.params;
     if (!mongoose.Types.ObjectId.isValid(id)) return res.status(400).json({ msg: "ID de cliente no válido." });
-
     try {
-        const cliente = await Cliente.findById(id);
-        if (!cliente) return res.status(404).json({ msg: "Cliente no encontrado." });
-
-        // <-- LÓGICA DE ROL: Un vendedor solo puede actualizar clientes que él creó
-        if (req.usuario.rol === 'vendedor' && cliente.creadoPor?.toString() !== req.usuario._id.toString()) {
-            return res.status(403).json({ msg: "Acceso denegado. No tienes permiso para modificar este cliente." });
-        }
-
-        // Si pasa la validación, actualiza el cliente
+        // Se elimina la búsqueda previa y la verificación de propiedad.
+        // Se actualiza el documento directamente.
         const clienteActualizado = await Cliente.findByIdAndUpdate(id, req.body, { new: true }).select("-password -token -__v");
+        if (!clienteActualizado) return res.status(404).json({ msg: "Cliente no encontrado." });
         res.status(200).json({ msg: "Cliente actualizado exitosamente.", cliente: clienteActualizado });
-
     } catch (error) {
         res.status(500).json({ msg: "Error al actualizar el cliente." });
     }
 };
 
+// --- FUNCIÓN MODIFICADA ---
+// DELETE /api/clientes/:id -> Eliminar un cliente por ID (sin filtro de propiedad)
 const eliminarCliente = async (req, res) => {
     const { id } = req.params;
     if (!mongoose.Types.ObjectId.isValid(id)) return res.status(400).json({ msg: "ID de cliente no válido." });
-
     try {
-        const cliente = await Cliente.findById(id);
-        if (!cliente) return res.status(404).json({ msg: "Cliente no encontrado." });
-
-        // <-- LÓGICA DE ROL: Un vendedor solo puede eliminar clientes que él creó
-        if (req.usuario.rol === 'vendedor' && cliente.creadoPor?.toString() !== req.usuario._id.toString()) {
-            return res.status(403).json({ msg: "Acceso denegado. No tienes permiso para eliminar este cliente." });
-        }
-        
-        await Cliente.findByIdAndDelete(id);
+        // Se elimina la búsqueda previa y la verificación de propiedad.
+        // Se elimina el documento directamente.
+        const clienteEliminado = await Cliente.findByIdAndDelete(id);
+        if (!clienteEliminado) return res.status(404).json({ msg: "Cliente no encontrado." });
         res.status(200).json({ msg: "Cliente eliminado exitosamente." });
     } catch (error) {
         res.status(500).json({ msg: "Error al eliminar el cliente." });
