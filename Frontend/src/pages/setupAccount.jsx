@@ -30,7 +30,7 @@ const SetupAccount = () => {
         <div className="flex justify-center items-center h-screen bg-gray-100">
             <ToastContainer />
             <div className="bg-white p-8 rounded-lg shadow-md w-full max-w-md">
-                <h1 className="text-2xl font-bold mb-4 text-center">Activa tu Cuenta</h1>
+                <h1 className="text-2xl font-bold mb-4 text-center">Active su Cuenta</h1>
                 <p className="text-center text-gray-600 mb-6">Crea tu contraseña para empezar a usar Unitex.</p>
                 <form onSubmit={handleSubmit(onSubmit)}>
                     <div className="mb-4">

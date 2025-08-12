@@ -50,7 +50,7 @@ const sendMailToRegister = async (userMail, token) => {
             <!DOCTYPE html><html lang="es"><head><meta charset="UTF-8">${baseStyle}</head><body>
             <div class="container">
                 <h2>¡Bienvenido a Unitex!</h2>
-                <p>Gracias por registrarte. Para completar tu registro y activar tu cuenta, por favor haz clic en el siguiente botón:</p>
+                <p>Gracias por registrarte. Para completar tu registro y activar tu cuenta, por favor haz clic en el siguiente botón: </p>
                 <div class="button-container">
                     <a href="${confirmationLink}" class="button">Confirmar Mi Cuenta</a>
                 </div>
