@@ -169,7 +169,7 @@ const actualizarPassword = async (req, res) => {
 };
 
 // ============================================================================
-// ==         BLOQUE 4: RUTAS PRIVADAS (Gestión por Administrador)         ==
+// ==         BLOQUE 4: RUTAS PRIVADAS (Gestión por Vendedor/Admin)        ==
 // ============================================================================
 
 const crearClientePorAdmin = async (req, res) => {
@@ -181,9 +181,13 @@ const crearClientePorAdmin = async (req, res) => {
         
         const nuevoCliente = new Cliente(req.body);
         nuevoCliente.confirmEmail = true;
+        
+        // <-- LÓGICA DE ROL: Atribuir el cliente al usuario que lo crea
+        nuevoCliente.creadoPor = req.usuario._id;
+        
         await nuevoCliente.save();
         
-        res.status(201).json({ msg: "Cliente creado por el administrador." });
+        res.status(201).json({ msg: "Cliente creado exitosamente." });
     } catch (error) {
         res.status(500).json({ msg: "Error al crear el cliente." });
     }
@@ -191,7 +195,14 @@ const crearClientePorAdmin = async (req, res) => {
 
 const obtenerClientes = async (req, res) => {
     try {
-        const clientes = await Cliente.find().select("-password -token -__v");
+        let filtro = {};
+        
+        // <-- LÓGICA DE ROL: Si es vendedor, solo muestra sus clientes
+        if (req.usuario.rol === 'vendedor') {
+            filtro.creadoPor = req.usuario._id;
+        }
+        
+        const clientes = await Cliente.find(filtro).select("-password -token -__v");
         res.status(200).json(clientes);
     } catch (error) {
         res.status(500).json({ msg: "Error al obtener los clientes." });
@@ -204,6 +215,12 @@ const obtenerClientePorId = async (req, res) => {
     try {
         const cliente = await Cliente.findById(id).select("-password -token -__v");
         if (!cliente) return res.status(404).json({ msg: "Cliente no encontrado." });
+
+        // <-- LÓGICA DE ROL: Un vendedor solo puede ver clientes que él creó
+        if (req.usuario.rol === 'vendedor' && cliente.creadoPor?.toString() !== req.usuario._id.toString()) {
+            return res.status(403).json({ msg: "Acceso denegado. No tienes permiso para ver este cliente." });
+        }
+        
         res.status(200).json(cliente);
     } catch (error) {
         res.status(500).json({ msg: "Error al obtener el cliente." });
@@ -212,12 +229,21 @@ const obtenerClientePorId = async (req, res) => {
 
 const actualizarClientePorAdmin = async (req, res) => {
     const { id } = req.params;
-    const { password, ...datosActualizar } = req.body;
     if (!mongoose.Types.ObjectId.isValid(id)) return res.status(400).json({ msg: "ID de cliente no válido." });
+
     try {
-        const clienteActualizado = await Cliente.findByIdAndUpdate(id, datosActualizar, { new: true }).select("-password -token -__v");
-        if (!clienteActualizado) return res.status(404).json({ msg: "Cliente no encontrado." });
+        const cliente = await Cliente.findById(id);
+        if (!cliente) return res.status(404).json({ msg: "Cliente no encontrado." });
+
+        // <-- LÓGICA DE ROL: Un vendedor solo puede actualizar clientes que él creó
+        if (req.usuario.rol === 'vendedor' && cliente.creadoPor?.toString() !== req.usuario._id.toString()) {
+            return res.status(403).json({ msg: "Acceso denegado. No tienes permiso para modificar este cliente." });
+        }
+
+        // Si pasa la validación, actualiza el cliente
+        const clienteActualizado = await Cliente.findByIdAndUpdate(id, req.body, { new: true }).select("-password -token -__v");
         res.status(200).json({ msg: "Cliente actualizado exitosamente.", cliente: clienteActualizado });
+
     } catch (error) {
         res.status(500).json({ msg: "Error al actualizar el cliente." });
     }
@@ -226,9 +252,17 @@ const actualizarClientePorAdmin = async (req, res) => {
 const eliminarCliente = async (req, res) => {
     const { id } = req.params;
     if (!mongoose.Types.ObjectId.isValid(id)) return res.status(400).json({ msg: "ID de cliente no válido." });
+
     try {
-        const clienteEliminado = await Cliente.findByIdAndDelete(id);
-        if (!clienteEliminado) return res.status(404).json({ msg: "Cliente no encontrado." });
+        const cliente = await Cliente.findById(id);
+        if (!cliente) return res.status(404).json({ msg: "Cliente no encontrado." });
+
+        // <-- LÓGICA DE ROL: Un vendedor solo puede eliminar clientes que él creó
+        if (req.usuario.rol === 'vendedor' && cliente.creadoPor?.toString() !== req.usuario._id.toString()) {
+            return res.status(403).json({ msg: "Acceso denegado. No tienes permiso para eliminar este cliente." });
+        }
+        
+        await Cliente.findByIdAndDelete(id);
         res.status(200).json({ msg: "Cliente eliminado exitosamente." });
     } catch (error) {
         res.status(500).json({ msg: "Error al eliminar el cliente." });
@@ -239,19 +273,15 @@ const eliminarCliente = async (req, res) => {
 // ==                           EXPORTACIONES                            ==
 // ============================================================================
 export {
-    // Bloque 1
     registro,
     confirmarEmail,
     login,
-    // Bloque 2
     recuperarPassword,
     comprobarTokenPassword,
     crearNuevoPassword,
-    // Bloque 3
     perfil,
     actualizarPerfil,
     actualizarPassword,
-    // Bloque 4
     crearClientePorAdmin,
     obtenerClientes,
     obtenerClientePorId,
