@@ -174,7 +174,7 @@ const procesarPagoOrden = async (req, res) => {
     const clienteId = req.usuario._id;
 
     if (!ordenId || !paymentMethodId) {
-        return res.status(400).json({ msg: "Se requiere el ID de la orden y el método de pago." });
+        return res.status(400).json({ msg: "Se requiere el ID de la orden" });
     }
 
     try {
