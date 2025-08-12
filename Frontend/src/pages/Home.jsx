@@ -11,6 +11,7 @@ import { MdDesignServices } from "react-icons/md";
 import { FaIndustry } from "react-icons/fa";
 import { TbCertificate } from "react-icons/tb";
 import { FaFacebook, FaSquareInstagram, FaXTwitter } from "react-icons/fa6";
+import Contact from './Contact';
 
 export const Home = () => {
     return (
@@ -21,7 +22,7 @@ export const Home = () => {
                     <li><Link to="/" className='font-bold hover:text-orange-300 hover:underline'>Inicio</Link></li>
                     <li><Link to="/nosotros" className='font-bold hover:text-orange-300 hover:underline'>Nosotros</Link></li>
                     <li><Link to="/products" className='font-bold hover:text-orange-300 hover:underline'>Productos</Link></li>
-                    <li><a href="#" className='font-bold hover:text-orange-300 hover:underline'>Contacto</a></li>
+                    <li><Link to="/contacto" className='font-bold hover:text-orange-300 hover:underline'>Contacto</Link></li>
                 </ul>
                 <ul className='flex justify-center items-center gap-5 my-4'>
                     
