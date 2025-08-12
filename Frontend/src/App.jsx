@@ -21,6 +21,9 @@ import storeAuth from './context/storeAuth'
 import { useEffect } from 'react'
 import Nosotros from './pages/Nosotros'
 import Products from './pages/Products'
+import Contact from './pages/Contact' // <-- Añade este import
+import Carrito from './components/carrito/Carrito' // Ajusta el path si es necesario
+import Productos from './components/Productos/Productos'
 
 function App() {
   const { profile } = storeProfile()
@@ -48,6 +51,7 @@ function App() {
             <Route path='reset/:token' element={<Reset />} />
             <Route path='nosotros' element={<Nosotros />} />
             <Route path='products' element={<Products />} />
+            <Route path='contacto' element={<Contact />} /> {/* <-- Añade esta línea */}
             <Route path='*' element={<NotFound />} />
 
           </Route>
@@ -62,6 +66,8 @@ function App() {
                   <Route path='crear' element={<Create />} />
                   <Route path='actualizar/:id' element={<Update />} />
                   <Route path='chat' element={<Chat />} />
+                  <Route path='carrito' element={<Carrito />} /> {/* <-- ESTA LÍNEA */}
+                  <Route path='productos' element={<Productos />} /> {/* <-- Añade esta línea */}
                 </Route>
               </Routes>
             </ProtectedRoute>

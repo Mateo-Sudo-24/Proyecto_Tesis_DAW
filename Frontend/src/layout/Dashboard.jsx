@@ -43,6 +43,21 @@ const Dashboard = () => {
                             </li>
                         </>
                     )}
+                    {/* Solo para cliente: Carrito y Productos */}
+                    {isCliente && (
+                        <>
+                            <li className="text-center">
+                                <Link to='/dashboard/productos' className={`${urlActual === '/dashboard/productos' ? 'text-slate-200 bg-gray-900 px-3 py-2 rounded-md text-center' : 'text-slate-600'} text-xl block mt-2 hover:text-slate-600`}>
+                                    Productos
+                                </Link>
+                            </li>
+                            <li className="text-center">
+                                <Link to='/dashboard/carrito' className={`${urlActual === '/dashboard/carrito' ? 'text-slate-200 bg-gray-900 px-3 py-2 rounded-md text-center' : 'text-slate-600'} text-xl block mt-2 hover:text-slate-600`}>
+                                    Carrito
+                                </Link>
+                            </li>
+                        </>
+                    )}
                     {/* Chat para todos */}
                     <li className="text-center">
                         <Link to='/dashboard/chat' className={`${urlActual === '/dashboard/chat' ? 'text-slate-100 bg-gray-900 px-3 py-2 rounded-md text-center' : 'text-slate-600'} text-xl block mt-2 hover:text-slate-600`}>Chat</Link>
@@ -72,11 +87,7 @@ const Dashboard = () => {
                 <div className='bg-gray-800 h-12'>
                     <p className='text-center  text-slate-100 leading-[2.9rem] underline'>Todos los derechos reservados</p>
                 </div>
-
             </div>
-
-
-
         </div>
     )
 }
