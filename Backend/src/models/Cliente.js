@@ -27,11 +27,12 @@ const clienteSchema = new Schema({
         type: String,
         enum: ['local', 'google'],
         default: 'local'
-    }, telefono: {
-    type: String,
-    trim: true,
-    default: null
-  },
+    },
+    telefono: {
+        type: String,
+        trim: true,
+        default: null
+    },
   direccion: {
     type: String,
     trim: true,

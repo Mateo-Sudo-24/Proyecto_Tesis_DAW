@@ -19,10 +19,10 @@ import routerProductos from './routers/Producto_routers.js';
 import routerOrdenes from './routers/Orden_routers.js';
 import routerCarrito from './routers/Carrito_routers.js';
 import routerBot from './routers/Bot_routers.js';
-import oAuthRoutes from './routers/Oauth_routers.js';
+import notificacionRouter from './routers/Notificacion_router.js';
 
-// --- Configuración de Passport ---
-import './config/passport.js';
+// --- Configuración de Passport --- (REMOVIDO: No se usa OAuth)
+// import './config/passport.js';
 
 
 // =======================================================================
@@ -50,25 +50,10 @@ cloudinary.config({
     api_secret: process.env.CLOUDINARY_API_SECRET
 });
 
-// --- Conexión a la Base de Datos Dinámica ---
+// --- Conexión a la Base de Datos ---
+// ⚠️ LA CONEXIÓN AHORA SE MANEJA EN index.js USANDO database.js
+// NO CONECTAR AQUÍ PARA EVITAR MÚLTIPLES LLAMADAS A mongoose.connect()
 mongoose.set('strictQuery', true);
-const connectToDatabase = async () => {
-    try {
-        const connectionUri = isProduction ? process.env.MONGODB_URI_PRODUCTION : process.env.MONGODB_URI_LOCAL;
-        
-        if (!connectionUri) {
-            throw new Error(`La URI de la base de datos para el entorno '${process.env.NODE_ENV}' no está definida.`);
-        }
-
-        const connection = await mongoose.connect(connectionUri);
-        console.log(`✅ Conectado a la base de datos (${isProduction ? 'PRODUCCIÓN' : 'LOCAL'})`);
-        console.log(`   Host: ${connection.connection.host}:${connection.connection.port}`);
-    } catch (error) {
-        console.error(`❌ Error al conectar a la base de datos: ${error.message}`);
-        process.exit(1);
-    }
-};
-await connectToDatabase();
 
 
 // =======================================================================
@@ -122,8 +107,7 @@ app.use('/api/productos', routerProductos);
 app.use('/api/ordenes', routerOrdenes);
 app.use('/api/carrito', routerCarrito);
 app.use('/api/bot', routerBot);
-app.use('/api/auth', oAuthRoutes); // Rutas para OAuth (Google, etc.)
-
+app.use('/api/notificaciones', notificacionRouter);
 
 // =======================================================================
 // ==                 MANEJO DE ERRORES Y EXPORTACIÓN                   ==

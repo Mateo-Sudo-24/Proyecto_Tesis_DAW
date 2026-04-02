@@ -42,6 +42,19 @@ const ordenSchema = new Schema({
         type: String,
         default: shortid.generate,
         unique: true
+    },
+    solicitudCancelacion: {
+        estado: {
+            type: String,
+            enum: ['ninguna', 'pendiente', 'aprobada', 'rechazada'],
+            default: 'ninguna'
+        },
+        solicitadoEn: { type: Date },
+        solicitadoPor: { type: String, enum: ['cliente', 'vendedor'] },
+        razon: { type: String, maxlength: 500 },
+        aprobadoPor: { type: String, enum: ['cliente', 'vendedor'] },
+        respondidoEn: { type: Date },
+        motivoRechazo: { type: String, maxlength: 500 }
     }
 }, { timestamps: true });
 

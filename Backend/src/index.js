@@ -1,4 +1,5 @@
 import app from './server.js';
+import connection from './database.js';
 import http from 'http';
 import { Server } from 'socket.io';
 import jwt from 'jsonwebtoken';
@@ -94,12 +95,34 @@ io.on('connection', (socket) => {
 // ==                 INICIO DEL SERVIDOR                               ==
 // =======================================================================
 
-const PORT = app.get('port');
-const BASE_URL = process.env.NODE_ENV === 'production' 
-               ? process.env.URL_BACKEND_PRODUCTION 
-               : `http://localhost:${PORT}`;
+const initServer = async () => {
+    try {
+        // 1. Conectar a la base de datos PRIMERO
+        console.log('\n╔════════════════════════════════════════════════════════╗');
+        console.log('║        INICIANDO CONEXIÓN A BASE DE DATOS             ║');
+        console.log('╚════════════════════════════════════════════════════════╝\n');
+        await connection();
+        
+        // 2. Si la conexión fue exitosa, iniciar el servidor
+        console.log('\n╔════════════════════════════════════════════════════════╗');
+        console.log('║           INICIANDO SERVIDOR BACKEND                   ║');
+        console.log('╚════════════════════════════════════════════════════════╝\n');
+        
+        const PORT = app.get('port');
+        const BASE_URL = process.env.NODE_ENV === 'production' 
+                       ? process.env.URL_BACKEND_PRODUCTION 
+                       : `http://localhost:${PORT}`;
 
-// 5. Es el servidor HTTP combinado el que escucha, no la app de Express sola
-server.listen(PORT, () => {
-    console.log(`🚀 Servidor HTTP y WebSocket corriendo en ${BASE_URL}`);
-});
+        server.listen(PORT, () => {
+            console.log(`\n🚀 Servidor HTTP y WebSocket corriendo en ${BASE_URL}`);
+            console.log(`✅ Servidor LISTO para recibir solicitudes\n`);
+        });
+    } catch (error) {
+        console.error('\n❌ Error fatal al inicializar servidor:', error);
+        console.error('⛔ El servidor NO se iniciará sin conexión a la base de datos\n');
+        process.exit(1);
+    }
+};
+
+// Ejecutar función de inicialización
+initServer();

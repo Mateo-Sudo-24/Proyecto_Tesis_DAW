@@ -187,6 +187,13 @@ const productosRecientes = async (req, res) => {
   }
 };
 
+// En Producto_controller.js - agregar este método
+export const getStockCritico = async (req, res) => {
+  const umbral = parseInt(req.query.umbral) || 5;
+  const productos = await Producto.find({ stock: { $lte: umbral } });
+  res.json(productos);
+};
+
 export {
     registrarProducto,
     actualizarProducto,

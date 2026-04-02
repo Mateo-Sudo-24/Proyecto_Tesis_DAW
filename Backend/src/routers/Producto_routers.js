@@ -5,7 +5,8 @@ import {
   listarProducto,
   eliminarProducto,
   detalleProducto,
-  productosRecientes
+  productosRecientes,
+  getStockCritico
 } from '../controllers/Producto_controller.js';
 import { verificarTokenJWT } from '../middlewares/JWT.js';
 import { esVendedor } from '../middlewares/AuthMiddleware.js';
@@ -23,6 +24,9 @@ router.get('/', listarProducto);
 // GET /api/productos/recientes -> Obtener los últimos productos agregados
 // Es importante que esta ruta vaya ANTES de /:id para que "recientes" no sea interpretado como un ID.
 router.get('/recientes', productosRecientes);
+
+// GET /api/productos/stock-critico -> Obtener productos con stock crítico
+router.get('/stock-critico', getStockCritico);
 
 // GET /api/productos/:id -> Obtener el detalle de un solo producto por su ID
 router.get('/:id', detalleProducto);

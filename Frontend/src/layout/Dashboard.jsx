@@ -1,6 +1,7 @@
 import { Link, Outlet, useLocation } from 'react-router'
 import storeAuth from '../context/storeAuth'
 import storeProfile from '../context/storeProfile'
+import BandejaMensajes from '../components/notificaciones/BandejaMensajes'
 
 const Dashboard = () => {
     const location = useLocation()
@@ -114,6 +115,7 @@ const Dashboard = () => {
                         width={50}
                         height={50}
                     />
+                    <BandejaMensajes />
                     <button
                         className='bg-orange-300 hover:bg-orange-700 text-white px-4 py-1 rounded-lg transition'
                         onClick={() => clearToken()}
