@@ -174,6 +174,24 @@ const detalleProducto = async (req, res) => {
   }
 };
 
+// GET /api/productos/:id/editar - Solo para vendedores/admins, permite ver productos en cualquier estado
+const detalleProductoEditable = async (req, res) => {
+  const { id } = req.params;
+  if (!mongoose.Types.ObjectId.isValid(id)) {
+    return res.status(400).json({ msg: "ID no válido" });
+  }
+
+  try {
+    const producto = await Producto.findById(id).populate('categoria', 'nombre');
+    if (!producto) {
+        return res.status(404).json({ msg: "Producto no encontrado" });
+    }
+    res.status(200).json(producto);
+  } catch (error) {
+      res.status(500).json({ msg: "Error en el servidor al obtener el producto." });
+  }
+};
+
 // GET /api/productos/recientes
 const productosRecientes = async (req, res) => {
   try {
@@ -200,5 +218,6 @@ export {
     listarProducto,
     eliminarProducto,
     detalleProducto,
+    detalleProductoEditable,
     productosRecientes
 };

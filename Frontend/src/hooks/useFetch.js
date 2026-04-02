@@ -12,12 +12,7 @@ function useFetch() {
      */
     const fetchDataBackend = async (url, data = null, method = "GET", suppressErrorToast = false) => {
         
-        // No mostraremos un toast de carga aquí para dar más control al componente que lo llama.
-        // El componente Login ya gestiona su propio estado 'isLoading'.
-        
         try {
-            // Obtener el token del localStorage para incluirlo en TODAS las peticiones.
-            // El backend simplemente lo ignorará si la ruta es pública.
             const authToken = JSON.parse(localStorage.getItem("auth-token"))?.state?.token || '';
 
             // Construir options dinámicamente
@@ -25,10 +20,14 @@ function useFetch() {
                 method,
                 url,
                 headers: {
-                    "Content-Type": "application/json",
                     "Authorization": `Bearer ${authToken}`,
                 },
             };
+
+            // No establecer Content-Type para FormData (axios lo hace automáticamente)
+            if (!(data instanceof FormData)) {
+                options.headers["Content-Type"] = "application/json";
+            }
 
             // Solo agrega 'data' si el método lo requiere y hay datos
             if (["POST", "PUT", "PATCH"].includes(method) && data) {
@@ -37,26 +36,19 @@ function useFetch() {
 
             const response = await axios(options);
             
-            // Mostrar un toast de éxito solo si el backend envía un mensaje explícito.
-            // Esto evita toasts innecesarios en peticiones GET simples.
             if (response?.data?.msg) {
                 toast.success(response.data.msg);
             }
             
-            // En caso de éxito, devolver los datos de la respuesta.
             return response.data;
 
         } catch (error) {
             console.error("Error capturado en useFetch:", error.response?.data?.msg || error.message);
             
-            // Mostrar un toast de error solo si no se ha pedido suprimirlo.
             if (!suppressErrorToast) {
                 toast.error(error.response?.data?.msg || "Ocurrió un error inesperado.");
             }
 
-            // --- ¡EL CAMBIO MÁS IMPORTANTE! ---
-            // Devolver 'null' para que cualquier componente que use este hook
-            // pueda verificar fácilmente si la petición falló.
             return null;
         }
     };

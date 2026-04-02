@@ -21,7 +21,10 @@ import Products from './pages/Products';
 import Contact from './pages/Contact';
 import Carrito from './components/carrito/Carrito';
 import Productos from './components/Productos/Productos';
-import ChatbotBubble from './components/chatbot/ChatbotBubble'; // <-- tu componente de burbuja
+import ChatbotBubble from './components/chatbot/ChatbotBubble';
+import ProductosAdmin from './pages/ProductosAdmin';
+import UpdateProducto from './pages/UpdateProducto';
+import Notificaciones from './pages/Notificaciones';
 
 import PublicRoute from './routes/PublicRoute';
 import ProtectedRoute from './routes/ProtectedRoute';
@@ -75,6 +78,9 @@ function AppContent() {
           <Route path="chat" element={<Chat />} />
           <Route path="carrito" element={<Carrito />} />
           <Route path="productos" element={<Productos />} />
+          <Route path="productos-admin" element={<ProductosAdmin />} />
+          <Route path="actualizar-producto/:id" element={<UpdateProducto />} />
+          <Route path="notificaciones" element={<Notificaciones />} />
         </Route>
       </Routes>
 

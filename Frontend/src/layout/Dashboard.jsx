@@ -21,7 +21,7 @@ const Dashboard = () => {
                 <h2 className='text-3xl font-extrabold text-center text-orange-300'>Intex</h2>
 
                 <img
-                    src="https://cdn-icons-png.flaticon.com/512/2138/2138508.png"
+                    src="https://cdn-icons-png.flaticon.com/512/4715/4715329.png"
                     alt="img-client"
                     className="m-auto mt-8 p-1 border-4 border-orange-300 rounded-full"
                     width={120}
@@ -66,7 +66,30 @@ const Dashboard = () => {
                         </>
                     )}
 
-                    {(isCliente || isAdmin) && (
+                    {isAdmin && (
+                        <>
+                            <li>
+                                <Link
+                                    to='/dashboard/productos-admin'
+                                    className={`block text-center py-2 rounded-lg font-semibold transition 
+                                        ${urlActual === '/dashboard/productos-admin' ? 'bg-amber-700 text-white' : 'text-orange-100 hover:bg-amber-800'}`}
+                                >
+                                    Productos
+                                </Link>
+                            </li>
+                            <li>
+                                <Link
+                                    to='/dashboard/notificaciones'
+                                    className={`block text-center py-2 rounded-lg font-semibold transition 
+                                        ${urlActual === '/dashboard/notificaciones' ? 'bg-amber-700 text-white' : 'text-orange-100 hover:bg-amber-800'}`}
+                                >
+                                    Notificaciones
+                                </Link>
+                            </li>
+                        </>
+                    )}
+
+                    {isCliente && (
                         <>
                             <li>
                                 <Link

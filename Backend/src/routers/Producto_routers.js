@@ -5,6 +5,7 @@ import {
   listarProducto,
   eliminarProducto,
   detalleProducto,
+  detalleProductoEditable,
   productosRecientes,
   getStockCritico
 } from '../controllers/Producto_controller.js';
@@ -28,13 +29,16 @@ router.get('/recientes', productosRecientes);
 // GET /api/productos/stock-critico -> Obtener productos con stock crítico
 router.get('/stock-critico', getStockCritico);
 
-// GET /api/productos/:id -> Obtener el detalle de un solo producto por su ID
-router.get('/:id', detalleProducto);
-
-
 // =======================================================================
 // ==   RUTAS PRIVADAS (SOLO VENDEDORES O ADMINS PUEDEN ACCEDER)        ==
 // =======================================================================
+
+// GET /api/productos/editar/:id -> Obtener un producto para editar (sin restricción de estado)
+// DEBE IR ANTES de /:id para que no sea interpretado como /:id
+router.get('/editar/:id', verificarTokenJWT, esVendedor, detalleProductoEditable);
+
+// GET /api/productos/:id -> Obtener el detalle de un solo producto por su ID
+router.get('/:id', detalleProducto);
 
 // POST /api/productos -> Crear un nuevo producto
 router.post('/', verificarTokenJWT, esVendedor, registrarProducto);
