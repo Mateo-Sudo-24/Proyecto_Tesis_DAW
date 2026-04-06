@@ -32,7 +32,7 @@ export const NotFound = () => {
 
             {/* Botón para regresar al inicio */}
             <Link 
-                to="/" 
+                to="/home" 
                 className="mt-10 px-6 py-3 text-center bg-gray-800 text-white border rounded-lg hover:bg-gray-700 transition-transform duration-300 hover:scale-105 shadow-md"
             >
                 Regresar al Inicio

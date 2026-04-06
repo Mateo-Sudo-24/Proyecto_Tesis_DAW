@@ -14,7 +14,7 @@ const Nosotros = () => {
             <header className="container mx-auto h-40 text-center py-4 md:flex justify-between items-center px-4 md:h-15">
                 <h1 className='font-bold text-2xl my-2 text-orange-300'>IN<span className='text-stone-900'>TEX</span></h1>
                 <ul className='flex gap-5 justify-center my-4 flex-wrap'>
-                    <li><Link to="/" className='font-bold hover:text-orange-300 hover:underline'>Inicio</Link></li>
+                    <li><Link to="/home" className='font-bold hover:text-orange-300 hover:underline'>Inicio</Link></li>
                     <li><Link to="/nosotros" className='font-bold hover:text-orange-300 hover:underline'>Nosotros</Link></li>
                     <li><Link to="/products" className='font-bold hover:text-orange-300 hover:underline'>Productos</Link></li>
                     <li><Link to="/contacto" className='font-bold hover:text-orange-300 hover:underline'>Contacto</Link></li>

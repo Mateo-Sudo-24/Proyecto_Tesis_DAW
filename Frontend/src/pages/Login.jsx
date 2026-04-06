@@ -16,6 +16,15 @@ const Login = () => {
     const loginUser = async (data) => {
         setIsLoading(true);
         const baseUrl = import.meta.env.VITE_BACKEND_URL;
+
+        // ✅ MIDDLEWARE: Validar que VITE_BACKEND_URL esté definido
+        if (!baseUrl || baseUrl === 'undefined') {
+            setIsLoading(false);
+            console.error("❌ VITE_BACKEND_URL no está definido en .env");
+            toast.error("Error de configuración: Backend URL no definida. Contacta soporte.");
+            return;
+        }
+
         const rolesToCheck = ['admin', 'vendedores', 'clientes'];
         let loginSuccess = false;
 

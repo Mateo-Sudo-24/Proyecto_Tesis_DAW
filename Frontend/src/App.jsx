@@ -1,4 +1,4 @@
-import { BrowserRouter, Route, Routes, useLocation } from 'react-router-dom';
+import { BrowserRouter, Route, Routes, Navigate, useLocation } from 'react-router-dom';
 import { useEffect } from 'react';
 
 import { Home } from './pages/Home';
@@ -42,14 +42,23 @@ function AppContent() {
     }
   }, [token, profile]);
 
+  // ✅ MIDDLEWARE: Ruta raíz - Si hay token va a Dashboard, si no a Login
+  const RootRedirect = () => {
+    return token ? <Navigate to="/dashboard" /> : <Navigate to="/login" />;
+  };
+
   // rutas donde se mostrará el chatbot
-  const rutasConChat = ['/', '/nosotros', '/products', '/contacto'];
+  const rutasConChat = ['/home', '/nosotros', '/products', '/contacto'];
 
   return (
     <>
       <Routes>
+        {/* ✅ RAÍZ: Validación de autenticación */}
+        <Route index element={<RootRedirect />} />
+
+        {/* ✅ RUTAS PÚBLICAS: Accesibles sin token */}
         <Route element={<PublicRoute />}>
-          <Route index element={<Home />} />
+          <Route path="home" element={<Home />} />
           <Route path="login" element={<Login />} />
           <Route path="register" element={<Register />} />
           <Route path="forgot/:id" element={<Forgot />} />
@@ -59,9 +68,9 @@ function AppContent() {
           <Route path="nosotros" element={<Nosotros />} />
           <Route path="products" element={<Products />} />
           <Route path="contacto" element={<Contact />} />
-          <Route path="*" element={<NotFound />} />
         </Route>
 
+        {/* ✅ RUTAS PROTEGIDAS: Solo con token */}
         <Route
           path="dashboard/*"
           element={
@@ -82,6 +91,9 @@ function AppContent() {
           <Route path="actualizar-producto/:id" element={<UpdateProducto />} />
           <Route path="notificaciones" element={<Notificaciones />} />
         </Route>
+
+        {/* ✅ 404: Ruta no encontrada */}
+        <Route path="*" element={<NotFound />} />
       </Routes>
 
       {/* Mostrar el bubble solo en rutas específicas */}

@@ -1,8 +1,39 @@
 import Producto from '../models/Producto.js';
 import Carrito from '../models/Carrito.js';
+import Notificacion from '../models/Notificacion.js';
+import Administrador from '../models/Administrador.js';
 import mongoose from 'mongoose';
 import { v2 as cloudinary } from 'cloudinary';
 import fs from 'fs-extra';
+
+// Umbral de stock crítico
+const STOCK_CRITICO = 5;
+
+// Función auxiliar para crear notificaciones de stock crítico
+const crearNotificacionStockCritico = async (producto) => {
+    try {
+        // Obtener todos los administradores
+        const admins = await Administrador.find();
+        
+        for (const admin of admins) {
+            await Notificacion.create({
+                administrador: admin._id,
+                tipo: 'stock_critico',
+                mensaje: `El producto "${producto.nombre}" tiene stock crítico (${producto.stock} unidades)`,
+                productos: [
+                    {
+                        nombre: producto.nombre,
+                        stock: producto.stock,
+                        umbral: STOCK_CRITICO
+                    }
+                ],
+                leida: false
+            });
+        }
+    } catch (error) {
+        console.error('Error al crear notificación de stock crítico:', error);
+    }
+};
 
 // POST /api/productos
 // Crear un nuevo producto
@@ -57,6 +88,8 @@ const actualizarProducto = async (req, res) => {
             return res.status(404).json({ msg: "Producto no encontrado." });
         }
 
+        const stockAnterior = producto.stock;
+        
         // Actualizar campos
         Object.assign(producto, req.body);
         producto.ultimaModificacionPor = req.usuario._id;
@@ -76,7 +109,18 @@ const actualizarProducto = async (req, res) => {
         }
 
         await producto.save();
-        res.status(200).json({ msg: "Producto actualizado correctamente", producto });
+        
+        // Crear notificación si el stock cambió y es crítico
+        if (req.body.stock !== undefined && producto.stock <= STOCK_CRITICO) {
+            await crearNotificacionStockCritico(producto);
+        }
+        
+        res.status(200).json({ 
+            msg: "Producto actualizado correctamente", 
+            producto,
+            stockCritico: producto.stock <= STOCK_CRITICO,
+            umbralStockCritico: STOCK_CRITICO
+        });
     } catch (error) {
         console.error("Error al actualizar producto:", error);
         res.status(500).json({ msg: "Error en el servidor al actualizar el producto." });

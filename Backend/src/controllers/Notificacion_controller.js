@@ -91,3 +91,58 @@ export const marcarLeida = async (req, res) => {
     res.status(500).json({ msg: 'Error al actualizar notificación' });
   }
 };
+
+// Obtener notificaciones no leídas del administrador (más optimizado para dashboard)
+export const obtenerNotificacionesNoLeidas = async (req, res) => {
+  const { _id, rol } = req.usuario;
+  
+  // Validar que sea administrador
+  if (rol !== 'administrador') {
+    return res.status(403).json({ msg: 'Acceso denegado. Solo administradores pueden ver notificaciones.' });
+  }
+  
+  try {
+    const notifs = await Notificacion.find({ administrador: _id, leida: false })
+      .sort({ createdAt: -1 })
+      .limit(20);
+    
+    const contador = await Notificacion.countDocuments({ administrador: _id, leida: false });
+    
+    res.json({ 
+      ok: true, 
+      notificaciones: notifs,
+      totalNoLeidas: contador
+    });
+  } catch (error) {
+    console.error('Error al obtener notificaciones no leídas:', error);
+    res.status(500).json({ msg: 'Error al obtener notificaciones' });
+  }
+};
+
+// Eliminar notificación
+export const eliminarNotificacion = async (req, res) => {
+  const { id } = req.params;
+  const { _id, rol } = req.usuario;
+  
+  // Validar que sea administrador
+  if (rol !== 'administrador') {
+    return res.status(403).json({ msg: 'Acceso denegado.' });
+  }
+  
+  try {
+    const notif = await Notificacion.findById(id);
+    if (!notif) {
+      return res.status(404).json({ msg: 'Notificación no encontrada' });
+    }
+    
+    if (notif.administrador.toString() !== _id.toString()) {
+      return res.status(403).json({ msg: 'No tienes permiso para eliminar esta notificación' });
+    }
+    
+    await Notificacion.findByIdAndDelete(id);
+    res.json({ ok: true, msg: 'Notificación eliminada' });
+  } catch (error) {
+    console.error('Error al eliminar notificación:', error);
+    res.status(500).json({ msg: 'Error al eliminar notificación' });
+  }
+};
