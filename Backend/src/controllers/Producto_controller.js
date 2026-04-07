@@ -5,33 +5,84 @@ import Administrador from '../models/Administrador.js';
 import mongoose from 'mongoose';
 import { v2 as cloudinary } from 'cloudinary';
 import fs from 'fs-extra';
+import axios from 'axios';
 
 // Umbral de stock crítico
 const STOCK_CRITICO = 5;
 
-// Función auxiliar para crear notificaciones de stock crítico
+// ✅ FUNCIÓN MEJORADA: Crear notificación Y enviar webhook
 const crearNotificacionStockCritico = async (producto) => {
     try {
-        // Obtener todos los administradores
-        const admins = await Administrador.find();
+        console.log(`📢 Creando notificación de stock crítico para: ${producto.nombre} (Stock: ${producto.stock})`);
         
+        // 1️⃣ GUARDAR EN BD
+        const admins = await Administrador.find();
+        console.log(`👥 Encontrados ${admins.length} administradores`);
+        
+        if (admins.length === 0) {
+            console.warn('⚠️ No hay administradores registrados');
+        }
+
         for (const admin of admins) {
-            await Notificacion.create({
+            const notificacion = await Notificacion.create({
                 administrador: admin._id,
                 tipo: 'stock_critico',
                 mensaje: `El producto "${producto.nombre}" tiene stock crítico (${producto.stock} unidades)`,
                 productos: [
                     {
                         nombre: producto.nombre,
+                        productId: producto._id,
                         stock: producto.stock,
                         umbral: STOCK_CRITICO
                     }
                 ],
                 leida: false
             });
+            console.log(`✅ Notificación creada en BD para admin: ${admin._id}`);
         }
+
+        // 2️⃣ ENVIAR WEBHOOK A N8N
+        const webHookUrl = process.env.N8N_WEBHOOK_URL;
+        const webhookSecret = process.env.N8N_WEBHOOK_SECRET || 'unitex_secret_2024';
+        
+        if (webHookUrl) {
+            try {
+                const payloadN8N = {
+                    tipo: 'stock_critico',
+                    timestamp: new Date().toISOString(),
+                    producto: {
+                        id: producto._id,
+                        nombre: producto.nombre,
+                        stock: producto.stock,
+                        umbralCritico: STOCK_CRITICO,
+                        categoria: producto.categoria,
+                        precio: producto.precio
+                    },
+                    accion: 'notificar_administrador'
+                };
+
+                console.log(`🔗 Enviando webhook a n8n: ${webHookUrl}`);
+                
+                const response = await axios.post(webHookUrl, payloadN8N, {
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'X-API-Key': webhookSecret,
+                        'Authorization': `Bearer ${webhookSecret}`
+                    },
+                    timeout: 5000
+                });
+                
+                console.log(`✅ Webhook enviado exitosamente a n8n. Status: ${response.status}`);
+            } catch (webhookError) {
+                console.error(`❌ Error al enviar webhook a n8n:`, webhookError.message);
+                // No lanzar error, continuar aunque falle el webhook
+            }
+        } else {
+            console.warn('⚠️ N8N_WEBHOOK_URL no configurada');
+        }
+
     } catch (error) {
-        console.error('Error al crear notificación de stock crítico:', error);
+        console.error('❌ Error al crear notificación de stock crítico:', error);
     }
 };
 
@@ -89,9 +140,14 @@ const actualizarProducto = async (req, res) => {
         }
 
         const stockAnterior = producto.stock;
+        const nuevoStock = req.body.stock !== undefined ? parseInt(req.body.stock) : stockAnterior;
+        
+        console.log(`📦 Actualizando producto: ${producto.nombre}`);
+        console.log(`📊 Stock anterior: ${stockAnterior}, Nuevo stock: ${nuevoStock}`);
         
         // Actualizar campos
         Object.assign(producto, req.body);
+        producto.stock = nuevoStock; // Asegurar que sea número
         producto.ultimaModificacionPor = req.usuario._id;
 
         // Si se envió una nueva imagen
@@ -110,15 +166,23 @@ const actualizarProducto = async (req, res) => {
 
         await producto.save();
         
-        // Crear notificación si el stock cambió y es crítico
-        if (req.body.stock !== undefined && producto.stock <= STOCK_CRITICO) {
+        // ✅ MEJORADO: Crear notificación si stock es crítico Y hubo cambio de stock
+        const ahora_es_critico = nuevoStock <= STOCK_CRITICO;
+        const antes_era_critico = stockAnterior <= STOCK_CRITICO;
+        
+        console.log(`🔍 Análisis de stock: Antes crítico=${antes_era_critico}, Ahora crítico=${ahora_es_critico}`);
+        
+        if (nuevoStock !== stockAnterior && ahora_es_critico) {
+            console.log(`⚠️ ¡ALERTA! Stock del producto ${producto.nombre} es crítico (${nuevoStock})`);
             await crearNotificacionStockCritico(producto);
+        } else if (nuevoStock === stockAnterior && ahora_es_critico) {
+            console.log(`ℹ️ Stock ya estaba crítico, no se envía notificación duplicada`);
         }
         
         res.status(200).json({ 
             msg: "Producto actualizado correctamente", 
             producto,
-            stockCritico: producto.stock <= STOCK_CRITICO,
+            stockCritico: ahora_es_critico,
             umbralStockCritico: STOCK_CRITICO
         });
     } catch (error) {

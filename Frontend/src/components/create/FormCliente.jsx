@@ -4,20 +4,27 @@ import { useNavigate } from "react-router-dom";
 import { useForm } from "react-hook-form";
 import { toast, ToastContainer } from "react-toastify";
 
+/**
+ * ✅ FORMULARIO DE USUARIO
+ * Crea o edita CLIENTE o VENDEDOR a través de un selector de tipo
+ */
 export const FormCliente = ({ clienteToUpdate }) => {
     const navigate = useNavigate();
     const { register, handleSubmit, formState: { errors }, reset } = useForm();
     const { fetchDataBackend } = useFetch();
     const [isSubmitting, setIsSubmitting] = useState(false);
+    const [tipoUsuario, setTipoUsuario] = useState(clienteToUpdate?.rol || "cliente");
 
     useEffect(() => {
         if (clienteToUpdate) {
             reset({
                 nombre: clienteToUpdate?.nombre || "",
+                apellido: clienteToUpdate?.apellido || "",
                 email: clienteToUpdate?.email || "",
                 direccion: clienteToUpdate?.direccion || "",
                 telefono: clienteToUpdate?.telefono || "",
             });
+            setTipoUsuario(clienteToUpdate?.rol || "cliente");
         }
     }, [clienteToUpdate, reset]);
 
@@ -29,84 +36,133 @@ export const FormCliente = ({ clienteToUpdate }) => {
             setIsSubmitting(false);
             return;
         }
+
         const headers = {
             "Content-Type": "application/json",
             Authorization: `Bearer ${storedUser.state.token}`,
         };
 
-        let url = `${import.meta.env.VITE_BACKEND_URL}/clientes`;
+        // ✅ DETERMINAR ENDPOINT SEGÚN TIPO DE USUARIO
+        let baseUrl = tipoUsuario === "cliente" ? "/clientes" : "/vendedores";
+        let url = `${import.meta.env.VITE_BACKEND_URL}${baseUrl}`;
         let method = "POST";
+
         if (clienteToUpdate?._id) {
-            url = `${import.meta.env.VITE_BACKEND_URL}/clientes/${clienteToUpdate._id}`;
+            url = `${import.meta.env.VITE_BACKEND_URL}${baseUrl}/${clienteToUpdate._id}`;
             method = "PUT";
         }
 
         try {
             const response = await fetchDataBackend(url, data, method, headers);
             if (response) {
+                const tipoNombre = tipoUsuario === "cliente" ? "Cliente" : "Vendedor";
                 toast.success(
                     clienteToUpdate
-                        ? "Cliente actualizado correctamente"
-                        : "Cliente registrado correctamente"
+                        ? `${tipoNombre} actualizado correctamente`
+                        : `${tipoNombre} registrado correctamente`
                 );
                 setTimeout(() => {
-                    navigate("/dashboard/listar-clientes");
+                    navigate("/dashboard/listar");
                 }, 1500);
             }
         } catch (error) {
-            toast.error("Ocurrió un error al guardar el cliente.");
+            const tipoNombre = tipoUsuario === "cliente" ? "cliente" : "vendedor";
+            toast.error(`Ocurrió un error al guardar el ${tipoNombre}.`);
         } finally {
             setIsSubmitting(false);
         }
     };
 
+    const inputStyle = "block w-full rounded-lg border border-gray-300 py-2 px-3 text-gray-700 focus:outline-none focus:ring-2 focus:ring-blue-500 shadow-sm transition-all";
+    const labelStyle = "mb-1 block text-sm font-semibold text-gray-700";
+    const errorStyle = "text-sm text-red-600 mt-1";
+
     return (
-        <form onSubmit={handleSubmit(onSubmit)}>
+        <form onSubmit={handleSubmit(onSubmit)} className="max-w-2xl mx-auto bg-white p-6 rounded-xl shadow-md">
             <ToastContainer />
-            <fieldset className="border-2 border-gray-500 p-6 rounded-lg shadow-lg">
-                <legend className="text-xl font-bold text-gray-700 bg-gray-200 px-4 py-1 rounded-md">
-                    {clienteToUpdate ? "Editar Cliente" : "Registrar Cliente"}
+            <fieldset className="border border-gray-300 p-5 rounded-lg">
+                <legend className="text-lg font-bold text-gray-800 px-2">
+                    {clienteToUpdate
+                        ? `Editar ${tipoUsuario === "cliente" ? "Cliente" : "Vendedor"}`
+                        : `Registrar ${tipoUsuario === "cliente" ? "Cliente" : "Vendedor"}`}
                 </legend>
 
+                {/* ✅ SELECTOR DE TIPO DE USUARIO */}
                 <div className="mb-5">
-                    <label className="mb-2 block text-sm font-semibold">Nombre</label>
+                    <label className={labelStyle}>Tipo de usuario *</label>
+                    <select
+                        value={tipoUsuario}
+                        onChange={(e) => setTipoUsuario(e.target.value)}
+                        className={inputStyle}
+                    >
+                        <option value="cliente">Cliente</option>
+                        <option value="vendedor">Vendedor</option>
+                    </select>
+                </div>
+
+                {/* Nombre */}
+                <div className="mb-5">
+                    <label className={labelStyle}>Nombre *</label>
                     <input
                         type="text"
-                        placeholder="Nombre del cliente"
-                        className="block w-full rounded-md border border-gray-300 py-1 px-2 text-gray-500"
+                        placeholder="Nombre"
+                        className={inputStyle}
                         {...register("nombre", { required: "El nombre es obligatorio" })}
                     />
-                    {errors.nombre && <p className="text-red-800">{errors.nombre.message}</p>}
+                    {errors.nombre && <p className={errorStyle}>{errors.nombre.message}</p>}
                 </div>
 
+                {/* Apellido (solo para vendedor) */}
+                {tipoUsuario === "vendedor" && (
+                    <div className="mb-5">
+                        <label className={labelStyle}>Apellido *</label>
+                        <input
+                            type="text"
+                            placeholder="Apellido"
+                            className={inputStyle}
+                            {...register("apellido", { required: "El apellido es obligatorio para vendedores" })}
+                        />
+                        {errors.apellido && <p className={errorStyle}>{errors.apellido.message}</p>}
+                    </div>
+                )}
+
+                {/* Email */}
                 <div className="mb-5">
-                    <label className="mb-2 block text-sm font-semibold">Correo electrónico</label>
+                    <label className={labelStyle}>Correo electrónico *</label>
                     <input
                         type="email"
-                        placeholder="Correo del cliente"
-                        className="block w-full rounded-md border border-gray-300 py-1 px-2 text-gray-500"
-                        {...register("email", { required: "El correo electrónico es obligatorio" })}
+                        placeholder="Correo electrónico"
+                        className={inputStyle}
+                        {...register("email", { 
+                            required: "El correo electrónico es obligatorio",
+                            pattern: {
+                                value: /^[A-Z0-9._%+-]+@[A-Z0-9.-]+\.[A-Z]{2,}$/i,
+                                message: "Correo inválido"
+                            }
+                        })}
                     />
-                    {errors.email && <p className="text-red-800">{errors.email.message}</p>}
+                    {errors.email && <p className={errorStyle}>{errors.email.message}</p>}
                 </div>
 
+                {/* Dirección */}
                 <div className="mb-5">
-                    <label className="mb-2 block text-sm font-semibold">Dirección</label>
+                    <label className={labelStyle}>Dirección *</label>
                     <input
                         type="text"
-                        placeholder="Dirección del cliente"
-                        className="block w-full rounded-md border border-gray-300 py-1 px-2 text-gray-500"
+                        placeholder="Dirección"
+                        className={inputStyle}
                         {...register("direccion", { required: "La dirección es obligatoria" })}
                     />
-                    {errors.direccion && <p className="text-red-800">{errors.direccion.message}</p>}
+                    {errors.direccion && <p className={errorStyle}>{errors.direccion.message}</p>}
                 </div>
 
+                {/* Teléfono */}
                 <div className="mb-5">
-                    <label className="mb-2 block text-sm font-semibold">Teléfono</label>
+                    <label className={labelStyle}>Teléfono *</label>
                     <input
                         type="text"
-                        placeholder="Teléfono del cliente"
-                        className="block w-full rounded-md border border-gray-300 py-1 px-2 text-gray-500"
+                        placeholder="Teléfono"
+                        className={inputStyle}
                         {...register("telefono", {
                             required: "El teléfono es obligatorio",
                             pattern: {
@@ -115,17 +171,27 @@ export const FormCliente = ({ clienteToUpdate }) => {
                             }
                         })}
                     />
-                    {errors.telefono && <p className="text-red-800">{errors.telefono.message}</p>}
+                    {errors.telefono && <p className={errorStyle}>{errors.telefono.message}</p>}
+                </div>
+
+                {/* Botones */}
+                <div className="flex gap-4 mt-6">
+                    <button
+                        type="submit"
+                        disabled={isSubmitting}
+                        className="flex-1 bg-blue-600 text-white py-2 px-4 rounded-lg hover:bg-blue-700 transition font-semibold disabled:opacity-50"
+                    >
+                        {isSubmitting ? "Guardando..." : (clienteToUpdate ? "Actualizar" : "Registrar")}
+                    </button>
+                    <button
+                        type="button"
+                        onClick={() => navigate("/dashboard/listar")}
+                        className="flex-1 bg-gray-400 text-white py-2 px-4 rounded-lg hover:bg-gray-500 transition font-semibold"
+                    >
+                        Cancelar
+                    </button>
                 </div>
             </fieldset>
-
-            <input
-                type="submit"
-                className="bg-gray-800 w-full p-2 mt-5 text-slate-300 uppercase font-bold rounded-lg 
-                hover:bg-gray-600 cursor-pointer transition-all"
-                value={isSubmitting ? "Guardando..." : clienteToUpdate ? "Actualizar Cliente" : "Registrar Cliente"}
-                disabled={isSubmitting}
-            />
         </form>
     );
 };

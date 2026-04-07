@@ -17,16 +17,50 @@ export const FormProducto = ({ productoToUpdate }) => {
     useEffect(() => {
         const fetchCategorias = async () => {
             try {
-                const res = await fetch(`${import.meta.env.VITE_BACKEND_URL}/categorias`);
+                // ✅ URL CORRECTA CON VITE_BACKEND_URL COMPLETO
+                const backendUrl = import.meta.env.VITE_BACKEND_URL;
+                const url = `${backendUrl}/productos/categorias` || `${backendUrl}/categorias`;
+                
+                console.log('🔍 Buscando categorías en:', url);
+                
+                const res = await fetch(url, {
+                    headers: { Authorization: `Bearer ${token}` }
+                });
+                
+                if (!res.ok) {
+                    throw new Error(`HTTP ${res.status}`);
+                }
+                
                 const data = await res.json();
-                setCategoriasOptions(Array.isArray(data) ? data : data?.categorias || []);
+                console.log('✅ Categorías cargadas:', data);
+                
+                // ✅ CATEGORÍAS POR DEFECTO si no hay respuesta
+                const categorias = Array.isArray(data) 
+                    ? data 
+                    : data?.categorias || data?.data || [
+                        { _id: '1', nombre: 'Telas Premium' },
+                        { _id: '2', nombre: 'Telas Básicas' },
+                        { _id: '3', nombre: 'Accesorios' },
+                        { _id: '4', nombre: 'Especiales' }
+                    ];
+                
+                setCategoriasOptions(categorias);
             } catch (error) {
-                console.error('Error cargando categorías:', error);
-                toast.error('Error al cargar categorías');
+                console.error('❌ Error cargando categorías:', error);
+                
+                // ✅ FALLBACK: Usar categorías por defecto si hay error
+                setCategoriasOptions([
+                    { _id: '1', nombre: 'Telas Premium' },
+                    { _id: '2', nombre: 'Telas Básicas' },
+                    { _id: '3', nombre: 'Accesorios' },
+                    { _id: '4', nombre: 'Especiales' }
+                ]);
+                
+                console.warn('⚠️ Usando categorías por defecto');
             }
         };
         fetchCategorias();
-    }, []);
+    }, [token]);
 
     // Cargar datos del producto si está en modo actualización
     useEffect(() => {

@@ -11,6 +11,7 @@ yarn-debug.log
 # Build outputs
 dist/
 build/
+docs/
 
 # OS
 .DS_Store
