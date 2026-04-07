@@ -5,11 +5,24 @@ export default function BandejaMensajes() {
   const [abierta, setAbierta] = useState(false);
 
   const fetchNotifs = async () => {
-    const res = await fetch('/api/notificaciones', {
-      headers: { Authorization: `Bearer ${localStorage.getItem('token')}` }
-    });
-    const data = await res.json();
-    setNotifs(data);
+    try {
+      const backendUrl = import.meta.env.VITE_BACKEND_URL;
+      const token = JSON.parse(localStorage.getItem('auth-token'))?.state?.token;
+      
+      const res = await fetch(`${backendUrl}/notificaciones`, {
+        headers: { Authorization: `Bearer ${token}` }
+      });
+      
+      if (!res.ok) {
+        console.error(`❌ Error ${res.status} al obtener notificaciones`);
+        return;
+      }
+      
+      const data = await res.json();
+      setNotifs(Array.isArray(data) ? data : data.notificaciones || []);
+    } catch (error) {
+      console.error('❌ Error fetching notificaciones:', error);
+    }
   };
 
   useEffect(() => {
@@ -19,10 +32,21 @@ export default function BandejaMensajes() {
   }, []);
 
   const marcarLeida = async (id) => {
-    await fetch(`/api/notificaciones/${id}/leida`, { method: 'PATCH',
-      headers: { Authorization: `Bearer ${localStorage.getItem('token')}` }
-    });
-    setNotifs(prev => prev.map(n => n._id === id ? { ...n, leida: true } : n));
+    try {
+      const backendUrl = import.meta.env.VITE_BACKEND_URL;
+      const token = JSON.parse(localStorage.getItem('auth-token'))?.state?.token;
+      
+      const res = await fetch(`${backendUrl}/notificaciones/${id}/leida`, {
+        method: 'PATCH',
+        headers: { Authorization: `Bearer ${token}` }
+      });
+      
+      if (res.ok) {
+        setNotifs(prev => prev.map(n => n._id === id ? { ...n, leida: true } : n));
+      }
+    } catch (error) {
+      console.error('❌ Error marking notification as read:', error);
+    }
   };
 
   const noLeidas = notifs.filter(n => !n.leida).length;
