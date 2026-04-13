@@ -89,34 +89,29 @@ const crearNotificacionStockCritico = async (producto) => {
 // POST /api/productos
 // Crear un nuevo producto
 const registrarProducto = async (req, res) => {
-    // 1. Validación explícita de campos
-    const { nombre, descripcion, precio, stock, categoria } = req.body;
+    const { nombre, descripcion, precio, stock, categoria, imagenUrl } = req.body;
     if (!nombre || !descripcion || !precio || !stock || !categoria) {
         return res.status(400).json({ msg: "Todos los campos de texto son obligatorios." });
     }
-    if (!req.files?.imagen) {
-        return res.status(400).json({ msg: "La imagen del producto es obligatoria." });
-    }
 
     try {
-        // 2. Crear instancia del producto con datos del body y del token
         const nuevoProducto = new Producto({
             ...req.body,
             creadoPor: req.usuario._id
         });
 
-        // 3. Subir imagen a Cloudinary
-        const resultadoCloudinary = await cloudinary.uploader.upload(req.files.imagen.tempFilePath, {
-            folder: 'Productos'
-        });
-        
-        // 4. Asignar datos de la imagen a los campos CORRECTOS
-        nuevoProducto.imagenUrl = resultadoCloudinary.secure_url;
-        nuevoProducto.imagenID = resultadoCloudinary.public_id;
-        
-        // 5. Guardar y limpiar
+        if (req.files?.imagen) {
+            const resultadoCloudinary = await cloudinary.uploader.upload(req.files.imagen.tempFilePath, {
+                folder: 'Productos'
+            });
+            nuevoProducto.imagenUrl = resultadoCloudinary.secure_url;
+            nuevoProducto.imagenID = resultadoCloudinary.public_id;
+            await fs.unlink(req.files.imagen.tempFilePath);
+        } else if (imagenUrl) {
+            nuevoProducto.imagenUrl = imagenUrl;
+        }
+
         await nuevoProducto.save();
-        await fs.unlink(req.files.imagen.tempFilePath);
 
         res.status(201).json({ msg: "Producto registrado exitosamente", producto: nuevoProducto });
     } catch (error) {

@@ -1,0 +1,400 @@
+{
+  "name": "Unitex Stock Monitor",
+  "nodes": [
+    {
+      "parameters": {
+        "url": "https://unitex-backend.onrender.com/api/productos/stock-critico",
+        "options": {
+          "fullResponse": false
+        },
+        "queryParametersUi": {
+          "parameter": [
+            {
+              "name": "umbral",
+              "value": "5"
+            }
+          ]
+        }
+      },
+      "name": "Consultar stock crítico",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 1,
+      "position": [
+        -1504,
+        240
+      ],
+      "id": "cdb688d5-2d1b-4d2e-a6ae-0c7d2cc2f5cf"
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "number": [],
+          "string": [
+            {
+              "value1": "={{ $json.length === 0 ? 'empty' : 'has' }}",
+              "value2": "empty"
+            }
+          ]
+        }
+      },
+      "name": "¿Sin productos críticos?",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 1,
+      "position": [
+        -1200,
+        240
+      ],
+      "id": "a65ccfa0-a34a-42c7-b4ec-fa507b8a04ac"
+    },
+    {
+      "parameters": {
+        "url": "https://unitex-backend.onrender.com/api/notificaciones",
+        "options": {
+          "fullResponse": false
+        },
+        "queryParametersUi": {
+          "parameter": [
+            {
+              "name": "leida",
+              "value": "false"
+            }
+          ]
+        }
+      },
+      "name": "Comprobar notificaciones sin leer",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 1,
+      "position": [
+        -896,
+        128
+      ],
+      "id": "21738723-8b43-4f44-b8dd-82c74a72bdc8"
+    },
+    {
+      "parameters": {
+        "functionCode": "/* Compara productos críticos con notificaciones sin leer para evitar duplicados.\n   Entrada: items[0].json -> array de productos críticos\n           items[1].json -> array de notificaciones sin leer (cada notificación puede contener campo .productos con array)\n   Salida: { \"duplicado\": true/false }\n*/\nconst productosCriticos = $input.item.json || [];\nconst notifs = $input.all()[1] ? $input.all()[1].json : [];\n\n// Obtener IDs de productos críticos\nconst idsCriticos = (Array.isArray(productosCriticos) ? productosCriticos : []).map(p => p._id);\n\nlet duplicado = false;\n\nif (Array.isArray(notifs)) {\n  for (const n of notifs) {\n    const prod = n.productos || n.body || n.productos || [];\n    const prodIds = Array.isArray(prod) ? prod.map(p => p._id) : [];\n    // Si hay intersección completa (todos los IDs críticos están contenidos en la notificación sin leer), consideramos duplicado\n    if (idsCriticos.length > 0 && idsCriticos.every(id => prodIds.includes(id))) {\n      duplicado = true;\n      break;\n    }\n  }\n}\n\nreturn [{ json: { duplicado, productosCriticos, notifs } }];"
+      },
+      "name": "Detectar duplicado",
+      "type": "n8n-nodes-base.function",
+      "typeVersion": 1,
+      "position": [
+        -608,
+        128
+      ],
+      "id": "1e65dbf4-d1eb-4cfb-8b32-a94c37efe137"
+    },
+    {
+      "parameters": {
+        "requestMethod": "POST",
+        "url": "https://unitex-backend.onrender.com/api/notificaciones/webhook",
+        "jsonParameters": true,
+        "options": {
+          "fullResponse": false
+        },
+        "bodyParametersJson": "={\n  \"tipo\": \"stock_critico\",\n  \"mensaje\": `⚠️ Revisión automática cada 4h: ${items[0].json.productosCriticos.length} productos próximos a agotarse (Hora: ${$now.format('DD/MM/YYYY HH:mm','America/Guayaquil')})`,\n  \"productos\": items[0].json.productosCriticos\n}"
+      },
+      "name": "Notificar al admin",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 1,
+      "position": [
+        -304,
+        128
+      ],
+      "id": "08edefdb-1483-4439-9407-f87bba553d09"
+    },
+    {
+      "parameters": {
+        "httpMethod": "POST",
+        "path": "unitex-admin-response",
+        "options": {}
+      },
+      "name": "Webhook - Respuesta Admin",
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 1,
+      "position": [
+        0,
+        0
+      ],
+      "id": "e7755cb3-f09c-48e9-a822-a6d513478752",
+      "webhookId": "695fe408-ee92-4dde-b017-62e4c09ac2a9"
+    },
+    {
+      "parameters": {},
+      "name": "Esperar aprobación admin (24h)",
+      "type": "n8n-nodes-base.wait",
+      "typeVersion": 1,
+      "position": [
+        0,
+        192
+      ],
+      "id": "a3f7c800-ad16-4148-8178-5e4c3886d41f",
+      "webhookId": "fc23cd37-5dfe-4221-bddb-2a0c26b9e00f"
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "string": [
+            {
+              "value1": "={{ $json.body && $json.body.decision ? $json.body.decision : $json.decision }}",
+              "value2": "aprobado"
+            }
+          ]
+        }
+      },
+      "name": "¿Admin aprobó?",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 1,
+      "position": [
+        304,
+        128
+      ],
+      "id": "a25448c3-8341-4334-8e93-8c17859272a0"
+    },
+    {
+      "parameters": {
+        "fromEmail": "sistema@unitex.com",
+        "toEmail": "proveedor@unitex.com",
+        "subject": "Solicitud de reposición de stock — Unitex {{$now.format('DD/MM/YYYY','America/Guayaquil')}}",
+        "text": "Estimado proveedor,\n\nLe informamos que tras nuestra revisión automática de inventario del {{$now.format('DD/MM/YYYY HH:mm','America/Guayaquil')}}, los siguientes productos requieren reposición urgente:\n\n{{$json.productosCriticos.map(p => `• ${p.nombre}: ${p.stock} unidades restantes`).join('\\n')}}\n\nSolicitamos amablemente confirmar:\n1. Disponibilidad de los productos listados\n2. Cantidad máxima disponible para entrega inmediata\n3. Tiempo estimado de entrega\n4. Precio unitario actualizado si hubiera cambios\n\nEste pedido fue aprobado por el administrador de Unitex y generado automáticamente por nuestro sistema de monitoreo de inventario.\n\nQuedamos atentos a su respuesta.\n\nSaludos cordiales,\nSistema Unitex — Gestión de Inventario\nFecha: {{$now.format('DD/MM/YYYY','America/Guayaquil')}}",
+        "options": {}
+      },
+      "name": "Enviar email al proveedor",
+      "type": "n8n-nodes-base.emailSend",
+      "typeVersion": 1,
+      "position": [
+        608,
+        64
+      ],
+      "id": "d66eed83-fd77-4c0d-9892-aa2fc4744ab9"
+    },
+    {
+      "parameters": {
+        "requestMethod": "PATCH",
+        "url": "={{ `https://unitex-backend.onrender.com/api/notificaciones/${$json.idNotificacion}/leida` }}",
+        "options": {
+          "fullResponse": false
+        }
+      },
+      "name": "Marcar notificación como gestionada",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 1,
+      "position": [
+        912,
+        64
+      ],
+      "id": "b4fc80e4-9e07-4c26-8ae0-6b31c4709d9e"
+    },
+    {
+      "parameters": {
+        "functionCode": "/* Genera el RESUMEN DE EJECUCIÓN final según especificación */\nconst fecha = $now.format('DD/MM/YYYY HH:mm','America/Guayaquil');\nconst productosRevisados = Array.isArray($json.productosRevisados) ? $json.productosRevisados.length : ($json.productosCriticos ? $json.productosCriticos.length : 0);\nconst productosCriticos = $json.productosCriticos ? $json.productosCriticos.length : 0;\nconst notificacionEnviada = $json.notificacionId ? 'Sí' : 'No';\nconst aprobacion = $json.aprobacion === 'aprobado' ? 'Aprobado' : ($json.aprobacion === 'rechazado' ? 'Rechazado' : 'Pendiente');\nconst emailEnviado = $json.emailEnviado ? 'Enviado' : 'No enviado';\nconst estadoFinal = $json.estadoFinal || (aprobacion === 'Aprobado' && emailEnviado === 'Enviado' ? 'Completado' : 'Cancelado');\n\nconst resumen = `RESUMEN DE EJECUCIÓN — ${fecha}\\n─────────────────────────────────────\\nProductos revisados: ${productosRevisados}\\nProductos críticos encontrados: ${productosCriticos}\\nNotificación enviada al admin: ${notificacionEnviada}\\nAprobación del admin: ${aprobacion}\\nEmail al proveedor: ${emailEnviado}\\nEstado final: ${estadoFinal}\\n─────────────────────────────────────`;\n\nreturn [{ json: { resumen, fecha, productosRevisados, productosCriticos, notificacionEnviada, aprobacion, emailEnviado, estadoFinal } }];"
+      },
+      "name": "Generar resumen interno",
+      "type": "n8n-nodes-base.function",
+      "typeVersion": 1,
+      "position": [
+        1200,
+        128
+      ],
+      "id": "4f64cc4d-f89d-4c19-b2fa-823344088c9b"
+    },
+    {
+      "parameters": {
+        "values": {
+          "string": [
+            {
+              "name": "log",
+              "value": "Revisión completada. Sin productos críticos."
+            }
+          ]
+        },
+        "options": {}
+      },
+      "name": "Log - Sin alertas",
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 1,
+      "position": [
+        -896,
+        368
+      ],
+      "id": "48b3c0d4-528a-404b-a476-4aa38d758013"
+    },
+    {
+      "parameters": {
+        "functionCode": "/* Manejo de error 401 o 500 en la respuesta de 'Consultar stock crítico'.\n   Si code === 401 -> Detener y registrar error.\n   Si code === 500 -> reenviar (nota: n8n puede reintentar o usar un Delay para reintento manual).\n*/\nconst resp = $input.item.json;\nif (resp && resp.statusCode === 401) {\n  return [{ json: { error: '401', mensaje: 'Credenciales incorrectas. Deteniendo ejecución.' } }];\n}\nif (resp && resp.statusCode === 500) {\n  return [{ json: { error: '500', mensaje: 'Error 500 — reintentar tras 5 minutos.' } }];\n}\nreturn [{ json: { ok: true } }];"
+      },
+      "name": "Manejo de errores HTTP",
+      "type": "n8n-nodes-base.function",
+      "typeVersion": 1,
+      "position": [
+        -1200,
+        368
+      ],
+      "id": "68432d8d-869f-4499-80df-40d448054953"
+    }
+  ],
+  "pinData": {},
+  "connections": {
+    "Consultar stock crítico": {
+      "main": [
+        [
+          {
+            "node": "Manejo de errores HTTP",
+            "type": "main",
+            "index": 0
+          },
+          {
+            "node": "¿Sin productos críticos?",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Manejo de errores HTTP": {
+      "main": [
+        [
+          {
+            "node": "¿Sin productos críticos?",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "¿Sin productos críticos?": {
+      "main": [
+        [
+          {
+            "node": "Log - Sin alertas",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Comprobar notificaciones sin leer",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Comprobar notificaciones sin leer": {
+      "main": [
+        [
+          {
+            "node": "Detectar duplicado",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Detectar duplicado": {
+      "main": [
+        [
+          {
+            "node": "Notificar al admin",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Notificar al admin": {
+      "main": [
+        [
+          {
+            "node": "Esperar aprobación admin (24h)",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Webhook - Respuesta Admin": {
+      "main": [
+        [
+          {
+            "node": "¿Admin aprobó?",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Esperar aprobación admin (24h)": {
+      "main": [
+        [
+          {
+            "node": "¿Admin aprobó?",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "¿Admin aprobó?": {
+      "main": [
+        [
+          {
+            "node": "Enviar email al proveedor",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Generar resumen interno",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Enviar email al proveedor": {
+      "main": [
+        [
+          {
+            "node": "Marcar notificación como gestionada",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Marcar notificación como gestionada": {
+      "main": [
+        [
+          {
+            "node": "Generar resumen interno",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Log - Sin alertas": {
+      "main": [
+        [
+          {
+            "node": "Generar resumen interno",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "active": false,
+  "settings": {
+    "executionOrder": "v1",
+    "binaryMode": "separate"
+  },
+  "versionId": "ed71fd82-a93a-4a5a-a8cf-f3bcd12675c7",
+  "meta": {
+    "instanceId": "28e7ff190706c7cb07016c6b8752a174d4c23fb653b519411b766474a86272c5"
+  },
+  "id": "HAyb2oBV279sZuoC",
+  "tags": []
+}
