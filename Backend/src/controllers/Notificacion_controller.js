@@ -7,14 +7,35 @@ import Administrador from '../models/Administrador.js';
 export const recibirNotificacion = async (req, res) => {
   const { productos, mensaje, tipo, adminId } = req.body;
   
+  // Validación básica
+  if (!mensaje) {
+    return res.status(400).json({ error: 'El campo "mensaje" es requerido' });
+  }
+
   try {
+    // Normalizar productos para asegurar estructura correcta
+    let productosNormalizados = [];
+    if (Array.isArray(productos) && productos.length > 0) {
+      productosNormalizados = productos.map(p => ({
+        nombre: p.nombre || 'Producto sin nombre',
+        stock: p.stock || 0,
+        umbral: p.umbral || p.umbralCritico || 5
+      }));
+    }
+
     // Si se provee un adminId, se crea la notificación solo para ese admin.
     if (adminId) {
       const admin = await Administrador.findById(adminId);
       if (!admin) {
         return res.status(404).json({ error: 'Administrador no encontrado' });
       }
-      const notif = await Notificacion.create({ administrador: adminId, productos, mensaje, tipo: tipo || 'stock_critico', leida: false });
+      const notif = await Notificacion.create({ 
+        administrador: adminId, 
+        productos: productosNormalizados, 
+        mensaje, 
+        tipo: tipo || 'stock_critico', 
+        leida: false 
+      });
       return res.status(201).json({ ok: true, notificaciones: [notif] });
     } 
     
@@ -22,20 +43,28 @@ export const recibirNotificacion = async (req, res) => {
     else {
       const admins = await Administrador.find().select('_id');
       if (admins.length === 0) {
-        return res.status(404).json({ error: 'No se encontraron administradores para notificar.' });
+        console.warn('⚠️ Advertencia: No hay administradores en la base de datos para recibir notificaciones');
+        return res.status(201).json({ ok: true, notificaciones: [], warning: 'Sin administradores registrados' });
       }
 
       const promesasNotificaciones = admins.map(admin => 
-        Notificacion.create({ administrador: admin._id, productos, mensaje, tipo: tipo || 'stock_critico', leida: false })
+        Notificacion.create({ 
+          administrador: admin._id, 
+          productos: productosNormalizados,
+          mensaje, 
+          tipo: tipo || 'stock_critico', 
+          leida: false 
+        })
       );
       
       const notificacionesCreadas = await Promise.all(promesasNotificaciones);
+      console.log(`✅ ${notificacionesCreadas.length} notificaciones creadas para ${admins.length} administrador(es)`);
       return res.status(201).json({ ok: true, notificaciones: notificacionesCreadas });
     }
 
   } catch (error) {
-    console.error('Error al recibir notificación de n8n:', error);
-    res.status(500).json({ error: 'Error interno al procesar la notificación.' });
+    console.error('❌ Error al recibir notificación de n8n:', error.message);
+    res.status(500).json({ error: 'Error interno al procesar la notificación.', details: error.message });
   }
 };
 
