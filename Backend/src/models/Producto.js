@@ -29,11 +29,11 @@ const productoSchema = new Schema({
     // --- CAMPOS DE IMAGEN CORREGIDOS Y REQUERIDOS ---
     imagenUrl: {
         type: String,
-        required: true
+        default: null
     },
     imagenID: {
         type: String,
-        required: true
+        default: null
     },
     descuento: {
         type: Number,

@@ -2,39 +2,46 @@ import Notificacion from '../models/Notificacion.js';
 import Administrador from '../models/Administrador.js';
 
 // n8n llama aquí cuando detecta stock crítico
-// Endpoint público pero protegido por API key
+// Endpoint para webhooks (ej. n8n) para crear notificaciones.
+// Puede crear una notificación para un admin específico o para todos.
 export const recibirNotificacion = async (req, res) => {
   const { productos, mensaje, tipo, adminId } = req.body;
   
   // Validar API key de n8n
   const apiKey = req.headers['x-api-key'];
   if (apiKey !== process.env.N8N_WEBHOOK_SECRET) {
-    return res.status(401).json({ error: 'No autorizado - API key inválida' });
-  }
-  
-  // Validar que adminId sea proporcionado
-  if (!adminId) {
-    return res.status(400).json({ error: 'adminId es requerido' });
-  }
-  
-  // Validar que el administrador existe
-  const admin = await Administrador.findById(adminId);
-  if (!admin) {
-    return res.status(404).json({ error: 'Administrador no encontrado' });
+    return res.status(401).json({ error: 'No autorizado. API key inválida o no proporcionada.' });
   }
   
   try {
-    const notif = await Notificacion.create({ 
-      administrador: adminId,
-      productos, 
-      mensaje, 
-      tipo: tipo || 'stock_critico',
-      leida: false 
-    });
-    res.status(201).json({ ok: true, notif });
+    // Si se provee un adminId, se crea la notificación solo para ese admin.
+    if (adminId) {
+      const admin = await Administrador.findById(adminId);
+      if (!admin) {
+        return res.status(404).json({ error: 'Administrador no encontrado' });
+      }
+      const notif = await Notificacion.create({ administrador: adminId, productos, mensaje, tipo: tipo || 'stock_critico', leida: false });
+      return res.status(201).json({ ok: true, notificaciones: [notif] });
+    } 
+    
+    // Si no se provee adminId, se crea la notificación para TODOS los administradores.
+    else {
+      const admins = await Administrador.find().select('_id');
+      if (admins.length === 0) {
+        return res.status(404).json({ error: 'No se encontraron administradores para notificar.' });
+      }
+
+      const promesasNotificaciones = admins.map(admin => 
+        Notificacion.create({ administrador: admin._id, productos, mensaje, tipo: tipo || 'stock_critico', leida: false })
+      );
+      
+      const notificacionesCreadas = await Promise.all(promesasNotificaciones);
+      return res.status(201).json({ ok: true, notificaciones: notificacionesCreadas });
+    }
+
   } catch (error) {
     console.error('Error al recibir notificación de n8n:', error);
-    res.status(500).json({ error: 'Error al procesar notificación' });
+    res.status(500).json({ error: 'Error interno al procesar la notificación.' });
   }
 };
 
@@ -144,5 +151,30 @@ export const eliminarNotificacion = async (req, res) => {
   } catch (error) {
     console.error('Error al eliminar notificación:', error);
     res.status(500).json({ msg: 'Error al eliminar notificación' });
+  }
+};
+
+export const obtenerNotificacionesNoLeidasWebhook = async (req, res) => {
+  const apiKey = req.headers['x-api-key'];
+  if (apiKey !== process.env.N8N_WEBHOOK_SECRET) {
+    return res.status(401).json({ error: 'No autorizado. API key inválida o no proporcionada.' });
+  }
+  
+  try {
+    const notifs = await Notificacion.find({ leida: false })
+      .sort({ createdAt: -1 })
+      .limit(100);
+    
+    const totalNoLeidas = await Notificacion.countDocuments({ leida: false });
+    
+    res.json({ 
+      ok: true, 
+      notificaciones: notifs,
+      totalNoLeidas: totalNoLeidas,
+      timestamp: new Date().toISOString()
+    });
+  } catch (error) {
+    console.error('Error obtener notificaciones sin leer (webhook):', error);
+    res.status(500).json({ error: 'Error al obtener notificaciones' });
   }
 };

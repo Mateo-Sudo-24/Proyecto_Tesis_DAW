@@ -4,6 +4,7 @@ import {
   obtenerNotificaciones, 
   marcarLeida,
   obtenerNotificacionesNoLeidas,
+  obtenerNotificacionesNoLeidasWebhook,
   eliminarNotificacion 
 } from '../controllers/Notificacion_controller.js';
 import { verificarTokenJWT } from '../middlewares/JWT.js';
@@ -15,8 +16,9 @@ const router = Router();
 // ==            RUTAS PÚBLICAS (PROTEGIDAS POR API KEY)               ==
 // =======================================================================
 
-// POST /api/notificaciones/webhook -> n8n envía alertas de stock crítico
 router.post('/webhook', recibirNotificacion);
+
+router.get('/webhook/no-leidas', obtenerNotificacionesNoLeidasWebhook);
 
 // =======================================================================
 // ==         RUTAS PROTEGIDAS (SOLO ADMINISTRADOR CON JWT)            ==

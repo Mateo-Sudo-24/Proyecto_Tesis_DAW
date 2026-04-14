@@ -1,13 +1,12 @@
 import { useEffect, useState } from "react";
 import { toast } from "react-toastify";
+import storeAuth from "../../context/storeAuth";
 
 const Productos = () => {
     const [productos, setProductos] = useState([]);
     const [loading, setLoading] = useState(true);
     const [agregando, setAgregando] = useState(null);
-
-    // Obtener token si el usuario está autenticado (para agregar al carrito)
-    const token = JSON.parse(localStorage.getItem("auth-token"))?.state?.token;
+    const token = storeAuth(state => state.token);
 
     useEffect(() => {
         const fetchProductos = async () => {
@@ -25,12 +24,17 @@ const Productos = () => {
         fetchProductos();
     }, []);
 
-    // Agregar producto al carrito
     const agregarAlCarrito = async (productoId) => {
         if (!token) {
-            toast.info("Debes iniciar sesión para agregar productos al carrito.");
+            toast.info("Inicia sesión para agregar productos.");
             return;
         }
+        
+        if (!productoId) {
+            toast.error("ID de producto inválido.");
+            return;
+        }
+        
         setAgregando(productoId);
         try {
             const res = await fetch(`${import.meta.env.VITE_BACKEND_URL}/carrito/items`, {
@@ -41,14 +45,17 @@ const Productos = () => {
                 },
                 body: JSON.stringify({ productoId, cantidad: 1 }),
             });
-            const data = await res.json();
-            if (res.ok) {
-                toast.success(data.msg || "Producto agregado al carrito.");
-            } else {
-                toast.error(data.msg || "No se pudo agregar al carrito.");
+            
+            if (!res.ok) {
+                const data = await res.json().catch(() => ({}));
+                throw new Error(data.msg || "Error al agregar al carrito");
             }
+            
+            const data = await res.json();
+            toast.success(data.msg || "Producto agregado.");
         } catch (error) {
-            toast.error("Error al agregar al carrito.");
+            toast.error(error.message);
+            console.error("Error carrito:", error);
         } finally {
             setAgregando(null);
         }

@@ -48,17 +48,9 @@
     },
     {
       "parameters": {
-        "url": "https://unitex-backend.onrender.com/api/notificaciones",
+        "url": "https://unitex-backend.onrender.com/api/notificaciones/webhook/no-leidas",
         "options": {
           "fullResponse": false
-        },
-        "queryParametersUi": {
-          "parameter": [
-            {
-              "name": "leida",
-              "value": "false"
-            }
-          ]
         }
       },
       "name": "Comprobar notificaciones sin leer",
@@ -398,3 +390,6 @@
   "id": "HAyb2oBV279sZuoC",
   "tags": []
 }
+
+
+

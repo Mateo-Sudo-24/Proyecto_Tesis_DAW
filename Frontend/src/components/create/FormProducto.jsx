@@ -8,6 +8,9 @@ export const FormProducto = ({ productoToUpdate }) => {
     const { register, handleSubmit, formState: { errors }, reset, setValue } = useForm();
     const [isSubmitting, setIsSubmitting] = useState(false);
     const [imagen, setImagen] = useState(null);
+    const [imagenUrl, setImagenUrl] = useState('');
+    const [metodoImagen, setMetodoImagen] = useState('archivo');
+    const [previewImagen, setPreviewImagen] = useState(null);
     const [categoriasOptions, setCategoriasOptions] = useState([]);
     const [selectedCategoria, setSelectedCategoria] = useState('');
 
@@ -76,6 +79,9 @@ export const FormProducto = ({ productoToUpdate }) => {
                 etiquetas: productoToUpdate?.etiquetas?.join(', ') || ''
             });
             setSelectedCategoria(productoToUpdate?.categoria?._id || productoToUpdate?.categoria || '');
+            if (productoToUpdate?.imagenUrl) {
+                setPreviewImagen(productoToUpdate.imagenUrl);
+            }
         }
     }, [productoToUpdate, reset]);
 
@@ -88,9 +94,14 @@ export const FormProducto = ({ productoToUpdate }) => {
             return;
         }
 
-        // Si es modo actualización y no hay imagen nueva, no es obligatoria
-        if (!productoToUpdate && !imagen) {
-            toast.error('Debes cargar una imagen para crear un producto');
+        if (!productoToUpdate && metodoImagen === 'archivo' && !imagen) {
+            toast.error('Debes cargar una imagen o proporcionar URL');
+            setIsSubmitting(false);
+            return;
+        }
+
+        if (!productoToUpdate && metodoImagen === 'url' && !imagenUrl) {
+            toast.error('Debes ingresar una URL de imagen válida');
             setIsSubmitting(false);
             return;
         }
@@ -106,12 +117,13 @@ export const FormProducto = ({ productoToUpdate }) => {
             formData.append('color', data.color || '');
             formData.append('estado', data.estado);
             
-            // Agregar etiquetas como JSON string
             const etiquetas = data.etiquetas ? data.etiquetas.split(',').map(e => e.trim()).filter(e => e) : [];
             formData.append('etiquetas', JSON.stringify(etiquetas));
 
-            if (imagen) {
+            if (metodoImagen === 'archivo' && imagen) {
                 formData.append('imagen', imagen);
+            } else if (metodoImagen === 'url' && imagenUrl) {
+                formData.append('imagenUrl', imagenUrl);
             }
 
             let url = `${import.meta.env.VITE_BACKEND_URL}/productos`;
@@ -122,7 +134,6 @@ export const FormProducto = ({ productoToUpdate }) => {
                 method = 'PUT';
             }
 
-            // Usar fetch directamente para evitar problemas con fetchDataBackend
             const token = JSON.parse(localStorage.getItem('auth-token'))?.state?.token;
             const res = await fetch(url, {
                 method,
@@ -149,6 +160,16 @@ export const FormProducto = ({ productoToUpdate }) => {
             toast.error(error.message || 'Ocurrió un error al guardar el producto');
         } finally {
             setIsSubmitting(false);
+        }
+    };
+
+    const handleArchivoChange = (e) => {
+        const file = e.target.files?.[0];
+        if (file) {
+            setImagen(file);
+            const reader = new FileReader();
+            reader.onload = (e) => setPreviewImagen(e.target.result);
+            reader.readAsDataURL(file);
         }
     };
 
@@ -282,20 +303,78 @@ export const FormProducto = ({ productoToUpdate }) => {
                     <label className={labelStyle}>
                         Imagen {!productoToUpdate && '*'}
                     </label>
-                    <input
-                        type="file"
-                        accept="image/*"
-                        onChange={(e) => setImagen(e.target.files?.[0] || null)}
-                        className={inputStyle}
-                    />
-                    {productoToUpdate?.imagenUrl && (
-                        <div className="mt-3">
-                            <p className="text-sm text-gray-600 mb-2">Imagen actual:</p>
-                            <img 
-                                src={productoToUpdate.imagenUrl} 
-                                alt="Producto"
-                                className="w-48 h-48 object-cover rounded-lg"
+                    
+                    <div className="mb-4 p-4 bg-gray-50 rounded-lg border border-gray-200">
+                        <p className="text-sm text-gray-600 mb-3 font-semibold">Selecciona cómo agregar la imagen:</p>
+                        <div className="flex gap-4 mb-4">
+                            <label className="flex items-center cursor-pointer">
+                                <input
+                                    type="radio"
+                                    value="archivo"
+                                    checked={metodoImagen === 'archivo'}
+                                    onChange={(e) => {
+                                        setMetodoImagen(e.target.value);
+                                        setImagenUrl('');
+                                    }}
+                                    className="mr-2"
+                                />
+                                <span className="text-sm text-gray-700">📤 Subir archivo</span>
+                            </label>
+                            <label className="flex items-center cursor-pointer">
+                                <input
+                                    type="radio"
+                                    value="url"
+                                    checked={metodoImagen === 'url'}
+                                    onChange={(e) => {
+                                        setMetodoImagen(e.target.value);
+                                        setImagen(null);
+                                    }}
+                                    className="mr-2"
+                                />
+                                <span className="text-sm text-gray-700">🔗 URL de Cloudinary</span>
+                            </label>
+                        </div>
+                    </div>
+
+                    {metodoImagen === 'archivo' && (
+                        <div>
+                            <input
+                                type="file"
+                                accept="image/*"
+                                onChange={handleArchivoChange}
+                                className={inputStyle}
                             />
+                            <p className="text-xs text-gray-500 mt-1">Máximo 5MB: JPG, PNG, WebP</p>
+                        </div>
+                    )}
+
+                    {metodoImagen === 'url' && (
+                        <div>
+                            <input
+                                type="url"
+                                placeholder="https://res.cloudinary.com/..../image.jpg"
+                                value={imagenUrl}
+                                onChange={(e) => {
+                                    setImagenUrl(e.target.value);
+                                    setPreviewImagen(e.target.value);
+                                }}
+                                className={inputStyle}
+                            />
+                            <p className="text-xs text-gray-500 mt-1">Ingresa la URL completa de tu imagen en Cloudinary</p>
+                        </div>
+                    )}
+
+                    {previewImagen && (
+                        <div className="mt-4">
+                            <p className="text-sm text-gray-600 mb-2 font-semibold">Vista previa:</p>
+                            <div className="p-3 bg-white rounded-lg border border-gray-200">
+                                <img 
+                                    src={previewImagen} 
+                                    alt="Preview"
+                                    className="w-full max-w-xs h-64 object-cover rounded-lg shadow-sm"
+                                    onError={() => setPreviewImagen(null)}
+                                />
+                            </div>
                         </div>
                     )}
                 </div>
