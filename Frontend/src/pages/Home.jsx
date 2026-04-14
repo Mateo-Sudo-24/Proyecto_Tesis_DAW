@@ -25,7 +25,8 @@ export const Home = () => {
                     <li><Link to="/contacto" className='font-bold hover:text-orange-300 hover:underline'>Contacto</Link></li>
                 </ul>
                 <ul className='flex justify-center items-center gap-5 my-4'>
-                    
+                    <li><Link to="/login" className='font-bold bg-orange-300 px-4 py-2 rounded-lg text-white hover:bg-orange-700'>Inicia sesión</Link></li>
+                    <li><Link to="/register" className='font-bold bg-stone-900 px-4 py-2 rounded-lg text-white hover:bg-stone-800'>Regístrate</Link></li>
                 </ul>
             </header>
 
@@ -35,7 +36,10 @@ export const Home = () => {
                     <p className='font-semibold text-left my-4 md:text-xl text-orange-300 uppercase'>Con el sello de excelencia</p>
                     <p className='text-lg my-6 font-sans text-stone-700'>Especialistas en telas de alta calidad para moda, hogar e industria.</p>
 
-                    <Link to="/login" className='block bg-orange-300 w-40 py-2 mx-auto text-white rounded-2xl text-center sm:mx-0 hover:bg-orange-700'>Explorar</Link>
+                    <div className='flex gap-4 sm:gap-0 sm:block'>
+                        <Link to="/login" className='block bg-orange-300 flex-1 sm:w-40 py-2 mx-auto text-white rounded-2xl text-center sm:mx-0 hover:bg-orange-700 mb-2'>Inicia sesión</Link>
+                        <Link to="/register" className='block bg-stone-900 flex-1 sm:w-40 py-2 mx-auto text-white rounded-2xl text-center sm:mx-0 hover:bg-stone-800'>Regístrate</Link>
+                    </div>
 
                     <p className='font-bold text-left my-4 md:text-xl'>Síguenos</p>
 

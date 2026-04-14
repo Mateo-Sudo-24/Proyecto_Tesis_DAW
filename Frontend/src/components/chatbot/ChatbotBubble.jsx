@@ -1,7 +1,7 @@
 import { useState } from 'react';
 import useAuthStore from '../../context/storeAuth';
-import { FaCamera } from "react-icons/fa";
-import FabricAnalyzer from './FabricAnalyzer';
+import { FaRobot } from "react-icons/fa";
+import ChatModal from './ChatModal';
 
 const ChatbotBubble = () => {
     const { rol } = useAuthStore();
@@ -15,7 +15,7 @@ const ChatbotBubble = () => {
         <>
             <button
                 onClick={() => setIsModalOpen(true)}
-                aria-label="Analizar tela con una foto"
+                aria-label="Abrir asistente de Intex"
                 className="
                     fixed bottom-5 right-5 w-16 h-16 bg-orange-400 text-white
                     rounded-full flex items-center justify-center shadow-lg
@@ -23,11 +23,12 @@ const ChatbotBubble = () => {
                     hover:bg-orange-500 hover:scale-110
                     focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-orange-400
                 "
+                title="Asesor de Intex - Powered by Ollama"
             >
-                <FaCamera size={28} />
+                <FaRobot size={28} />
             </button>
 
-            {isModalOpen && <FabricAnalyzer onClose={() => setIsModalOpen(false)} />}
+            {isModalOpen && <ChatModal onClose={() => setIsModalOpen(false)} />}
         </>
     );
 }

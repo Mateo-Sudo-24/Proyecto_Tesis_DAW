@@ -42,9 +42,9 @@ function AppContent() {
     }
   }, [token, profile]);
 
-  // ✅ MIDDLEWARE: Ruta raíz - Si hay token va a Dashboard, si no a Login
+  // ✅ MIDDLEWARE: Ruta raíz - Si hay token va a Dashboard, si no a Home
   const RootRedirect = () => {
-    return token ? <Navigate to="/dashboard" /> : <Navigate to="/login" />;
+    return token ? <Navigate to="/dashboard" /> : <Navigate to="/home" />;
   };
 
   // rutas donde se mostrará el chatbot
