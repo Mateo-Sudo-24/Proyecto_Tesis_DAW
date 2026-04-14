@@ -10,48 +10,43 @@ import { PiChatsTeardropLight } from "react-icons/pi";
 import { MdDesignServices } from "react-icons/md";
 import { FaIndustry } from "react-icons/fa";
 import { TbCertificate } from "react-icons/tb";
-import { FaFacebook, FaSquareInstagram, FaXTwitter } from "react-icons/fa6";
 import Contact from './Contact.jsx';
 
 export const Home = () => {
     return (
         <>
-            <header className="container mx-auto h-40 text-center py-4 md:flex justify-between items-center px-4 md:h-15">
-                <h1 className='font-bold text-2xl my-2 text-orange-300'>IN<span className='text-stone-900'>TEX</span></h1>
-                <ul className='flex gap-5 justify-center my-4 flex-wrap'>
-                    <li><Link to="/home" className='font-bold hover:text-orange-300 hover:underline'>Inicio</Link></li>
-                    <li><Link to="/nosotros" className='font-bold hover:text-orange-300 hover:underline'>Nosotros</Link></li>
-                    <li><Link to="/products" className='font-bold hover:text-orange-300 hover:underline'>Productos</Link></li>
-                    <li><Link to="/contacto" className='font-bold hover:text-orange-300 hover:underline'>Contacto</Link></li>
+            <header className="container mx-auto text-center py-8 md:py-10 md:flex justify-between items-center px-4 gap-6">
+                <h1 className='font-bold text-4xl text-orange-300'>IN<span className='text-stone-900'>TEX</span></h1>
+                <ul className='flex gap-10 justify-center my-8 md:my-0 flex-wrap'>
+                    <li><Link to="/home" className='font-bold text-stone-700 hover:text-orange-300 transition text-lg'>Inicio</Link></li>
+                    <li><Link to="/nosotros" className='font-bold text-stone-700 hover:text-orange-300 transition text-lg'>Nosotros</Link></li>
+                    <li><Link to="/products" className='font-bold text-stone-700 hover:text-orange-300 transition text-lg'>Productos</Link></li>
+                    <li><Link to="/contacto" className='font-bold text-stone-700 hover:text-orange-300 transition text-lg'>Contacto</Link></li>
                 </ul>
-                <ul className='flex justify-center items-center gap-5 my-4'>
-                    <li><Link to="/login" className='font-bold bg-orange-300 px-4 py-2 rounded-lg text-white hover:bg-orange-700'>Inicia sesión</Link></li>
-                    <li><Link to="/register" className='font-bold bg-stone-900 px-4 py-2 rounded-lg text-white hover:bg-stone-800'>Regístrate</Link></li>
-                </ul>
+                <div className='flex justify-center items-center gap-4 my-6 md:my-0 flex-wrap'>
+                    <Link to="/login" className='font-semibold bg-orange-300 px-8 py-3 rounded-lg text-white hover:bg-orange-400 transition duration-300 shadow-md hover:shadow-lg text-base'>Inicia sesión</Link>
+                    <Link to="/register" className='font-semibold bg-stone-800 px-8 py-3 rounded-lg text-white hover:bg-stone-900 transition duration-300 shadow-md hover:shadow-lg text-base'>Regístrate</Link>
+                </div>
             </header>
 
-            <main className='text-center py-6 px-8 bg-orange-50 md:text-left md:flex justify-between items-center gap-10 md:py-1'>
-                <div>
-                    <h1 className='font-extrabold text-orange-300 uppercase text-4xl my-4 md:text-6xl'>Diseño y calidad textil</h1>
-                    <p className='font-semibold text-left my-4 md:text-xl text-orange-300 uppercase'>Con el sello de excelencia</p>
-                    <p className='text-lg my-6 font-sans text-stone-700'>Especialistas en telas de alta calidad para moda, hogar e industria.</p>
+            <main className='py-16 lg:py-24 px-6 bg-orange-50 md:flex justify-between items-center gap-16'>
+                <div className='md:w-1/2 mb-12 md:mb-0'>
+                    <h1 className='font-extrabold text-orange-400 uppercase text-4xl md:text-5xl mb-6'>Diseño y calidad textil</h1>
+                    <p className='font-semibold text-orange-300 text-lg uppercase mb-4'>Con el sello de excelencia</p>
+                    <p className='text-lg text-stone-700 mb-10 leading-relaxed'>Especialistas en telas de alta calidad para moda, hogar e industria. Entrega rápida y asesoría personalizada.</p>
 
-                    <div className='flex gap-4 sm:gap-0 sm:block'>
-                        <Link to="/login" className='block bg-orange-300 flex-1 sm:w-40 py-2 mx-auto text-white rounded-2xl text-center sm:mx-0 hover:bg-orange-700 mb-2'>Inicia sesión</Link>
-                        <Link to="/register" className='block bg-stone-900 flex-1 sm:w-40 py-2 mx-auto text-white rounded-2xl text-center sm:mx-0 hover:bg-stone-800'>Regístrate</Link>
+                    <div className='flex gap-6 mb-10'>
+                        <Link to="/login" className='flex-1 md:flex-none bg-orange-400 hover:bg-orange-500 text-white font-bold py-4 px-10 rounded-lg transition duration-300 shadow-lg hover:shadow-xl text-center text-lg'>Inicia sesión</Link>
+                        <Link to="/register" className='flex-1 md:flex-none bg-stone-800 hover:bg-stone-900 text-white font-bold py-4 px-10 rounded-lg transition duration-300 shadow-lg hover:shadow-xl text-center text-lg'>Regístrate</Link>
                     </div>
-
-                    <p className='font-bold text-left my-4 md:text-xl'>Síguenos</p>
-
-                    
                 </div>
-                <div className='hidden md:block'>
-                    <img src={logoDogCatMain} alt="textiles premium" />
+                <div className='hidden md:block md:w-1/2'>
+                    <img src={logoDogCatMain} alt="textiles premium" className='w-full rounded-lg shadow-lg' />
                 </div>
             </main>
 
-           <section className='container mx-auto px-4 py-10'>
-  <div className='flex flex-col gap-10 lg:flex-row lg:items-start lg:gap-20'>
+           <section className='container mx-auto px-4 py-16 lg:py-24'>
+  <div className='flex flex-col gap-12 lg:flex-row lg:items-start lg:gap-20'>
     
     {/* Imagen */}
     <div className='w-full lg:w-1/2'>
@@ -64,15 +59,15 @@ export const Home = () => {
 
     {/* Texto + íconos */}
     <div className='w-full lg:w-1/2 text-stone-700'>
-      <h2 className='font-bold text-4xl mb-4 text-center lg:text-left text-neutral-900'>
+      <h2 className='font-bold text-4xl md:text-5xl mb-8 text-center lg:text-left text-neutral-900'>
         NOSOTROS
       </h2>
 
-      <p className='mb-8 leading-relaxed text-center lg:text-left'>
-        Intex es una empresa líder en el sector de una roteriero creatían inspiran t’tedas.
+      <p className='mb-12 leading-relaxed text-center lg:text-left text-base md:text-lg'>
+        Intex es una empresa líder en el sector de una roteriero creatían inspiran t'tedas.
       </p>
 
-      <ul className='grid grid-cols-1 sm:grid-cols-2 gap-x-10 gap-y-6 text-sm'>
+      <ul className='grid grid-cols-1 sm:grid-cols-2 gap-x-10 gap-y-8 text-sm md:text-base'>
         <li className='flex items-center'>
           <PiTextAaBold className='text-2xl mr-3 text-neutral-800' />
           <span>Catálogo digital interactivo</span>
@@ -103,78 +98,75 @@ export const Home = () => {
 </section>
 
 
-            <section className='container mx-auto px-4 py-14 bg-orange-50'>
+            <section className='container mx-auto px-4 py-16 lg:py-24 bg-orange-50'>
   {/* Título */}
-  <h2 className='text-4xl font-bold text-center text-neutral-800 mb-10'>PRODUCTOS</h2>
+  <h2 className='text-4xl md:text-5xl font-bold text-center text-neutral-800 mb-14'>PRODUCTOS</h2>
 
   {/* Tarjetas */}
-  <div className='grid grid-cols-1 sm:grid-cols-2 gap-6 text-stone-800'>
+  <div className='grid grid-cols-1 sm:grid-cols-2 gap-8 text-stone-800'>
     
     {/* Telas para moda */}
-    <div className='bg-white p-6 rounded-md shadow hover:shadow-lg transition'>
-      <MdDesignServices className='text-4xl text-orange-300 mb-4' />
-      <h4 className='text-lg font-bold mb-2'>TELAS PARA MODA</h4>
-      <p>Textiles premium ideales para confección, resistentes, versátiles y con diseño.</p>
+    <div className='bg-white p-8 rounded-md shadow hover:shadow-lg transition'>
+      <MdDesignServices className='text-5xl text-orange-300 mb-6' />
+      <h4 className='text-xl font-bold mb-4'>TELAS PARA MODA</h4>
+      <p className='text-base leading-relaxed'>Textiles premium ideales para confección, resistentes, versátiles y con diseño.</p>
     </div>
 
     {/* Decoración y hogar */}
-    <div className='bg-white p-6 rounded-md shadow hover:shadow-lg transition'>
-      <BiRecycle className='text-4xl text-orange-300 mb-4' />
-      <h4 className='text-lg font-bold mb-2'>DECORACIÓN & HOGAR</h4>
-      <p>Cortinas, tapicería y telas que combinan color, textura y durabilidad.</p>
+    <div className='bg-white p-8 rounded-md shadow hover:shadow-lg transition'>
+      <BiRecycle className='text-5xl text-orange-300 mb-6' />
+      <h4 className='text-xl font-bold mb-4'>DECORACIÓN & HOGAR</h4>
+      <p className='text-base leading-relaxed'>Cortinas, tapicería y telas que combinan color, textura y durabilidad.</p>
     </div>
 
     {/* Textiles técnicos */}
-    <div className='bg-white p-6 rounded-md shadow hover:shadow-lg transition'>
-      <FaIndustry className='text-4xl text-orange-300 mb-4' />
-      <h4 className='text-lg font-bold mb-2'>TEXTILES TÉCNICOS</h4>
-      <p>Funcionales para múltiples usos innovadores e industriales.</p>
+    <div className='bg-white p-8 rounded-md shadow hover:shadow-lg transition'>
+      <FaIndustry className='text-5xl text-orange-300 mb-6' />
+      <h4 className='text-xl font-bold mb-4'>TEXTILES TÉCNICOS</h4>
+      <p className='text-base leading-relaxed'>Funcionales para múltiples usos innovadores e industriales.</p>
     </div>
 
     {/* Atención personalizada */}
-    <div className='bg-white p-6 rounded-md shadow hover:shadow-lg transition'>
-      <PiChatsTeardropLight className='text-4xl text-orange-300 mb-4' />
-      <h4 className='text-lg font-bold mb-2'>ATENCIÓN PERSONALIZADA</h4>
-      <p>Te acompañamos en la selección ideal para tu proyecto textil.</p>
+    <div className='bg-white p-8 rounded-md shadow hover:shadow-lg transition'>
+      <PiChatsTeardropLight className='text-5xl text-orange-300 mb-6' />
+      <h4 className='text-xl font-bold mb-4'>ATENCIÓN PERSONALIZADA</h4>
+      <p className='text-base leading-relaxed'>Te acompañamos en la selección ideal para tu proyecto textil.</p>
     </div>
   </div>
 </section>
 
 
-           <footer className='bg-orange-50 p-6 sm:px-20 sm:py-12 mt-20 rounded-t-3xl space-y-10 text-stone-800'>
+           <footer className='bg-orange-50 p-8 sm:px-20 sm:py-16 mt-24 rounded-t-3xl space-y-12 text-stone-800'>
 
   {/* Título y redes */}
-  <div className='flex flex-col sm:flex-row justify-between items-center gap-4'>
-    <h3 className='text-3xl font-extrabold text-orange-300'>Contáctanos</h3>
-    <ul className='flex gap-4 text-orange-300'>
-      
-    </ul>
+  <div className='flex flex-col sm:flex-row justify-between items-center gap-6'>
+    <h3 className='text-4xl font-extrabold text-orange-300'>Contáctanos</h3>
   </div>
 
   {/* Contacto y formulario */}
-  <div className='flex flex-col sm:flex-row justify-between items-start gap-8'>
+  <div className='flex flex-col sm:flex-row justify-between items-start gap-12'>
 
     {/* Info contacto */}
     <div className='sm:w-1/2'>
-      <p className='font-bold mb-2'>📧 Email: contacto@intex.com</p>
-      <p className='font-bold'>📞 Teléfono: 0995644186</p>
+      <p className='font-bold mb-4 text-lg'>📧 Email: contacto@intex.com</p>
+      <p className='font-bold text-lg'>📞 Teléfono: 0995644186</p>
     </div>
 
     {/* Formulario de suscripción */}
     <form action="#" className='sm:w-1/2 w-full'>
-      <fieldset className='border-2 border-orange-300 p-4 rounded-md'>
-        <legend className='bg-orange-300 text-white px-3 py-1 rounded-t-md text-sm font-medium'>
+      <fieldset className='border-2 border-orange-300 p-6 rounded-md'>
+        <legend className='bg-orange-300 text-white px-4 py-2 rounded-t-md text-base font-medium'>
           Suscríbete al boletín
         </legend>
-        <div className='flex flex-col sm:flex-row gap-4 mt-2'>
+        <div className='flex flex-col sm:flex-row gap-4 mt-4'>
           <input
             type="email"
             placeholder="Correo electrónico"
-            className='flex-1 border border-gray-300 rounded-md px-3 py-2 focus:outline-orange-300'
+            className='flex-1 border border-gray-300 rounded-md px-4 py-3 focus:outline-orange-300'
           />
           <button
             type="submit"
-            className='bg-orange-300 text-white px-6 py-2 rounded-md hover:bg-orange-300 transition'
+            className='bg-orange-300 text-white px-8 py-3 rounded-md hover:bg-orange-400 transition text-base font-semibold'
           >
             Enviar
           </button>
@@ -184,7 +176,7 @@ export const Home = () => {
   </div>
 
   {/* Derechos reservados */}
-  <p className='text-center font-semibold text-sm text-stone-600'>© 2025 Intex Textiles. Todos los derechos reservados.</p>
+  <p className='text-center font-semibold text-base text-stone-600 pt-8 border-t border-stone-300'>© 2025 Intex Textiles. Todos los derechos reservados.</p>
 </footer>
 
         </>

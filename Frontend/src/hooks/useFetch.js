@@ -1,5 +1,6 @@
 import axios from "axios";
 import { toast } from "react-toastify";
+import { useState } from "react";
 
 function useFetch() {
     /**
@@ -10,9 +11,12 @@ function useFetch() {
      * @param {boolean} suppressErrorToast - Si es 'true', no mostrará un toast en caso de error.
      * @returns {Promise<object|null>} Los datos de la respuesta en caso de éxito, o 'null' en caso de error.
      */
+    const [isLoading, setIsLoading] = useState(false);
+
     const fetchDataBackend = async (url, data = null, method = "GET", suppressErrorToast = false) => {
         
         try {
+            setIsLoading(true);
             const authToken = JSON.parse(localStorage.getItem("auth-token"))?.state?.token || '';
 
             // Construir options dinámicamente
@@ -40,20 +44,28 @@ function useFetch() {
                 toast.success(response.data.msg);
             }
             
+            setIsLoading(false);
             return response.data;
 
         } catch (error) {
-            console.error("Error capturado en useFetch:", error.response?.data?.msg || error.message);
+            console.error("❌ Error completo:", error);
+            console.error("❌ Error response:", error.response?.data);
+            console.error("❌ Error message:", error.message);
+            console.error("❌ Error code:", error.code);
+            
+            // Intentar obtener el mensaje de error
+            const errorMsg = error.response?.data?.msg || error.message || "Ocurrió un error inesperado.";
             
             if (!suppressErrorToast) {
-                toast.error(error.response?.data?.msg || "Ocurrió un error inesperado.");
+                toast.error(errorMsg);
             }
 
+            setIsLoading(false);
             return null;
         }
     };
 
-    return { fetchDataBackend };
+    return { fetchDataBackend, isLoading };
 }
 
 export default useFetch;

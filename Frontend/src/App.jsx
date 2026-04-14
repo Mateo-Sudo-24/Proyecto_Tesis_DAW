@@ -47,9 +47,6 @@ function AppContent() {
     return token ? <Navigate to="/dashboard" /> : <Navigate to="/home" />;
   };
 
-  // rutas donde se mostrará el chatbot
-  const rutasConChat = ['/home', '/nosotros', '/products', '/contacto'];
-
   return (
     <>
       <Routes>
@@ -96,8 +93,8 @@ function AppContent() {
         <Route path="*" element={<NotFound />} />
       </Routes>
 
-      {/* Mostrar el bubble solo en rutas específicas */}
-      {rutasConChat.includes(location.pathname) && <ChatbotBubble />}
+      {/* Mostrar el chatbot bubble en todas las rutas */}
+      <ChatbotBubble />
     </>
   );
 }

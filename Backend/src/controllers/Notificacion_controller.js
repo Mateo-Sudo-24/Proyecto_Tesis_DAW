@@ -3,15 +3,9 @@ import Administrador from '../models/Administrador.js';
 
 // n8n llama aquí cuando detecta stock crítico
 // Endpoint para webhooks (ej. n8n) para crear notificaciones.
-// Puede crear una notificación para un admin específico o para todos.
+// RUTAS DE WEBHOOK → SIN VERIFICACIÓN (confiable desde N8N)
 export const recibirNotificacion = async (req, res) => {
   const { productos, mensaje, tipo, adminId } = req.body;
-  
-  // Validar API key de n8n
-  const apiKey = req.headers['x-api-key'];
-  if (apiKey !== process.env.N8N_WEBHOOK_SECRET) {
-    return res.status(401).json({ error: 'No autorizado. API key inválida o no proporcionada.' });
-  }
   
   try {
     // Si se provee un adminId, se crea la notificación solo para ese admin.
@@ -99,6 +93,29 @@ export const marcarLeida = async (req, res) => {
   }
 };
 
+// Marcar notificación como leída desde webhook N8N (sin verificación JWT)
+// RUTA WEBHOOK → SIN AUTENTICACIÓN
+export const marcarLeidaWebhook = async (req, res) => {
+  const { id } = req.params;
+  
+  try {
+    const notif = await Notificacion.findById(id);
+    if (!notif) {
+      return res.status(404).json({ ok: false, error: 'Notificación no encontrada' });
+    }
+    
+    const notifActualizada = await Notificacion.findByIdAndUpdate(
+      id, 
+      { leida: true }, 
+      { new: true }
+    );
+    res.json({ ok: true, notif: notifActualizada });
+  } catch (error) {
+    console.error('Error al marcar notificación como leída (webhook):', error);
+    res.status(500).json({ ok: false, error: 'Error al actualizar notificación' });
+  }
+};
+
 // Obtener notificaciones no leídas del administrador (más optimizado para dashboard)
 export const obtenerNotificacionesNoLeidas = async (req, res) => {
   const { _id, rol } = req.usuario;
@@ -155,11 +172,7 @@ export const eliminarNotificacion = async (req, res) => {
 };
 
 export const obtenerNotificacionesNoLeidasWebhook = async (req, res) => {
-  const apiKey = req.headers['x-api-key'];
-  if (apiKey !== process.env.N8N_WEBHOOK_SECRET) {
-    return res.status(401).json({ error: 'No autorizado. API key inválida o no proporcionada.' });
-  }
-  
+  // RUTA DE WEBHOOK → SIN VERIFICACIÓN 
   try {
     const notifs = await Notificacion.find({ leida: false })
       .sort({ createdAt: -1 })

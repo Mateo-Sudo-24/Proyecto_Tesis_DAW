@@ -17,10 +17,14 @@ const Login = () => {
         setIsLoading(true);
         const baseUrl = import.meta.env.VITE_BACKEND_URL;
 
+        // 🔍 LOG PARA DIAGNÓSTICO
+        console.log("DEBUG: VITE_BACKEND_URL =", baseUrl);
+        console.log("DEBUG: import.meta.env =", import.meta.env);
+
         // ✅ MIDDLEWARE: Validar que VITE_BACKEND_URL esté definido
-        if (!baseUrl || baseUrl === 'undefined') {
+        if (!baseUrl || baseUrl === 'undefined' || !baseUrl.includes('http')) {
             setIsLoading(false);
-            console.error("❌ VITE_BACKEND_URL no está definido en .env");
+            console.error("❌ VITE_BACKEND_URL no está definido correctamente:", baseUrl);
             toast.error("Error de configuración: Backend URL no definida. Contacta soporte.");
             return;
         }
@@ -30,6 +34,7 @@ const Login = () => {
 
         for (const rol of rolesToCheck) {
             const url = `${baseUrl}/${rol}/login`;
+            console.log("DEBUG: Intentando login con URL:", url);
             // El 'true' final es para que el hook suprima los toasts de error en los intentos fallidos
             const response = await fetchDataBackend(url, data, 'POST', true); 
             

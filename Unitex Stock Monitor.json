@@ -79,11 +79,13 @@
       "parameters": {
         "requestMethod": "POST",
         "url": "https://unitex-backend.onrender.com/api/notificaciones/webhook",
-        "jsonParameters": true,
+        "headers": {
+          "Content-Type": "application/json"
+        },
         "options": {
           "fullResponse": false
         },
-        "bodyParametersJson": "={\n  \"tipo\": \"stock_critico\",\n  \"mensaje\": `⚠️ Revisión automática cada 4h: ${items[0].json.productosCriticos.length} productos próximos a agotarse (Hora: ${$now.format('DD/MM/YYYY HH:mm','America/Guayaquil')})`,\n  \"productos\": items[0].json.productosCriticos\n}"
+        "body": "={\"tipo\":\"stock_critico\",\"mensaje\":\"⚠️ Revisión automática cada 4h: \"+$json.productosCriticos.length+\" productos próximos a agotarse (Hora: \"+$now.format('DD/MM/YYYY HH:mm','America/Guayaquil')+\")\",\"productos\":$json.productosCriticos}"
       },
       "name": "Notificar al admin",
       "type": "n8n-nodes-base.httpRequest",
@@ -162,7 +164,7 @@
     {
       "parameters": {
         "requestMethod": "PATCH",
-        "url": "={{ `https://unitex-backend.onrender.com/api/notificaciones/${$json.idNotificacion}/leida` }}",
+        "url": "={{ `https://unitex-backend.onrender.com/api/notificaciones/webhook/${$json.idNotificacion}/leida` }}",
         "options": {
           "fullResponse": false
         }

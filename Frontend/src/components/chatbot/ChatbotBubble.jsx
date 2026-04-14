@@ -1,13 +1,17 @@
 import { useState } from 'react';
-import useAuthStore from '../../context/storeAuth';
+import { useLocation } from 'react-router-dom';
 import { FaRobot } from "react-icons/fa";
 import ChatModal from './ChatModal';
 
 const ChatbotBubble = () => {
-    const { rol } = useAuthStore();
     const [isModalOpen, setIsModalOpen] = useState(false);
+    const location = useLocation();
 
-    if (rol !== 'cliente') {
+    // No mostrar en rutas de autenticación
+    const rutasOcultas = ['/login', '/register', '/forgot', '/reset', '/confirm'];
+    const debeOcultar = rutasOcultas.some(ruta => location.pathname.includes(ruta));
+
+    if (debeOcultar) {
         return null;
     }
 
