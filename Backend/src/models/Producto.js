@@ -26,7 +26,7 @@ const productoSchema = new Schema({
         required: true,
         default: 0
     },
-    // --- CAMPOS DE IMAGEN CORREGIDOS Y REQUERIDOS ---
+    // --- CAMPOS DE IMAGEN CORREGIDOS ---
     imagenUrl: {
         type: String,
         default: null
@@ -34,6 +34,10 @@ const productoSchema = new Schema({
     imagenID: {
         type: String,
         default: null
+    },
+    imgData: {
+        data: Buffer,
+        contentType: String
     },
     descuento: {
         type: Number,

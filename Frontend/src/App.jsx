@@ -12,6 +12,7 @@ import Dashboard from './layout/Dashboard';
 import Profile from './pages/Profile';
 import List from './pages/List';
 import Details from './pages/Details';
+import ProductDetails from './pages/ProductDetails';
 import Create from './pages/Create';
 import Update from './pages/Update';
 import Chat from './pages/Chat';
@@ -64,6 +65,7 @@ function AppContent() {
           <Route path="reset/:token" element={<Reset />} />
           <Route path="nosotros" element={<Nosotros />} />
           <Route path="products" element={<Products />} />
+          <Route path="products/:id" element={<ProductDetails />} />
           <Route path="contacto" element={<Contact />} />
         </Route>
 

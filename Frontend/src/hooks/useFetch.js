@@ -1,10 +1,9 @@
-import axios from "axios";
 import { toast } from "react-toastify";
 import { useState } from "react";
 
 function useFetch() {
     /**
-     * Hook personalizado para realizar peticiones al backend.
+     * Hook personalizado para realizar peticiones al backend usando Fetch API nativa.
      * @param {string} url - La URL del endpoint.
      * @param {object} data - El cuerpo de la petición (para POST, PUT, etc.).
      * @param {string} method - El método HTTP (GET, POST, PUT, DELETE).
@@ -19,42 +18,50 @@ function useFetch() {
             setIsLoading(true);
             const authToken = JSON.parse(localStorage.getItem("auth-token"))?.state?.token || '';
 
-            // Construir options dinámicamente
+            // Construir opciones para Fetch API
             const options = {
                 method,
-                url,
                 headers: {
                     "Authorization": `Bearer ${authToken}`,
                 },
             };
 
-            // No establecer Content-Type para FormData (axios lo hace automáticamente)
-            if (!(data instanceof FormData)) {
-                options.headers["Content-Type"] = "application/json";
-            }
-
-            // Solo agrega 'data' si el método lo requiere y hay datos
+            // Manejar el cuerpo de la petición
             if (["POST", "PUT", "PATCH"].includes(method) && data) {
-                options.data = data;
+                if (data instanceof FormData) {
+                    // Para FormData, NO establecer Content-Type (browser lo hace automáticamente)
+                    options.body = data;
+                } else {
+                    // Para JSON
+                    options.headers["Content-Type"] = "application/json";
+                    options.body = JSON.stringify(data);
+                }
             }
 
-            const response = await axios(options);
-            
-            if (response?.data?.msg) {
-                toast.success(response.data.msg);
+            console.log("🔍 DEBUG Fetch:", { url, method, headers: options.headers });
+
+            const response = await fetch(url, options);
+            const responseData = await response.json();
+
+            if (!response.ok) {
+                const errorMsg = responseData?.msg || `Error ${response.status}: ${response.statusText}`;
+                console.error("❌ Error en respuesta:", { status: response.status, data: responseData });
+                throw new Error(errorMsg);
+            }
+
+            if (responseData?.msg && method !== "GET") {
+                toast.success(responseData.msg);
             }
             
             setIsLoading(false);
-            return response.data;
+            return responseData;
 
         } catch (error) {
             console.error("❌ Error completo:", error);
-            console.error("❌ Error response:", error.response?.data);
             console.error("❌ Error message:", error.message);
-            console.error("❌ Error code:", error.code);
             
             // Intentar obtener el mensaje de error
-            const errorMsg = error.response?.data?.msg || error.message || "Ocurrió un error inesperado.";
+            const errorMsg = error.message || "Ocurrió un error inesperado.";
             
             if (!suppressErrorToast) {
                 toast.error(errorMsg);

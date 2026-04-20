@@ -29,8 +29,9 @@ const Chat = () => {
     };
 
     useEffect(() => {
-        const token = localStorage.getItem("token"); // Suponiendo que el token se almacena en localStorage
-        const newSocket = io("http://localhost:3000", {
+        const token = localStorage.getItem("token");
+        const backendUrl = import.meta.env.VITE_BACKEND_URL.replace('/api', '');
+        const newSocket = io(backendUrl, {
             auth: {
                 token: token,
             },

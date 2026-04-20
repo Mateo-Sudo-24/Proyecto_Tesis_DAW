@@ -7,6 +7,21 @@ import { v2 as cloudinary } from 'cloudinary';
 import fs from 'fs-extra';
 import axios from 'axios';
 
+// ✅ Función helper para descargar imagen de Cloudinary y convertir a Buffer
+const descargarImagenCloudinary = async (imagenUrl) => {
+    try {
+        const response = await axios.get(imagenUrl, { responseType: 'arraybuffer' });
+        const contentType = response.headers['content-type'] || 'image/jpeg';
+        return {
+            data: Buffer.from(response.data),
+            contentType
+        };
+    } catch (error) {
+        console.warn('⚠️ No se pudo descargar la imagen de Cloudinary:', error.message);
+        return null;
+    }
+};
+
 // Umbral de stock crítico
 const STOCK_CRITICO = 5;
 
@@ -61,9 +76,11 @@ const crearNotificacionStockCritico = async (producto) => {
 };
 
 // POST /api/productos
-// Crear un nuevo producto
+// Crear un nuevo producto (con imagen opcional: archivo, URL de Cloudinary, o sin imagen)
 const registrarProducto = async (req, res) => {
     const { nombre, descripcion, precio, stock, categoria, imagenUrl } = req.body;
+    
+    // ✅ Solo campos obligatorios (imagen es OPCIONAL)
     if (!nombre || !descripcion || !precio || !stock || !categoria) {
         return res.status(400).json({ msg: "Todos los campos de texto son obligatorios." });
     }
@@ -74,16 +91,34 @@ const registrarProducto = async (req, res) => {
             creadoPor: req.usuario._id
         });
 
+        // ✅ Opción 1: Archivo de imagen subido (multipart/form-data)
         if (req.files?.imagen) {
             const resultadoCloudinary = await cloudinary.uploader.upload(req.files.imagen.tempFilePath, {
                 folder: 'Productos'
             });
             nuevoProducto.imagenUrl = resultadoCloudinary.secure_url;
             nuevoProducto.imagenID = resultadoCloudinary.public_id;
+            
+            // ✅ También descargar y guardar como Buffer
+            const imgData = await descargarImagenCloudinary(resultadoCloudinary.secure_url);
+            if (imgData) {
+                nuevoProducto.imgData = imgData;
+            }
+            
             await fs.unlink(req.files.imagen.tempFilePath);
-        } else if (imagenUrl) {
+        } 
+        // ✅ Opción 2: URL de Cloudinary directa en el body
+        else if (imagenUrl && imagenUrl.includes('cloudinary') || imagenUrl.includes('res.cloudinary')) {
             nuevoProducto.imagenUrl = imagenUrl;
+            
+            // ✅ Descargar y guardar como Buffer
+            const imgData = await descargarImagenCloudinary(imagenUrl);
+            if (imgData) {
+                nuevoProducto.imgData = imgData;
+            }
         }
+        // ✅ Opción 3: Sin imagen (totalmente permitido)
+        // El producto se crea sin imagenUrl, imagenID, ni imgData
 
         await nuevoProducto.save();
 
@@ -95,7 +130,7 @@ const registrarProducto = async (req, res) => {
 };
 
 // PUT /api/productos/:id
-// Actualizar un producto existente
+// Actualizar un producto existente (con imagen opcional: archivo, URL de Cloudinary, o sin cambios)
 const actualizarProducto = async (req, res) => {
     const { id } = req.params;
     if (!mongoose.Types.ObjectId.isValid(id)) {
@@ -111,22 +146,51 @@ const actualizarProducto = async (req, res) => {
         const stockAnterior = producto.stock;
         const nuevoStock = req.body.stock !== undefined ? parseInt(req.body.stock) : stockAnterior;
 
-        Object.assign(producto, req.body);
-        producto.stock = nuevoStock; // Asegurar que sea número
+        // Actualizar campos básicos (excepto imagen, que se maneja por separado)
+        const { imagenUrl: nuevaImagenUrl, ...restoDelBody } = req.body;
+        Object.assign(producto, restoDelBody);
+        producto.stock = nuevoStock;
         producto.ultimaModificacionPor = req.usuario._id;
 
-        // Si se envió una nueva imagen
+        // ✅ Opción 1: Archivo de imagen subido (multipart/form-data)
         if (req.files?.imagen) {
+            // Eliminar imagen anterior de Cloudinary si existe
             if (producto.imagenID) {
                 await cloudinary.uploader.destroy(producto.imagenID);
             }
+            
             const resultadoCloudinary = await cloudinary.uploader.upload(req.files.imagen.tempFilePath, {
                 folder: 'Productos'
             });
             producto.imagenUrl = resultadoCloudinary.secure_url;
             producto.imagenID = resultadoCloudinary.public_id;
+            
+            // ✅ Descargar y guardar como Buffer
+            const imgData = await descargarImagenCloudinary(resultadoCloudinary.secure_url);
+            if (imgData) {
+                producto.imgData = imgData;
+            }
+            
             await fs.unlink(req.files.imagen.tempFilePath);
         }
+        // ✅ Opción 2: URL de Cloudinary directa en el body
+        else if (nuevaImagenUrl && (nuevaImagenUrl.includes('cloudinary') || nuevaImagenUrl.includes('res.cloudinary'))) {
+            // Eliminar imagen anterior de Cloudinary si existe
+            if (producto.imagenID) {
+                await cloudinary.uploader.destroy(producto.imagenID);
+            }
+            
+            producto.imagenUrl = nuevaImagenUrl;
+            producto.imagenID = null; // No tenemos el public_id si es URL externa
+            
+            // ✅ Descargar y guardar como Buffer
+            const imgData = await descargarImagenCloudinary(nuevaImagenUrl);
+            if (imgData) {
+                producto.imgData = imgData;
+            }
+        }
+        // ✅ Opción 3: Sin cambios en la imagen (mantener la existente)
+        // No hacer nada, la imagen existente se mantiene
 
         await producto.save();
 

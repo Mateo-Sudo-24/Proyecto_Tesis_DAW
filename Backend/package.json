@@ -34,7 +34,7 @@
     "mongoose": "^8.15.0",
     "mongoose-paginate-v2": "^1.9.0",
     "multer": "^2.0.0",
-    "nodemailer": "^7.0.3",
+    "nodemailer": "^8.0.5",
     "otp-generator": "^4.0.1",
     "passport": "^0.7.0",
     "passport-google-oauth20": "^2.0.0",

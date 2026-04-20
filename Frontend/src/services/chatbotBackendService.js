@@ -1,0 +1,52 @@
+// Frontend Service - Llamadas al Backend Chatbot
+const BACKEND_URL = import.meta.env.VITE_BACKEND_URL;
+
+// Consultar Groq a través del Backend
+export const consultarGroqBackend = async (mensaje, imagenBase64 = null, historial = []) => {
+    try {
+        const response = await fetch(`${BACKEND_URL}/chatbot/groq`, {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+            },
+            body: JSON.stringify({
+                mensaje,
+                imagenBase64,
+                historial
+            })
+        });
+
+        if (!response.ok) {
+            throw new Error(`Error: ${response.statusText}`);
+        }
+
+        const data = await response.json();
+        return data.respuesta;
+    } catch (error) {
+        console.error('Error consultando Groq desde Backend:', error);
+        throw error;
+    }
+};
+
+// Generar Avatar a través del Backend
+export const generarAvatarBackend = async (prompt) => {
+    try {
+        const response = await fetch(`${BACKEND_URL}/chatbot/avatar`, {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+            },
+            body: JSON.stringify({ prompt })
+        });
+
+        if (!response.ok) {
+            throw new Error(`Error: ${response.statusText}`);
+        }
+
+        const data = await response.json();
+        return data.avatarBase64;
+    } catch (error) {
+        console.error('Error generando avatar desde Backend:', error);
+        throw error;
+    }
+};

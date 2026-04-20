@@ -1,6 +1,6 @@
 import { useState, useRef, useCallback } from 'react';
 import Webcam from 'react-webcam';
-import ollamaService from '../../services/ollamaService';
+import { consultarGroqBackend } from '../../services/chatbotBackendService';
 import { buscarProductosSimilares } from '../../services/productoService';
 import { toast } from 'react-toastify';
 import { MdCamera, MdClose, MdReplay } from 'react-icons/md';
@@ -57,7 +57,7 @@ const FabricAnalyzer = ({ onClose }) => {
 
         try {
             const base64Image = image.split(',')[1];
-            const response = await ollamaService.consultar(
+            const response = await consultarGroqBackend(
                 "Analiza la tela en esta imagen.",
                 base64Image
             );
@@ -84,8 +84,8 @@ const FabricAnalyzer = ({ onClose }) => {
         } catch (error) {
             console.error("Error al analizar:", error);
             if (error.message.includes('Failed to fetch') || error.message.includes('connect')) {
-                toast.error('No se puede conectar con Ollama. Verifica que esté ejecutándose.');
-                setRecommendations('Error: Servidor Ollama no disponible.');
+                toast.error('No se puede conectar con el servidor. Intenta de nuevo.');
+                setRecommendations('Error: No hay conexión con el servidor de análisis.');
             } else {
                 toast.error("Error al procesar la imagen.");
                 setRecommendations("Intenta con otra foto.");

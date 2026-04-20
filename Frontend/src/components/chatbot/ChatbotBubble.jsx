@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import { useLocation } from 'react-router-dom';
-import { FaRobot } from "react-icons/fa";
+import { FaQuestionCircle } from "react-icons/fa";
 import ChatModal from './ChatModal';
 
 const ChatbotBubble = () => {
@@ -27,9 +27,9 @@ const ChatbotBubble = () => {
                     hover:bg-orange-500 hover:scale-110
                     focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-orange-400
                 "
-                title="Asesor de Intex - Powered by Ollama"
+                title="Asesor de Intex - Análisis de Telas con IA"
             >
-                <FaRobot size={28} />
+                <FaQuestionCircle size={28} />
             </button>
 
             {isModalOpen && <ChatModal onClose={() => setIsModalOpen(false)} />}

@@ -1,7 +1,6 @@
 import logoConfirm from '../assets/imagen-check.webp';
 import { Link, useParams, useLocation } from 'react-router-dom';
 import { useEffect, useState } from 'react';
-import axios from 'axios';
 import { ToastContainer, toast } from 'react-toastify';
 import 'react-toastify/dist/ReactToastify.css';
 
@@ -42,20 +41,21 @@ export const Confirm = () => {
             try {
                 let respuesta;
                 if (method === 'GET') {
-                    respuesta = await axios.get(url);
+                    const response = await fetch(url);
+                    if (!response.ok) {
+                        throw new Error(`HTTP ${response.status}`);
+                    }
+                    respuesta = await response.json();
                 } else if (method === 'POST') {
                     // Para vendedores, normalmente se requiere un formulario de password.
                     // Aquí solo mostramos un mensaje informativo.
                     throw new Error("La activación de cuenta de vendedor requiere establecer una contraseña.");
                 }
-                setMessage(respuesta.data.msg || '¡Cuenta confirmada exitosamente!');
+                setMessage(respuesta.msg || '¡Cuenta confirmada exitosamente!');
                 setStatus('success');
-                toast.success(respuesta.data.msg || '¡Cuenta confirmada!');
+                toast.success(respuesta.msg || '¡Cuenta confirmada!');
             } catch (error) {
-                const errorMsg =
-                    error.response?.data?.msg ||
-                    error.message ||
-                    'Hubo un error al confirmar la cuenta.';
+                const errorMsg = error.message || 'Hubo un error al confirmar la cuenta.';
                 setMessage(errorMsg);
                 setStatus('error');
                 toast.error(errorMsg);

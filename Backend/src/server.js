@@ -19,7 +19,9 @@ import routerProductos from './routers/Producto_routers.js';
 import routerOrdenes from './routers/Orden_routers.js';
 import routerCarrito from './routers/Carrito_routers.js';
 import routerBot from './routers/Bot_routers.js';
+import routerChatbot from './routers/Chatbot_routers.js';
 import notificacionRouter from './routers/Notificacion_router.js';
+import routerAuth from './routers/Auth_routers.js';
 
 // --- Configuración de Passport --- (REMOVIDO: No se usa OAuth)
 // import './config/passport.js';
@@ -100,6 +102,7 @@ app.get('/', (req, res) => {
 });
 
 // --- Rutas específicas de la API --- ¡ESTE ES EL BLOQUE QUE FALTABA! ---
+app.use('/api/auth', routerAuth);
 app.use('/api/admin', routerAdministrador);
 app.use('/api/clientes', routerClientes);
 app.use('/api/vendedores', routerVendedores);
@@ -107,6 +110,7 @@ app.use('/api/productos', routerProductos);
 app.use('/api/ordenes', routerOrdenes);
 app.use('/api/carrito', routerCarrito);
 app.use('/api/bot', routerBot);
+app.use('/api/chatbot', routerChatbot);
 app.use('/api/notificaciones', notificacionRouter);
 
 // =======================================================================

@@ -17,10 +17,6 @@ const Login = () => {
         setIsLoading(true);
         const baseUrl = import.meta.env.VITE_BACKEND_URL;
 
-        // 🔍 LOG PARA DIAGNÓSTICO
-        console.log("DEBUG: VITE_BACKEND_URL =", baseUrl);
-        console.log("DEBUG: import.meta.env =", import.meta.env);
-
         // ✅ MIDDLEWARE: Validar que VITE_BACKEND_URL esté definido
         if (!baseUrl || baseUrl === 'undefined' || !baseUrl.includes('http')) {
             setIsLoading(false);
@@ -29,33 +25,29 @@ const Login = () => {
             return;
         }
 
-        const rolesToCheck = ['admin', 'vendedores', 'clientes'];
-        let loginSuccess = false;
-
-        for (const rol of rolesToCheck) {
-            const url = `${baseUrl}/${rol}/login`;
-            console.log("DEBUG: Intentando login con URL:", url);
-            // El 'true' final es para que el hook suprima los toasts de error en los intentos fallidos
-            const response = await fetchDataBackend(url, data, 'POST', true); 
+        // ✅ RUTA UNIFICADA DE LOGIN - Una sola llamada que identifica automáticamente el usuario
+        const url = `${baseUrl}/auth/login`;
+        console.log("DEBUG: Intentando login unificado con URL:", url);
+        
+        try {
+            const response = await fetchDataBackend(url, data, 'POST'); 
             
-            if (response) {
-                // Si la respuesta es exitosa, guardar datos y salir del bucle
+            if (response && response.token) {
+                // ✅ Login exitoso
                 setToken(response.token);
                 setRol(response.rol);
                 localStorage.setItem("auth-token", JSON.stringify({ state: { token: response.token, rol: response.rol } }));
                 
                 if (profile) await profile();
                 
+                toast.success(`Bienvenido ${response.nombre}!`);
                 navigate('/dashboard');
-                loginSuccess = true;
-                break;
             }
-        }
-        
-        setIsLoading(false);
-
-        if (!loginSuccess) {
-            toast.error("Credenciales inválidas o usuario no encontrado.");
+        } catch (error) {
+            console.error("❌ Error en login:", error.message);
+            toast.error(error.message || "Credenciales inválidas o usuario no encontrado.");
+        } finally {
+            setIsLoading(false);
         }
     };
 

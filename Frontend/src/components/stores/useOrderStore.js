@@ -1,5 +1,4 @@
 import { create } from "zustand";
-import axios from "axios";
 import { toast } from "react-toastify";
 
 /**
@@ -45,9 +44,19 @@ const useOrderStore = create((set, get) => ({
 
         try {
             const url = `${import.meta.env.VITE_BACKEND_URL}/ordenes`;
-            const response = await axios.post(url, orderData, config);
+            const response = await fetch(url, {
+                method: 'POST',
+                headers: config.headers,
+                body: JSON.stringify(orderData),
+            });
             
-            toast.success(response.data.msg || "¡Orden creada exitosamente!");
+            const data = await response.json();
+            
+            if (!response.ok) {
+                throw new Error(data.msg || "Error al crear la orden.");
+            }
+            
+            toast.success(data.msg || "¡Orden creada exitosamente!");
 
             // Una vez creada la orden, redirige al usuario al dashboard o a su lista de órdenes.
             if (navigate) {
@@ -55,7 +64,7 @@ const useOrderStore = create((set, get) => ({
             }
 
         } catch (error) {
-            const errorMessage = error.response?.data?.msg || "Error al crear la orden.";
+            const errorMessage = error.message || "Error al crear la orden.";
             toast.error(errorMessage);
             set({ error: errorMessage });
         } finally {
@@ -73,10 +82,19 @@ const useOrderStore = create((set, get) => ({
 
         try {
             const url = `${import.meta.env.VITE_BACKEND_URL}/ordenes`;
-            const response = await axios.get(url, config);
-            set({ orders: response.data, loading: false });
+            const response = await fetch(url, {
+                method: 'GET',
+                headers: config.headers,
+            });
+            
+            if (!response.ok) {
+                throw new Error("No se pudieron cargar las órdenes.");
+            }
+            
+            const data = await response.json();
+            set({ orders: data, loading: false });
         } catch (error) {
-            const errorMessage = error.response?.data?.msg || "No se pudieron cargar las órdenes.";
+            const errorMessage = error.message || "No se pudieron cargar las órdenes.";
             toast.error(errorMessage);
             set({ error: errorMessage, loading: false });
         }
@@ -93,10 +111,19 @@ const useOrderStore = create((set, get) => ({
 
         try {
             const url = `${import.meta.env.VITE_BACKEND_URL}/ordenes/${id}`;
-            const response = await axios.get(url, config);
-            set({ currentOrder: response.data, loading: false });
+            const response = await fetch(url, {
+                method: 'GET',
+                headers: config.headers,
+            });
+            
+            if (!response.ok) {
+                throw new Error("No se pudo cargar el detalle de la orden.");
+            }
+            
+            const data = await response.json();
+            set({ currentOrder: data, loading: false });
         } catch (error) {
-            const errorMessage = error.response?.data?.msg || "No se pudo cargar el detalle de la orden.";
+            const errorMessage = error.message || "No se pudo cargar el detalle de la orden.";
             toast.error(errorMessage);
             set({ error: errorMessage, loading: false });
         }
@@ -114,7 +141,17 @@ const useOrderStore = create((set, get) => ({
 
         try {
             const url = `${import.meta.env.VITE_BACKEND_URL}/ordenes/${id}`;
-            const response = await axios.patch(url, { estado: newStatus }, config);
+            const response = await fetch(url, {
+                method: 'PATCH',
+                headers: config.headers,
+                body: JSON.stringify({ estado: newStatus }),
+            });
+            
+            const data = await response.json();
+            
+            if (!response.ok) {
+                throw new Error(data.msg || "Error al actualizar la orden.");
+            }
             
             // Actualiza la lista de órdenes en el estado para reflejar el cambio al instante.
             set(state => ({
@@ -123,10 +160,10 @@ const useOrderStore = create((set, get) => ({
                 ),
             }));
 
-            toast.success(response.data.msg || "Estado de la orden actualizado.");
+            toast.success(data.msg || "Estado de la orden actualizado.");
 
         } catch (error) {
-            const errorMessage = error.response?.data?.msg || "Error al actualizar la orden.";
+            const errorMessage = error.message || "Error al actualizar la orden.";
             toast.error(errorMessage);
             set({ error: errorMessage });
         } finally {

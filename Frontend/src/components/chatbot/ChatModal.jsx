@@ -1,7 +1,7 @@
 import { useState, useRef, useEffect, useCallback } from 'react';
 import { MdClose, MdCamera, MdAttachFile } from 'react-icons/md';
 import Webcam from 'react-webcam';
-import ollamaService from '../../services/ollamaService';
+import { consultarGroqBackend } from '../../services/chatbotBackendService';
 import { buscarProductosSimilares } from '../../services/productoService';
 import { toast } from 'react-toastify';
 import './ChatModal.css';
@@ -77,7 +77,7 @@ const ChatModal = ({ onClose }) => {
                     content: m.content
                 }));
 
-            const response = await ollamaService.consultar(
+            const response = await consultarGroqBackend(
                 userMessage.content,
                 userMessage.image ? userMessage.image.split(',')[1] : null,
                 historial
@@ -133,8 +133,8 @@ const ChatModal = ({ onClose }) => {
                 {/* Header */}
                 <div className="chat-modal-header">
                     <div>
-                        <h2>🤖 Asesor de Telas IA</h2>
-                        <p>Powered by Ollama | Análisis inteligente de telas</p>
+                        <h2>Asesor de Telas IA</h2>
+                        <p>Análisis inteligente de telas con Groq</p>
                     </div>
                     <button
                         onClick={onClose}
