@@ -86,8 +86,22 @@ const registrarProducto = async (req, res) => {
     }
 
     try {
+        // Parsear campos que llegan como string desde FormData
+        let etiquetas = [];
+        if (req.body.etiquetas) {
+            try { etiquetas = JSON.parse(req.body.etiquetas); } catch { etiquetas = []; }
+        }
+
         const nuevoProducto = new Producto({
-            ...req.body,
+            nombre,
+            descripcion,
+            precio: Number(precio),
+            stock: Number(stock),
+            categoria,
+            descuento: Number(req.body.descuento) || 0,
+            color: req.body.color || '',
+            estado: req.body.estado || 'activo',
+            etiquetas,
             creadoPor: req.usuario._id
         });
 
