@@ -30,17 +30,6 @@ export const FormCliente = ({ clienteToUpdate }) => {
 
     const onSubmit = async (data) => {
         setIsSubmitting(true);
-        const storedUser = JSON.parse(localStorage.getItem("auth-token"));
-        if (!storedUser?.state?.token) {
-            toast.error("No estás autenticado.");
-            setIsSubmitting(false);
-            return;
-        }
-
-        const headers = {
-            "Content-Type": "application/json",
-            Authorization: `Bearer ${storedUser.state.token}`,
-        };
 
         // ✅ DETERMINAR ENDPOINT SEGÚN TIPO DE USUARIO
         let baseUrl = tipoUsuario === "cliente" ? "/clientes" : "/vendedores";
@@ -53,7 +42,7 @@ export const FormCliente = ({ clienteToUpdate }) => {
         }
 
         try {
-            const response = await fetchDataBackend(url, data, method, headers);
+            const response = await fetchDataBackend(url, data, method);
             if (response) {
                 const tipoNombre = tipoUsuario === "cliente" ? "Cliente" : "Vendedor";
                 toast.success(
@@ -66,8 +55,7 @@ export const FormCliente = ({ clienteToUpdate }) => {
                 }, 1500);
             }
         } catch (error) {
-            const tipoNombre = tipoUsuario === "cliente" ? "cliente" : "vendedor";
-            toast.error(`Ocurrió un error al guardar el ${tipoNombre}.`);
+            toast.error(error.message || "Ocurrió un error al guardar.");
         } finally {
             setIsSubmitting(false);
         }
@@ -123,6 +111,23 @@ export const FormCliente = ({ clienteToUpdate }) => {
                             {...register("apellido", { required: "El apellido es obligatorio para vendedores" })}
                         />
                         {errors.apellido && <p className={errorStyle}>{errors.apellido.message}</p>}
+                    </div>
+                )}
+
+                {/* Password (solo para clientes creados por admin) */}
+                {tipoUsuario === "cliente" && !clienteToUpdate && (
+                    <div className="mb-5">
+                        <label className={labelStyle}>Contraseña *</label>
+                        <input
+                            type="password"
+                            placeholder="Contraseña"
+                            className={inputStyle}
+                            {...register("password", {
+                                required: "La contraseña es obligatoria",
+                                minLength: { value: 8, message: "Mínimo 8 caracteres" }
+                            })}
+                        />
+                        {errors.password && <p className={errorStyle}>{errors.password.message}</p>}
                     </div>
                 )}
 

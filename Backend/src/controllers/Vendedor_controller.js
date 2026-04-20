@@ -112,7 +112,17 @@ const crearVendedor = async (req, res) => {
     if (!email || !nombre || !apellido || !telefono || !direccion) return res.status(400).json({ msg: "Nombre, apellido, email, teléfono y dirección son obligatorios." });
     try {
         const existeVendedor = await Vendedor.findOne({ email });
-        if (existeVendedor) return res.status(400).json({ msg: "El email ya se encuentra registrado." });
+        if (existeVendedor) {
+            // Si ya está activo, no se puede volver a invitar
+            if (existeVendedor.status === 'activo') {
+                return res.status(400).json({ msg: "Ya existe un vendedor activo con ese correo electrónico." });
+            }
+            // Si está pendiente, reenviar la invitación
+            const token = existeVendedor.crearToken();
+            await existeVendedor.save();
+            await sendMailToInviteUser(email, token);
+            return res.status(200).json({ msg: "La invitación fue reenviada. El vendedor debe revisar su correo para activar la cuenta." });
+        }
 
         const nuevoVendedor = new Vendedor({ email, nombre, apellido, telefono, direccion, rol, status: 'pendiente' });
         const token = nuevoVendedor.crearToken();

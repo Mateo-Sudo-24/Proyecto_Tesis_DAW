@@ -46,7 +46,7 @@ export const Form = ({ usuarioToUpdate, productoToUpdate, tipoCreacion }) => {
 
       {/* ✅ TIPO USUARIO: Mostrar FormCliente */}
       {tipoCreacion === "usuario" && (
-        <FormCliente clienteToUpdate={usuarioToUpdate || user} />
+        <FormCliente clienteToUpdate={usuarioToUpdate} />
       )}
 
       {/* ✅ SIN TIPO ESPECIFICADO: Mostrar según rol (compatibilidad hacia atrás) */}

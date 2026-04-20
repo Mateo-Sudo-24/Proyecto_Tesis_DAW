@@ -124,7 +124,7 @@ const Carrito = () => {
                     <div className="text-center text-gray-400 py-10">
                         <p className="text-xl">Tu carrito está vacío.</p>
                         <div className="mt-6">
-                            <Link to="/products" className="bg-orange-400 text-white px-6 py-3 rounded-md font-bold hover:bg-orange-500 transition-colors">
+                            <Link to="/dashboard/productos" className="bg-orange-400 text-white px-6 py-3 rounded-md font-bold hover:bg-orange-500 transition-colors">
                                 Ver productos
                             </Link>
                         </div>
@@ -184,7 +184,7 @@ const Carrito = () => {
                             >
                                 Vaciar carrito
                             </button>
-                            <Link to="/products" className="bg-orange-400 text-white px-4 py-2 rounded-md hover:bg-orange-500 transition-colors">
+                            <Link to="/dashboard/productos" className="bg-orange-400 text-white px-4 py-2 rounded-md hover:bg-orange-500 transition-colors">
                                 Seguir comprando
                             </Link>
                         </div>

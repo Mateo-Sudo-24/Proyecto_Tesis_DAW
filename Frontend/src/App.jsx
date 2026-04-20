@@ -59,15 +59,19 @@ function AppContent() {
           <Route path="home" element={<Home />} />
           <Route path="login" element={<Login />} />
           <Route path="register" element={<Register />} />
+          <Route path="forgot" element={<Forgot />} />
           <Route path="forgot/:id" element={<Forgot />} />
           <Route path="confirm/:token" element={<Confirm />} />
+          <Route path="confirmar/:token" element={<Confirm />} />
           <Route path="/vendedores/setup-account/:token" element={<SetupAccount />} />
           <Route path="reset/:token" element={<Reset />} />
           <Route path="nosotros" element={<Nosotros />} />
-          <Route path="products" element={<Products />} />
-          <Route path="products/:id" element={<ProductDetails />} />
           <Route path="contacto" element={<Contact />} />
         </Route>
+
+        {/* ✅ RUTAS ABIERTAS: Accesibles con o sin token */}
+        <Route path="products" element={<Products />} />
+        <Route path="products/:id" element={<ProductDetails />} />
 
         {/* ✅ RUTAS PROTEGIDAS: Solo con token */}
         <Route
