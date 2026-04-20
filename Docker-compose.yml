@@ -1,5 +1,5 @@
 services:
-  # N8N Automation - Login con credenciales propias (correo y contraseña)
+  # N8N Automation - Desplegado en Render con BD Supabase (PostgreSQL)
   n8n:
     image: docker.n8n.io/n8nio/n8n
     container_name: n8n_unitex
@@ -7,18 +7,31 @@ services:
     ports:
       - "5678:5678"
     environment:
+      # ── Configuracion base ──────────────────────────────────────────
       - N8N_HOST=0.0.0.0
       - N8N_PORT=5678
-      - N8N_PROTOCOL=http
+      - N8N_PROTOCOL=https
       - N8N_SECURE_COOKIE=false
-      - WEBHOOK_URL=http://localhost:5678/
-      - GENERIC_TIMEZONE=America/Guayaquil
-      - TZ=America/Guayaquil
       - N8N_ENFORCE_SETTINGS_FILE_PERMISSIONS=true
       - N8N_RUNNERS_ENABLED=true
       - N8N_ENCRYPTION_KEY=unitex_n8n_key_2024_secure
-    volumes:
-      - n8n_data:/home/node/.n8n
+      - GENERIC_TIMEZONE=America/Guayaquil
+      - TZ=America/Guayaquil
+
+      # ── URL publica de n8n en Render (reemplaza con tu URL real) ────
+      - WEBHOOK_URL=https://TU_SERVICIO_N8N.onrender.com/
+
+      # ── Base de datos Supabase (PostgreSQL) ─────────────────────────
+      # Obten estos valores desde: supabase.com > tu proyecto > Settings > Database
+      - DB_TYPE=postgresdb
+      - DB_POSTGRESDB_HOST=db.kadpmgrgmxjoxvyrsmct.supabase.co
+      - DB_POSTGRESDB_PORT=5432
+      - DB_POSTGRESDB_DATABASE=postgres
+      - DB_POSTGRESDB_USER=postgres
+      - DB_POSTGRESDB_PASSWORD=Administrador32
+      - DB_POSTGRESDB_SCHEMA=n8n
+      - DB_POSTGRESDB_SSL_REJECT_UNAUTHORIZED=false
+
     networks:
       - unitex_network
 
@@ -26,5 +39,4 @@ networks:
   unitex_network:
     driver: bridge
 
-volumes:
-  n8n_data:
+# Volumen eliminado: los datos persisten en Supabase PostgreSQL

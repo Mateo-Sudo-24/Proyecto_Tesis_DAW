@@ -3,6 +3,9 @@
 .env.local
 .env.*.local
 
+# Docker compose con credenciales (usar variables de entorno en Render)
+Docker-compose.yml
+
 # Dependencies
 node_modules/
 npm-debug.log
