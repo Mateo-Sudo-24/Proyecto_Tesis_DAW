@@ -1,15 +1,13 @@
 import Notificacion from '../models/Notificacion.js';
 import Administrador from '../models/Administrador.js';
 
-// n8n llama aquí cuando detecta stock crítico
-// Endpoint para webhooks (ej. n8n) para crear notificaciones.
-// RUTAS DE WEBHOOK → SIN VERIFICACIÓN (confiable desde N8N)
+// ✅ WEBHOOK SIN AUTENTICACIÓN - N8N puede enviar directamente
 export const recibirNotificacion = async (req, res) => {
   const { productos, mensaje, tipo, adminId } = req.body;
   
   // Validación básica
   if (!mensaje) {
-    return res.status(400).json({ error: 'El campo "mensaje" es requerido' });
+    return res.status(400).json({ error: 'El campo "mensaje" es requerido', ok: false });
   }
 
   try {
@@ -19,7 +17,10 @@ export const recibirNotificacion = async (req, res) => {
       productosNormalizados = productos.map(p => ({
         nombre: p.nombre || 'Producto sin nombre',
         stock: p.stock || 0,
-        umbral: p.umbral || p.umbralCritico || 5
+        umbral: p.umbral || p.umbralCritico || 5,
+        productId: p._id || p.productId,
+        categoria: p.categoria,
+        precio: p.precio
       }));
     }
 
@@ -29,14 +30,21 @@ export const recibirNotificacion = async (req, res) => {
       if (!admin) {
         return res.status(404).json({ error: 'Administrador no encontrado' });
       }
-      const notif = await Notificacion.create({ 
+      const notif = await Notificacion.crearConCifrado({ 
         administrador: adminId, 
         productos: productosNormalizados, 
         mensaje, 
         tipo: tipo || 'stock_critico', 
-        leida: false 
+        leida: false,
+        estadoGestion: 'pendiente',
+        metadatos: {
+          ipOrigen: req.ip,
+          userAgent: req.get('user-agent'),
+          timestamp: new Date()
+        }
       });
-      return res.status(201).json({ ok: true, notificaciones: [notif] });
+      console.log(`✅ Notificación creada para admin ${adminId}`);
+      return res.status(201).json({ ok: true, notificaciones: [notif], id: notif._id });
     } 
     
     // Si no se provee adminId, se crea la notificación para TODOS los administradores.
@@ -48,23 +56,34 @@ export const recibirNotificacion = async (req, res) => {
       }
 
       const promesasNotificaciones = admins.map(admin => 
-        Notificacion.create({ 
+        Notificacion.crearConCifrado({ 
           administrador: admin._id, 
           productos: productosNormalizados,
           mensaje, 
           tipo: tipo || 'stock_critico', 
-          leida: false 
+          leida: false,
+          estadoGestion: 'pendiente',
+          metadatos: {
+            ipOrigen: req.ip,
+            userAgent: req.get('user-agent'),
+            timestamp: new Date()
+          }
         })
       );
       
       const notificacionesCreadas = await Promise.all(promesasNotificaciones);
       console.log(`✅ ${notificacionesCreadas.length} notificaciones creadas para ${admins.length} administrador(es)`);
-      return res.status(201).json({ ok: true, notificaciones: notificacionesCreadas });
+      return res.status(201).json({ 
+        ok: true, 
+        notificaciones: notificacionesCreadas,
+        totalCreadas: notificacionesCreadas.length,
+        ids: notificacionesCreadas.map(n => n._id)
+      });
     }
 
   } catch (error) {
     console.error('❌ Error al recibir notificación de n8n:', error.message);
-    res.status(500).json({ error: 'Error interno al procesar la notificación.', details: error.message });
+    res.status(500).json({ error: 'Error interno al procesar la notificación.', details: error.message, ok: false });
   }
 };
 
@@ -82,10 +101,21 @@ export const obtenerNotificaciones = async (req, res) => {
     const notifs = await Notificacion.find({ administrador: _id })
       .sort({ createdAt: -1 })
       .limit(50);
-    res.json(notifs);
+    
+    // Descifrar datos sensibles antes de enviar
+    const notifsDescifradas = notifs.map(n => {
+      const decrypted = n.descifrarDatos();
+      return {
+        ...n.toObject(),
+        mensaje: decrypted.mensaje,
+        productos: decrypted.productos
+      };
+    });
+
+    res.json({ ok: true, notificaciones: notifsDescifradas });
   } catch (error) {
     console.error('Error al obtener notificaciones:', error);
-    res.status(500).json({ msg: 'Error al obtener notificaciones' });
+    res.status(500).json({ msg: 'Error al obtener notificaciones', ok: false });
   }
 };
 
@@ -118,12 +148,11 @@ export const marcarLeida = async (req, res) => {
     res.json({ ok: true, notif: notifActualizada });
   } catch (error) {
     console.error('Error al marcar notificación como leída:', error);
-    res.status(500).json({ msg: 'Error al actualizar notificación' });
+    res.status(500).json({ msg: 'Error al actualizar notificación', ok: false });
   }
 };
 
-// Marcar notificación como leída desde webhook N8N (sin verificación JWT)
-// RUTA WEBHOOK → SIN AUTENTICACIÓN
+// ✅ Marcar notificación como leída desde webhook N8N (SIN JWT)
 export const marcarLeidaWebhook = async (req, res) => {
   const { id } = req.params;
   
@@ -135,9 +164,11 @@ export const marcarLeidaWebhook = async (req, res) => {
     
     const notifActualizada = await Notificacion.findByIdAndUpdate(
       id, 
-      { leida: true }, 
+      { leida: true, estadoGestion: 'completado' }, 
       { new: true }
     );
+
+    console.log(`✅ Notificación ${id} marcada como leída desde webhook`);
     res.json({ ok: true, notif: notifActualizada });
   } catch (error) {
     console.error('Error al marcar notificación como leída (webhook):', error);
@@ -161,9 +192,19 @@ export const obtenerNotificacionesNoLeidas = async (req, res) => {
     
     const contador = await Notificacion.countDocuments({ administrador: _id, leida: false });
     
+    // Descifrar datos sensibles
+    const notifsDescifradas = notifs.map(n => {
+      const decrypted = n.descifrarDatos();
+      return {
+        ...n.toObject(),
+        mensaje: decrypted.mensaje,
+        productos: decrypted.productos
+      };
+    });
+
     res.json({ 
       ok: true, 
-      notificaciones: notifs,
+      notificaciones: notifsDescifradas,
       totalNoLeidas: contador
     });
   } catch (error) {
@@ -193,6 +234,7 @@ export const eliminarNotificacion = async (req, res) => {
     }
     
     await Notificacion.findByIdAndDelete(id);
+    console.log(`✅ Notificación ${id} eliminada`);
     res.json({ ok: true, msg: 'Notificación eliminada' });
   } catch (error) {
     console.error('Error al eliminar notificación:', error);
@@ -200,6 +242,7 @@ export const eliminarNotificacion = async (req, res) => {
   }
 };
 
+// ✅ Obtener notificaciones NO leídas desde WEBHOOK N8N (SIN JWT)
 export const obtenerNotificacionesNoLeidasWebhook = async (req, res) => {
   // RUTA DE WEBHOOK → SIN VERIFICACIÓN 
   try {
@@ -209,14 +252,25 @@ export const obtenerNotificacionesNoLeidasWebhook = async (req, res) => {
     
     const totalNoLeidas = await Notificacion.countDocuments({ leida: false });
     
+    // Descifrar datos para N8N
+    const notifsDescifradas = notifs.map(n => {
+      const decrypted = n.descifrarDatos();
+      return {
+        ...n.toObject(),
+        mensaje: decrypted.mensaje,
+        productos: decrypted.productos
+      };
+    });
+
+    console.log(`✅ Webhook: Obtenidas ${totalNoLeidas} notificaciones sin leer`);
     res.json({ 
       ok: true, 
-      notificaciones: notifs,
+      notificaciones: notifsDescifradas,
       totalNoLeidas: totalNoLeidas,
       timestamp: new Date().toISOString()
     });
   } catch (error) {
     console.error('Error obtener notificaciones sin leer (webhook):', error);
-    res.status(500).json({ error: 'Error al obtener notificaciones' });
+    res.status(500).json({ error: 'Error al obtener notificaciones', ok: false });
   }
 };
