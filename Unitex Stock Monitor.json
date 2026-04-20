@@ -139,23 +139,34 @@
       "webhookId": "695fe408-ee92-4dde-b017-62e4c09ac2a9"
     },
     {
-      "parameters": {},
-      "name": "Esperar aprobación admin (24h)",
-      "type": "n8n-nodes-base.wait",
+      "parameters": {
+        "functionCode": "/* Normaliza el body del webhook: extrae decision e idNotificacion al nivel raíz */\nconst data = $json.body || $json;\nconst decision = data.decision || '';\nconst idNotificacion = data.idNotificacion || data.id || '';\nif (!idNotificacion) {\n  throw new Error('idNotificacion no recibido en el webhook');\n}\nreturn [{ json: { decision, idNotificacion } }];"
+      },
+      "name": "Normalizar respuesta admin",
+      "type": "n8n-nodes-base.function",
       "typeVersion": 1,
-      "position": [
-        0,
-        192
-      ],
-      "id": "a3f7c800-ad16-4148-8178-5e4c3886d41f",
-      "webhookId": "fc23cd37-5dfe-4221-bddb-2a0c26b9e00f"
+      "position": [152, -50],
+      "id": "norm-resp-0001"
+    },
+    {
+      "parameters": {
+        "url": "={{ `https://unitex-backend.onrender.com/api/notificaciones/webhook/${$json.idNotificacion}` }}",
+        "options": {
+          "fullResponse": false
+        }
+      },
+      "name": "Verificar estado en backend",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 1,
+      "position": [304, -50],
+      "id": "verif-estado-0001"
     },
     {
       "parameters": {
         "conditions": {
           "string": [
             {
-              "value1": "={{ $json.body && $json.body.decision ? $json.body.decision : $json.decision }}",
+              "value1": "={{ $json.estadoGestion }}",
               "value2": "aprobado"
             }
           ]
@@ -190,7 +201,7 @@
     {
       "parameters": {
         "requestMethod": "PATCH",
-        "url": "={{ `https://unitex-backend.onrender.com/api/notificaciones/webhook/${$json.idNotificacion || $json.id || $json.body && $json.body.id}/leida` }}",
+        "url": "={{ `https://unitex-backend.onrender.com/api/notificaciones/webhook/${$json.idNotificacion}/leida` }}",
         "options": {
           "fullResponse": false
         }
@@ -206,7 +217,7 @@
     },
     {
       "parameters": {
-        "functionCode": "/* Manejo simple de errores cuando fullResponse=false.\n   Detecta estructuras comunes de error y detiene si es 401 o 500.\n*/\nconst resp = $input.item.json || {};\nif (resp.statusCode === 401 || resp.code === 401 || resp.error === 'Unauthorized') {\n  return [{ json: { error: '401', mensaje: 'Credenciales incorrectas. Deteniendo ejecución.' } }];\n}\nif (resp.statusCode === 500 || resp.error === 'Internal Server Error' || (resp.message && resp.message.toString().includes('500'))) {\n  return [{ json: { error: '500', mensaje: 'Error 500 — reintentar más tarde.' } }];\n}\nreturn [{ json: { ok: true, body: resp } }];"
+    "functionCode": "/* Gatekeeper de errores HTTP.\n   Si la respuesta es un error conocido, detiene la ejecuci\u00f3n (devuelve array vac\u00edo).\n   Si todo est\u00e1 bien, pasa los datos sin modificar al siguiente nodo.\n*/\nconst resp = $input.item.json || {};\nif (resp.statusCode === 401 || resp.code === 401 || resp.error === 'Unauthorized') {\n  console.error('\u274c Error 401: Sin autorizaci\u00f3n');\n  return [];\n}\nif (resp.statusCode === 500 || resp.error === 'Internal Server Error' || (resp.ok === false && resp.error)) {\n  console.error('\u274c Error en respuesta HTTP:', JSON.stringify(resp));\n  return [];\n}\n// Pasar datos sin modificar\nreturn [$input.item];"
       },
       "name": "Manejo de errores HTTP",
       "type": "n8n-nodes-base.function",
@@ -272,11 +283,7 @@
             "node": "Manejo de errores HTTP",
             "type": "main",
             "index": 0
-          },
-          {
-            "node": "¿Sin productos críticos?",
-            "type": "main",
-            "index": 0
+
           }
         ]
       ]
@@ -347,23 +354,7 @@
       "main": [
         [
           {
-            "node": "Esperar aprobación admin (24h)",
-            "type": "main",
-            "index": 0
-          },
-          {
             "node": "Generar resumen interno",
-            "type": "main",
-            "index": 0
-          }
-        ]
-      ]
-    },
-    "Esperar aprobación admin (24h)": {
-      "main": [
-        [
-          {
-            "node": "¿Admin aprobó?",
             "type": "main",
             "index": 0
           }
@@ -373,8 +364,28 @@
     "Webhook - Respuesta Admin": {
       "main": [
         [
+          {            "node": "Normalizar respuesta admin",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Normalizar respuesta admin": {
+      "main": [
+        [
           {
-            "node": "¿Admin aprobó?",
+            "node": "Verificar estado en backend",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Verificar estado en backend": {
+      "main": [
+        [
+          {            "node": "¿Admin aprobó?",
             "type": "main",
             "index": 0
           }

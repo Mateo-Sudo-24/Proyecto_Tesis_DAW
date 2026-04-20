@@ -8,7 +8,8 @@ import {
   eliminarNotificacion,
   marcarLeidaWebhook,
   aprobarPedido,
-  rechazarPedido
+  rechazarPedido,
+  verificarEstadoNotificacionWebhook
 } from '../controllers/Notificacion_controller.js';
 import { verificarTokenJWT } from '../middlewares/JWT.js';
 import { esAdmin } from '../middlewares/AuthMiddleware.js';
@@ -25,6 +26,9 @@ router.get('/webhook/no-leidas', obtenerNotificacionesNoLeidasWebhook);
 
 // Marcar notificación como leída desde webhook N8N (sin JWT)
 router.patch('/webhook/:id/leida', marcarLeidaWebhook);
+
+// GET /api/notificaciones/webhook/:id -> Verificar estado de notificación (n8n verification step)
+router.get('/webhook/:id', verificarEstadoNotificacionWebhook);
 
 // =======================================================================
 // ==         RUTAS PROTEGIDAS (SOLO ADMINISTRADOR CON JWT)            ==

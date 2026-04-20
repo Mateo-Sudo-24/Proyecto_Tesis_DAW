@@ -277,6 +277,21 @@ export const obtenerNotificacionesNoLeidasWebhook = async (req, res) => {
   }
 };
 
+// ✅ Verificar estado de notificación desde webhook N8N (SIN JWT) — usado por n8n para confirmar decisión
+export const verificarEstadoNotificacionWebhook = async (req, res) => {
+  const { id } = req.params;
+  try {
+    const notif = await Notificacion.findById(id).select('estadoGestion leida tipo');
+    if (!notif) {
+      return res.status(404).json({ ok: false, error: 'Notificación no encontrada' });
+    }
+    return res.json({ ok: true, estadoGestion: notif.estadoGestion, idNotificacion: id, leida: notif.leida });
+  } catch (error) {
+    console.error('Error verificar estado notificación webhook:', error);
+    return res.status(500).json({ ok: false, error: 'Error interno' });
+  }
+};
+
 // ✅ Aprobar pedido de reposición (Admin con JWT → llama webhook n8n para continuar flujo)
 export const aprobarPedido = async (req, res) => {
   const { id } = req.params;
