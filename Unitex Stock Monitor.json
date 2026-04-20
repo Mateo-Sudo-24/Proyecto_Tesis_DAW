@@ -3,6 +3,21 @@
   "nodes": [
     {
       "parameters": {
+        "mode": "everyX",
+        "value": 15,
+        "unit": "minutes"
+      },
+      "name": "Cron Trigger",
+      "type": "n8n-nodes-base.cron",
+      "typeVersion": 1,
+      "position": [
+        -1800,
+        240
+      ],
+      "id": "cron-0001"
+    },
+    {
+      "parameters": {
         "url": "https://unitex-backend.onrender.com/api/productos/stock-critico",
         "options": {
           "fullResponse": false
@@ -28,11 +43,11 @@
     {
       "parameters": {
         "conditions": {
-          "number": [],
-          "string": [
+          "number": [
             {
-              "value1": "={{ $json.length === 0 ? 'empty' : 'has' }}",
-              "value2": "empty"
+              "value1": "={{ $json.length }}",
+              "operation": "larger",
+              "value2": 0
             }
           ]
         }
@@ -64,51 +79,45 @@
     },
     {
       "parameters": {
-        "functionCode": "/* Compara productos críticos con notificaciones sin leer para evitar duplicados.\n   Entrada: items[0].json -> array de productos críticos\n           items[1].json -> array de notificaciones sin leer (cada notificación puede contener campo .productos con array)\n   Salida: { \"duplicado\": true/false }\n*/\nconst productosCriticos = $input.item.json || [];\nconst notifs = $input.all()[1] ? $input.all()[1].json : [];\n\n// Obtener IDs de productos críticos\nconst idsCriticos = (Array.isArray(productosCriticos) ? productosCriticos : []).map(p => p._id);\n\nlet duplicado = false;\n\nif (Array.isArray(notifs)) {\n  for (const n of notifs) {\n    const prod = n.productos || n.body || n.productos || [];\n    const prodIds = Array.isArray(prod) ? prod.map(p => p._id) : [];\n    // Si hay intersección completa (todos los IDs críticos están contenidos en la notificación sin leer), consideramos duplicado\n    if (idsCriticos.length > 0 && idsCriticos.every(id => prodIds.includes(id))) {\n      duplicado = true;\n      break;\n    }\n  }\n}\n\nreturn [{ json: { duplicado, productosCriticos, notifs } }];"
+        "functionCode": "/* Detectar duplicado entre productos críticos (desde Consultar stock crítico)\n   y notificaciones sin leer (entrada actual).\n   El backend devuelve { ok, notificaciones: [...], totalNoLeidas } — accedemos a .notificaciones\n   La comparación usa productId (campo guardado en el modelo) contra _id del producto.\n   Salida:\n     - { enviar: false, motivo: 'duplicado', notificaciones: [...] }  <-- si ya existe\n     - { enviar: true, productosCriticos: [...] }                   <-- si no existe duplicado\n*/\nconst productosResp = $node[\"Consultar stock crítico\"].json;\nconst productos = Array.isArray(productosResp) ? productosResp : ((productosResp && productosResp.body) || []);\nconst notifs = $input.item.json || {};\n// El endpoint /webhook/no-leidas devuelve { ok, notificaciones: [...], totalNoLeidas }\nconst notifsArray = Array.isArray(notifs) ? notifs : (notifs.notificaciones || notifs.body || []);\n\nfunction contieneProducto(notifProductos, productosCriticos) {\n  if (!Array.isArray(notifProductos) || !Array.isArray(productosCriticos)) return false;\n  return productosCriticos.some(p =>\n    notifProductos.some(np =>\n      (np.productId && np.productId.toString() === p._id.toString()) ||\n      (np._id && np._id.toString() === p._id.toString())\n    )\n  );\n}\n\nlet existeDuplicado = false;\nif (Array.isArray(notifsArray)) {\n  for (const n of notifsArray) {\n    const prodNotif = n.productos || [];\n    if (contieneProducto(prodNotif, productos)) {\n      existeDuplicado = true;\n      break;\n    }\n  }\n}\n\nif (existeDuplicado) {\n  return [{ json: { enviar: false, motivo: 'duplicado', notificaciones: notifsArray } }];\n}\n\n// No hay duplicado -> avanzamos con los productos críticos\nreturn [{ json: { enviar: true, productosCriticos: productos } }];"
       },
       "name": "Detectar duplicado",
       "type": "n8n-nodes-base.function",
       "typeVersion": 1,
       "position": [
-        -608,
+        -650,
         128
       ],
-      "id": "1e65dbf4-d1eb-4cfb-8b32-a94c37efe137"
+      "id": "detect-dup-0001"
+    },
+    {
+      "parameters": {
+        "functionCode": "/* Prepara datos de stock crítico para enviar al admin\n   Entrada: $json.productosCriticos (array completo desde getStockCritico, incluye descripcion)\n   Salida: { mensaje, productos, tipo, enviar, cantidad }\n*/\nconst productosCriticos = $json.productosCriticos || [];\nif (!Array.isArray(productosCriticos) || productosCriticos.length === 0) {\n  return [{ json: { error: 'Sin productos críticos', enviar: false } }];\n}\n\nconst productosFormato = productosCriticos.map(p => ({\n  _id: p._id,\n  nombre: p.nombre,\n  descripcion: p.descripcion || '',\n  stock: p.stock,\n  umbral: p.umbral ?? 5,\n  precio: p.precio\n}));\n\nconst productosDetalle = productosCriticos\n  .map(p => `${p.nombre} (Stock: ${p.stock}${p.descripcion ? ' — ' + p.descripcion : ''})`)\n  .join('; ');\nconst mensaje = `⚠️ STOCK CRÍTICO DETECTADO: ${productosCriticos.length} producto(s) requieren revisión inmediata. Productos: ${productosDetalle}`;\n\nreturn [{ json: { \n  mensaje, \n  productos: productosFormato, \n  tipo: 'stock_critico',\n  enviar: true,\n  cantidad: productosCriticos.length\n} }];"
+      },
+      "name": "Preparar datos para notificación",
+      "type": "n8n-nodes-base.function",
+      "typeVersion": 1,
+      "position": [
+        -450,
+        128
+      ],
+      "id": "a9d8e7f6-c5b4-a3b2-9c8d-7e6f5a4b3c2d"
     },
     {
       "parameters": {
         "requestMethod": "POST",
         "url": "https://unitex-backend.onrender.com/api/notificaciones/webhook",
-        "authentication": "none",
-        "headers": {
-          "Content-Type": "application/json"
-        },
-        "sendBody": true,
-        "bodyParameters": {
-          "parameters": [
-            {
-              "name": "tipo",
-              "value": "stock_critico"
-            },
-            {
-              "name": "mensaje",
-              "value": "={{ 'Stock Crítico: ' + $json.productosCriticos.length + ' producto(s) bajo umbral' }}"
-            },
-            {
-              "name": "productos",
-              "value": "={{ $json.productosCriticos }}"
-            }
-          ]
-        },
+        "jsonParameters": true,
+        "bodyParametersJson": "={{ JSON.stringify({ tipo: 'stock_critico', mensaje: $json.mensaje, productos: $json.productos }) }}",
         "options": {
           "fullResponse": false
         }
       },
       "name": "Notificar al admin",
       "type": "n8n-nodes-base.httpRequest",
-      "typeVersion": 3,
+      "typeVersion": 1,
       "position": [
-        -304,
+        -150,
         128
       ],
       "id": "08edefdb-1483-4439-9407-f87bba553d09"
@@ -181,7 +190,7 @@
     {
       "parameters": {
         "requestMethod": "PATCH",
-        "url": "={{ `https://unitex-backend.onrender.com/api/notificaciones/webhook/${$json.idNotificacion}/leida` }}",
+        "url": "={{ `https://unitex-backend.onrender.com/api/notificaciones/webhook/${$json.idNotificacion || $json.id || $json.body && $json.body.id}/leida` }}",
         "options": {
           "fullResponse": false
         }
@@ -197,16 +206,16 @@
     },
     {
       "parameters": {
-        "functionCode": "/* Genera el RESUMEN DE EJECUCIÓN final según especificación */\nconst fecha = $now.format('DD/MM/YYYY HH:mm','America/Guayaquil');\nconst productosRevisados = Array.isArray($json.productosRevisados) ? $json.productosRevisados.length : ($json.productosCriticos ? $json.productosCriticos.length : 0);\nconst productosCriticos = $json.productosCriticos ? $json.productosCriticos.length : 0;\nconst notificacionEnviada = $json.notificacionId ? 'Sí' : 'No';\nconst aprobacion = $json.aprobacion === 'aprobado' ? 'Aprobado' : ($json.aprobacion === 'rechazado' ? 'Rechazado' : 'Pendiente');\nconst emailEnviado = $json.emailEnviado ? 'Enviado' : 'No enviado';\nconst estadoFinal = $json.estadoFinal || (aprobacion === 'Aprobado' && emailEnviado === 'Enviado' ? 'Completado' : 'Cancelado');\n\nconst resumen = `RESUMEN DE EJECUCIÓN — ${fecha}\\n─────────────────────────────────────\\nProductos revisados: ${productosRevisados}\\nProductos críticos encontrados: ${productosCriticos}\\nNotificación enviada al admin: ${notificacionEnviada}\\nAprobación del admin: ${aprobacion}\\nEmail al proveedor: ${emailEnviado}\\nEstado final: ${estadoFinal}\\n─────────────────────────────────────`;\n\nreturn [{ json: { resumen, fecha, productosRevisados, productosCriticos, notificacionEnviada, aprobacion, emailEnviado, estadoFinal } }];"
+        "functionCode": "/* Manejo simple de errores cuando fullResponse=false.\n   Detecta estructuras comunes de error y detiene si es 401 o 500.\n*/\nconst resp = $input.item.json || {};\nif (resp.statusCode === 401 || resp.code === 401 || resp.error === 'Unauthorized') {\n  return [{ json: { error: '401', mensaje: 'Credenciales incorrectas. Deteniendo ejecución.' } }];\n}\nif (resp.statusCode === 500 || resp.error === 'Internal Server Error' || (resp.message && resp.message.toString().includes('500'))) {\n  return [{ json: { error: '500', mensaje: 'Error 500 — reintentar más tarde.' } }];\n}\nreturn [{ json: { ok: true, body: resp } }];"
       },
-      "name": "Generar resumen interno",
+      "name": "Manejo de errores HTTP",
       "type": "n8n-nodes-base.function",
       "typeVersion": 1,
       "position": [
-        1200,
-        128
+        -1200,
+        368
       ],
-      "id": "4f64cc4d-f89d-4c19-b2fa-823344088c9b"
+      "id": "68432d8d-869f-4499-80df-40d448054953"
     },
     {
       "parameters": {
@@ -231,20 +240,31 @@
     },
     {
       "parameters": {
-        "functionCode": "/* Manejo de error 401 o 500 en la respuesta de 'Consultar stock crítico'.\n   Si code === 401 -> Detener y registrar error.\n   Si code === 500 -> reenviar (nota: n8n puede reintentar o usar un Delay para reintento manual).\n*/\nconst resp = $input.item.json;\nif (resp && resp.statusCode === 401) {\n  return [{ json: { error: '401', mensaje: 'Credenciales incorrectas. Deteniendo ejecución.' } }];\n}\nif (resp && resp.statusCode === 500) {\n  return [{ json: { error: '500', mensaje: 'Error 500 — reintentar tras 5 minutos.' } }];\n}\nreturn [{ json: { ok: true } }];"
+        "functionCode": "/* Genera el RESUMEN DE EJECUCIÓN final según especificación */\nconst fecha = $now.format('DD/MM/YYYY HH:mm','America/Guayaquil');\nconst productosRevisados = Array.isArray($json.productosRevisados) ? $json.productosRevisados.length : ($json.productosCriticos ? $json.productosCriticos.length : 0);\nconst productosCriticos = $json.productosCriticos ? $json.productosCriticos.length : 0;\nconst notificacionEnviada = $json.notificacionId ? 'Sí' : 'No';\nconst aprobacion = $json.aprobacion === 'aprobado' ? 'Aprobado' : ($json.aprobacion === 'rechazado' ? 'Rechazado' : 'Pendiente');\nconst emailEnviado = $json.emailEnviado ? 'Enviado' : 'No enviado';\nconst estadoFinal = $json.estadoFinal || (aprobacion === 'Aprobado' && emailEnviado === 'Enviado' ? 'Completado' : 'Cancelado');\n\nconst resumen = `RESUMEN DE EJECUCIÓN — ${fecha}\\n─────────────────────────────────────\\nProductos revisados: ${productosRevisados}\\nProductos críticos encontrados: ${productosCriticos}\\nNotificación enviada al admin: ${notificacionEnviada}\\nAprobación del admin: ${aprobacion}\\nEmail al proveedor: ${emailEnviado}\\nEstado final: ${estadoFinal}\\n─────────────────────────────────────`;\n\nreturn [{ json: { resumen, fecha, productosRevisados, productosCriticos, notificacionEnviada, aprobacion, emailEnviado, estadoFinal } }];"
       },
-      "name": "Manejo de errores HTTP",
+      "name": "Generar resumen interno",
       "type": "n8n-nodes-base.function",
       "typeVersion": 1,
       "position": [
-        -1200,
-        368
+        1200,
+        128
       ],
-      "id": "68432d8d-869f-4499-80df-40d448054953"
+      "id": "4f64cc4d-f89d-4c19-b2fa-823344088c9b"
     }
   ],
   "pinData": {},
   "connections": {
+    "Cron Trigger": {
+      "main": [
+        [
+          {
+            "node": "Consultar stock crítico",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
     "Consultar stock crítico": {
       "main": [
         [
@@ -276,14 +296,14 @@
       "main": [
         [
           {
-            "node": "Log - Sin alertas",
+            "node": "Comprobar notificaciones sin leer",
             "type": "main",
             "index": 0
           }
         ],
         [
           {
-            "node": "Comprobar notificaciones sin leer",
+            "node": "Log - Sin alertas",
             "type": "main",
             "index": 0
           }
@@ -305,6 +325,17 @@
       "main": [
         [
           {
+            "node": "Preparar datos para notificación",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Preparar datos para notificación": {
+      "main": [
+        [
+          {
             "node": "Notificar al admin",
             "type": "main",
             "index": 0
@@ -319,11 +350,16 @@
             "node": "Esperar aprobación admin (24h)",
             "type": "main",
             "index": 0
+          },
+          {
+            "node": "Generar resumen interno",
+            "type": "main",
+            "index": 0
           }
         ]
       ]
     },
-    "Webhook - Respuesta Admin": {
+    "Esperar aprobación admin (24h)": {
       "main": [
         [
           {
@@ -334,7 +370,7 @@
         ]
       ]
     },
-    "Esperar aprobación admin (24h)": {
+    "Webhook - Respuesta Admin": {
       "main": [
         [
           {
@@ -409,6 +445,3 @@
   "id": "HAyb2oBV279sZuoC",
   "tags": []
 }
-
-
-

@@ -42,6 +42,7 @@ const NotificacionSchema = new mongoose.Schema({
   mensajeCifrado: { type: String, default: null }, // Almacena mensaje cifrado
   productos: [{ 
     nombre: { type: String, default: 'Producto' },
+    descripcion: { type: String, default: '' },
     stock: { type: Number, default: 0 },
     umbral: { type: Number, default: 5 },
     productId: String,

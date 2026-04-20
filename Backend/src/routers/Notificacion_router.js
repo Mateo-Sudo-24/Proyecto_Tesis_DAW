@@ -6,7 +6,9 @@ import {
   obtenerNotificacionesNoLeidas,
   obtenerNotificacionesNoLeidasWebhook,
   eliminarNotificacion,
-  marcarLeidaWebhook 
+  marcarLeidaWebhook,
+  aprobarPedido,
+  rechazarPedido
 } from '../controllers/Notificacion_controller.js';
 import { verificarTokenJWT } from '../middlewares/JWT.js';
 import { esAdmin } from '../middlewares/AuthMiddleware.js';
@@ -36,6 +38,12 @@ router.get('/no-leidas', verificarTokenJWT, esAdmin, obtenerNotificacionesNoLeid
 
 // PATCH /api/notificaciones/:id/leida -> Marcar notificación como leída (CON JWT)
 router.patch('/:id/leida', verificarTokenJWT, esAdmin, marcarLeida);
+
+// PATCH /api/notificaciones/:id/aprobar -> Aprobar pedido de reposición (llama n8n webhook)
+router.patch('/:id/aprobar', verificarTokenJWT, esAdmin, aprobarPedido);
+
+// PATCH /api/notificaciones/:id/rechazar -> Rechazar pedido de reposición (llama n8n webhook)
+router.patch('/:id/rechazar', verificarTokenJWT, esAdmin, rechazarPedido);
 
 // DELETE /api/notificaciones/:id -> Eliminar notificación
 router.delete('/:id', verificarTokenJWT, esAdmin, eliminarNotificacion);

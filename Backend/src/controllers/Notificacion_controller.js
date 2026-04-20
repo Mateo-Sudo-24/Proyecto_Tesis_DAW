@@ -1,5 +1,6 @@
 import Notificacion from '../models/Notificacion.js';
 import Administrador from '../models/Administrador.js';
+import axios from 'axios';
 
 // ✅ WEBHOOK SIN AUTENTICACIÓN - N8N puede enviar directamente
 export const recibirNotificacion = async (req, res) => {
@@ -16,6 +17,7 @@ export const recibirNotificacion = async (req, res) => {
     if (Array.isArray(productos) && productos.length > 0) {
       productosNormalizados = productos.map(p => ({
         nombre: p.nombre || 'Producto sin nombre',
+        descripcion: p.descripcion || '',
         stock: p.stock || 0,
         umbral: p.umbral || p.umbralCritico || 5,
         productId: p._id || p.productId,
@@ -272,5 +274,82 @@ export const obtenerNotificacionesNoLeidasWebhook = async (req, res) => {
   } catch (error) {
     console.error('Error obtener notificaciones sin leer (webhook):', error);
     res.status(500).json({ error: 'Error al obtener notificaciones', ok: false });
+  }
+};
+
+// ✅ Aprobar pedido de reposición (Admin con JWT → llama webhook n8n para continuar flujo)
+export const aprobarPedido = async (req, res) => {
+  const { id } = req.params;
+  const { _id, rol } = req.usuario;
+
+  if (rol !== 'administrador') {
+    return res.status(403).json({ msg: 'Acceso denegado.' });
+  }
+
+  try {
+    const notif = await Notificacion.findById(id);
+    if (!notif) return res.status(404).json({ ok: false, msg: 'Notificación no encontrada' });
+    if (notif.administrador.toString() !== _id.toString()) {
+      return res.status(403).json({ ok: false, msg: 'No tienes permiso para gestionar esta notificación' });
+    }
+
+    await Notificacion.findByIdAndUpdate(id, { estadoGestion: 'aprobado', leida: true });
+
+    // Llamar al webhook de n8n para reanudar el flujo de espera
+    const n8nUrl = process.env.N8N_WEBHOOK_URL;
+    if (n8nUrl) {
+      try {
+        await axios.post(n8nUrl, { decision: 'aprobado', idNotificacion: id }, {
+          headers: { 'Content-Type': 'application/json' },
+          timeout: 5000
+        });
+      } catch (webhookErr) {
+        console.warn('⚠️ No se pudo contactar n8n (flujo continuará cuando n8n esté activo):', webhookErr.message);
+      }
+    }
+
+    console.log(`✅ Pedido aprobado por admin ${_id} para notificación ${id}`);
+    res.json({ ok: true, msg: 'Pedido aprobado. Se notificará al proveedor.' });
+  } catch (error) {
+    console.error('Error al aprobar pedido:', error);
+    res.status(500).json({ ok: false, msg: 'Error al aprobar pedido' });
+  }
+};
+
+// ✅ Rechazar pedido de reposición (Admin con JWT → llama webhook n8n para continuar flujo)
+export const rechazarPedido = async (req, res) => {
+  const { id } = req.params;
+  const { _id, rol } = req.usuario;
+
+  if (rol !== 'administrador') {
+    return res.status(403).json({ msg: 'Acceso denegado.' });
+  }
+
+  try {
+    const notif = await Notificacion.findById(id);
+    if (!notif) return res.status(404).json({ ok: false, msg: 'Notificación no encontrada' });
+    if (notif.administrador.toString() !== _id.toString()) {
+      return res.status(403).json({ ok: false, msg: 'No tienes permiso para gestionar esta notificación' });
+    }
+
+    await Notificacion.findByIdAndUpdate(id, { estadoGestion: 'rechazado', leida: true });
+
+    const n8nUrl = process.env.N8N_WEBHOOK_URL;
+    if (n8nUrl) {
+      try {
+        await axios.post(n8nUrl, { decision: 'rechazado', idNotificacion: id }, {
+          headers: { 'Content-Type': 'application/json' },
+          timeout: 5000
+        });
+      } catch (webhookErr) {
+        console.warn('⚠️ No se pudo contactar n8n:', webhookErr.message);
+      }
+    }
+
+    console.log(`❌ Pedido rechazado por admin ${_id} para notificación ${id}`);
+    res.json({ ok: true, msg: 'Pedido rechazado.' });
+  } catch (error) {
+    console.error('Error al rechazar pedido:', error);
+    res.status(500).json({ ok: false, msg: 'Error al rechazar pedido' });
   }
 };
