@@ -12,9 +12,9 @@ const productoSchema = new Schema({
         trim: true
     },
     categoria: {
-        type: Schema.Types.ObjectId, // <-- CAMBIO: Referencia a otra colección
-        ref: 'Categoria',
+        type: String,
         required: true,
+        trim: true
     },
     precio: {
         type: Number,

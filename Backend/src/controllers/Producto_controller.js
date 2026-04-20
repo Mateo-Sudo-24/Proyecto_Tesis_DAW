@@ -294,7 +294,7 @@ const detalleProducto = async (req, res) => {
   }
 
   try {
-    const producto = await Producto.findById(id).populate('categoria', 'nombre');
+    const producto = await Producto.findById(id);
     if (!producto || producto.estado === 'inactivo') {
         return res.status(404).json({ msg: "Producto no encontrado o inactivo" });
     }
@@ -312,7 +312,7 @@ const detalleProductoEditable = async (req, res) => {
   }
 
   try {
-    const producto = await Producto.findById(id).populate('categoria', 'nombre');
+    const producto = await Producto.findById(id);
     if (!producto) {
         return res.status(404).json({ msg: "Producto no encontrado" });
     }

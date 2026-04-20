@@ -78,7 +78,7 @@ export const FormProducto = ({ productoToUpdate }) => {
                 estado: productoToUpdate?.estado || 'activo',
                 etiquetas: productoToUpdate?.etiquetas?.join(', ') || ''
             });
-            setSelectedCategoria(productoToUpdate?.categoria?._id || productoToUpdate?.categoria || '');
+            setSelectedCategoria(productoToUpdate?.categoria || '');
             if (productoToUpdate?.imagenUrl) {
                 setPreviewImagen(productoToUpdate.imagenUrl);
             }
@@ -219,7 +219,7 @@ export const FormProducto = ({ productoToUpdate }) => {
                     >
                         <option value="">Selecciona una categoría</option>
                         {categoriasOptions.map(cat => (
-                            <option key={cat._id} value={cat._id}>
+                            <option key={cat._id} value={cat.nombre}>
                                 {cat.nombre}
                             </option>
                         ))}
