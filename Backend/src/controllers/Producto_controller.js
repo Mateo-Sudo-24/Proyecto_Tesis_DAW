@@ -139,7 +139,7 @@ const registrarProducto = async (req, res) => {
         res.status(201).json({ msg: "Producto registrado exitosamente", producto: nuevoProducto });
     } catch (error) {
         console.error("Error al registrar producto:", error);
-        res.status(500).json({ msg: "Error en el servidor al registrar el producto." });
+        res.status(500).json({ msg: error.message || "Error en el servidor al registrar el producto.", tipo: error.name || 'Error' });
     }
 };
 
