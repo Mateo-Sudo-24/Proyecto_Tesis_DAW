@@ -2,21 +2,29 @@
   "name": "Unitex Stock Monitor",
   "nodes": [
     {
-      "parameters": {
-        "mode": "everyX",
-        "value": 15,
-        "unit": "minutes"
-      },
+      "id": "cron-0001",
       "name": "Cron Trigger",
       "type": "n8n-nodes-base.cron",
       "typeVersion": 1,
       "position": [
         -1800,
-        240
+        280
       ],
-      "id": "cron-0001"
+      "parameters": {
+        "mode": "everyX",
+        "value": 15,
+        "unit": "minutes"
+      }
     },
     {
+      "id": "http-stock-0001",
+      "name": "Consultar stock critico",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 1,
+      "position": [
+        -1560,
+        280
+      ],
       "parameters": {
         "url": "https://unitex-backend.onrender.com/api/productos/stock-critico",
         "options": {
@@ -30,237 +38,226 @@
             }
           ]
         }
-      },
-      "name": "Consultar stock crítico",
-      "type": "n8n-nodes-base.httpRequest",
-      "typeVersion": 1,
-      "position": [
-        -1504,
-        240
-      ],
-      "id": "cdb688d5-2d1b-4d2e-a6ae-0c7d2cc2f5cf"
+      }
     },
     {
+      "id": "if-criticos-0001",
+      "name": "Hay productos criticos",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 1,
+      "position": [
+        -1280,
+        280
+      ],
       "parameters": {
         "conditions": {
           "number": [
             {
-              "value1": "={{ $json.length }}",
+              "value1": "={{ Array.isArray($json) ? $json.length : 0 }}",
               "operation": "larger",
               "value2": 0
             }
           ]
         }
-      },
-      "name": "¿Sin productos críticos?",
-      "type": "n8n-nodes-base.if",
-      "typeVersion": 1,
-      "position": [
-        -1200,
-        240
-      ],
-      "id": "a65ccfa0-a34a-42c7-b4ec-fa507b8a04ac"
+      }
     },
     {
-      "parameters": {
-        "url": "https://unitex-backend.onrender.com/api/notificaciones/webhook/no-leidas",
-        "options": {
-          "fullResponse": false
-        }
-      },
-      "name": "Comprobar notificaciones sin leer",
-      "type": "n8n-nodes-base.httpRequest",
-      "typeVersion": 1,
-      "position": [
-        -896,
-        128
-      ],
-      "id": "21738723-8b43-4f44-b8dd-82c74a72bdc8"
-    },
-    {
-      "parameters": {
-        "functionCode": "/* Detectar duplicado entre productos críticos (desde Consultar stock crítico)\n   y notificaciones sin leer (entrada actual).\n   El backend devuelve { ok, notificaciones: [...], totalNoLeidas } — accedemos a .notificaciones\n   La comparación usa productId (campo guardado en el modelo) contra _id del producto.\n   Salida:\n     - { enviar: false, motivo: 'duplicado', notificaciones: [...] }  <-- si ya existe\n     - { enviar: true, productosCriticos: [...] }                   <-- si no existe duplicado\n*/\nconst productosResp = $node[\"Consultar stock crítico\"].json;\nconst productos = Array.isArray(productosResp) ? productosResp : ((productosResp && productosResp.body) || []);\nconst notifs = $input.item.json || {};\n// El endpoint /webhook/no-leidas devuelve { ok, notificaciones: [...], totalNoLeidas }\nconst notifsArray = Array.isArray(notifs) ? notifs : (notifs.notificaciones || notifs.body || []);\n\nfunction contieneProducto(notifProductos, productosCriticos) {\n  if (!Array.isArray(notifProductos) || !Array.isArray(productosCriticos)) return false;\n  return productosCriticos.some(p =>\n    notifProductos.some(np =>\n      (np.productId && np.productId.toString() === p._id.toString()) ||\n      (np._id && np._id.toString() === p._id.toString())\n    )\n  );\n}\n\nlet existeDuplicado = false;\nif (Array.isArray(notifsArray)) {\n  for (const n of notifsArray) {\n    const prodNotif = n.productos || [];\n    if (contieneProducto(prodNotif, productos)) {\n      existeDuplicado = true;\n      break;\n    }\n  }\n}\n\nif (existeDuplicado) {\n  return [{ json: { enviar: false, motivo: 'duplicado', notificaciones: notifsArray } }];\n}\n\n// No hay duplicado -> avanzamos con los productos críticos\nreturn [{ json: { enviar: true, productosCriticos: productos } }];"
-      },
-      "name": "Detectar duplicado",
+      "id": "fn-preparar-0001",
+      "name": "Preparar notificacion admin",
       "type": "n8n-nodes-base.function",
       "typeVersion": 1,
       "position": [
-        -650,
-        128
+        -980,
+        140
       ],
-      "id": "detect-dup-0001"
+      "parameters": {
+        "functionCode": "/* Lee productos directamente del nodo Consultar stock critico.\n   El endpoint devuelve un array JSON plano. */\nvar resp = $node[\"Consultar stock critico\"].json;\nvar productosCriticos = Array.isArray(resp) ? resp : (resp.productos || resp.data || []);\n\nif (!productosCriticos || productosCriticos.length === 0) {\n  return [];\n}\n\nvar productosFormato = productosCriticos.map(function(p) {\n  return {\n    _id: p._id,\n    nombre: p.nombre || \"Producto\",\n    descripcion: p.descripcion || \"\",\n    stock: p.stock || 0,\n    umbral: p.umbral != null ? p.umbral : (p.umbralCritico != null ? p.umbralCritico : 5),\n    precio: p.precio || 0\n  };\n});\n\nvar productosDetalle = productosFormato\n  .map(function(p) {\n    return p.nombre + \" (Stock: \" + p.stock + \", umbral: \" + p.umbral + \")\";\n  })\n  .join(\"; \");\n\nvar mensaje = \"ALERTA STOCK CRITICO: \" + productosFormato.length\n  + \" producto(s) con stock bajo. \" + productosDetalle;\n\nreturn [{ json: {\n  mensaje: mensaje,\n  productos: productosFormato,\n  tipo: \"stock_critico\",\n  cantidad: productosFormato.length\n} }];"
+      }
     },
     {
-      "parameters": {
-        "functionCode": "/* Prepara datos de stock crítico para enviar al admin\n   Entrada: $json.productosCriticos (array completo desde getStockCritico, incluye descripcion)\n   Salida: { mensaje, productos, tipo, enviar, cantidad }\n*/\nconst productosCriticos = $json.productosCriticos || [];\nif (!Array.isArray(productosCriticos) || productosCriticos.length === 0) {\n  return [{ json: { error: 'Sin productos críticos', enviar: false } }];\n}\n\nconst productosFormato = productosCriticos.map(p => ({\n  _id: p._id,\n  nombre: p.nombre,\n  descripcion: p.descripcion || '',\n  stock: p.stock,\n  umbral: p.umbral ?? 5,\n  precio: p.precio\n}));\n\nconst productosDetalle = productosCriticos\n  .map(p => `${p.nombre} (Stock: ${p.stock}${p.descripcion ? ' — ' + p.descripcion : ''})`)\n  .join('; ');\nconst mensaje = `⚠️ STOCK CRÍTICO DETECTADO: ${productosCriticos.length} producto(s) requieren revisión inmediata. Productos: ${productosDetalle}`;\n\nreturn [{ json: { \n  mensaje, \n  productos: productosFormato, \n  tipo: 'stock_critico',\n  enviar: true,\n  cantidad: productosCriticos.length\n} }];"
-      },
-      "name": "Preparar datos para notificación",
-      "type": "n8n-nodes-base.function",
-      "typeVersion": 1,
-      "position": [
-        -450,
-        128
-      ],
-      "id": "a9d8e7f6-c5b4-a3b2-9c8d-7e6f5a4b3c2d"
-    },
-    {
-      "parameters": {
-        "requestMethod": "POST",
-        "url": "https://unitex-backend.onrender.com/api/notificaciones/webhook",
-        "jsonParameters": true,
-        "bodyParametersJson": "={{ JSON.stringify({ tipo: 'stock_critico', mensaje: $json.mensaje, productos: $json.productos }) }}",
-        "options": {
-          "fullResponse": false
-        }
-      },
+      "id": "http-notif-0001",
       "name": "Notificar al admin",
       "type": "n8n-nodes-base.httpRequest",
       "typeVersion": 1,
       "position": [
-        -150,
-        128
+        -680,
+        140
       ],
-      "id": "08edefdb-1483-4439-9407-f87bba553d09"
-    },
-    {
       "parameters": {
-        "httpMethod": "POST",
-        "path": "unitex-admin-response",
-        "options": {}
-      },
-      "name": "Webhook - Respuesta Admin",
-      "type": "n8n-nodes-base.webhook",
-      "typeVersion": 1,
-      "position": [
-        0,
-        0
-      ],
-      "id": "e7755cb3-f09c-48e9-a822-a6d513478752",
-      "webhookId": "695fe408-ee92-4dde-b017-62e4c09ac2a9"
-    },
-    {
-      "parameters": {
-        "functionCode": "/* Normaliza el body del webhook: extrae decision e idNotificacion al nivel raíz */\nconst data = $json.body || $json;\nconst decision = data.decision || '';\nconst idNotificacion = data.idNotificacion || data.id || '';\nif (!idNotificacion) {\n  throw new Error('idNotificacion no recibido en el webhook');\n}\nreturn [{ json: { decision, idNotificacion } }];"
-      },
-      "name": "Normalizar respuesta admin",
-      "type": "n8n-nodes-base.function",
-      "typeVersion": 1,
-      "position": [152, -50],
-      "id": "norm-resp-0001"
-    },
-    {
-      "parameters": {
-        "url": "={{ `https://unitex-backend.onrender.com/api/notificaciones/webhook/${$json.idNotificacion}` }}",
+        "requestMethod": "POST",
+        "url": "https://unitex-backend.onrender.com/api/notificaciones/webhook",
+        "jsonParameters": true,
+        "bodyParametersJson": "={{ { tipo: $json.tipo, mensaje: $json.mensaje, productos: $json.productos } }}",
         "options": {
           "fullResponse": false
         }
-      },
-      "name": "Verificar estado en backend",
-      "type": "n8n-nodes-base.httpRequest",
-      "typeVersion": 1,
-      "position": [304, -50],
-      "id": "verif-estado-0001"
+      }
     },
     {
-      "parameters": {
-        "conditions": {
-          "string": [
-            {
-              "value1": "={{ $json.estadoGestion }}",
-              "value2": "aprobado"
-            }
-          ]
-        }
-      },
-      "name": "¿Admin aprobó?",
-      "type": "n8n-nodes-base.if",
+      "id": "set-log-ok-0001",
+      "name": "Log - Notificacion enviada",
+      "type": "n8n-nodes-base.set",
       "typeVersion": 1,
       "position": [
-        304,
-        128
+        -380,
+        140
       ],
-      "id": "a25448c3-8341-4334-8e93-8c17859272a0"
-    },
-    {
-      "parameters": {
-        "fromEmail": "sistema@unitex.com",
-        "toEmail": "proveedor@unitex.com",
-        "subject": "Solicitud de reposición de stock — Unitex {{$now.format('DD/MM/YYYY','America/Guayaquil')}}",
-        "text": "Estimado proveedor,\n\nLe informamos que tras nuestra revisión automática de inventario del {{$now.format('DD/MM/YYYY HH:mm','America/Guayaquil')}}, los siguientes productos requieren reposición urgente:\n\n{{$json.productosCriticos.map(p => `• ${p.nombre}: ${p.stock} unidades restantes`).join('\\n')}}\n\nSolicitamos amablemente confirmar:\n1. Disponibilidad de los productos listados\n2. Cantidad máxima disponible para entrega inmediata\n3. Tiempo estimado de entrega\n4. Precio unitario actualizado si hubiera cambios\n\nEste pedido fue aprobado por el administrador de Unitex y generado automáticamente por nuestro sistema de monitoreo de inventario.\n\nQuedamos atentos a su respuesta.\n\nSaludos cordiales,\nSistema Unitex — Gestión de Inventario\nFecha: {{$now.format('DD/MM/YYYY','America/Guayaquil')}}",
-        "options": {}
-      },
-      "name": "Enviar email al proveedor",
-      "type": "n8n-nodes-base.emailSend",
-      "typeVersion": 1,
-      "position": [
-        608,
-        64
-      ],
-      "id": "d66eed83-fd77-4c0d-9892-aa2fc4744ab9"
-    },
-    {
-      "parameters": {
-        "requestMethod": "PATCH",
-        "url": "={{ `https://unitex-backend.onrender.com/api/notificaciones/webhook/${$json.idNotificacion}/leida` }}",
-        "options": {
-          "fullResponse": false
-        }
-      },
-      "name": "Marcar notificación como gestionada",
-      "type": "n8n-nodes-base.httpRequest",
-      "typeVersion": 1,
-      "position": [
-        912,
-        64
-      ],
-      "id": "b4fc80e4-9e07-4c26-8ae0-6b31c4709d9e"
-    },
-    {
-      "parameters": {
-    "functionCode": "/* Gatekeeper de errores HTTP.\n   Si la respuesta es un error conocido, detiene la ejecuci\u00f3n (devuelve array vac\u00edo).\n   Si todo est\u00e1 bien, pasa los datos sin modificar al siguiente nodo.\n*/\nconst resp = $input.item.json || {};\nif (resp.statusCode === 401 || resp.code === 401 || resp.error === 'Unauthorized') {\n  console.error('\u274c Error 401: Sin autorizaci\u00f3n');\n  return [];\n}\nif (resp.statusCode === 500 || resp.error === 'Internal Server Error' || (resp.ok === false && resp.error)) {\n  console.error('\u274c Error en respuesta HTTP:', JSON.stringify(resp));\n  return [];\n}\n// Pasar datos sin modificar\nreturn [$input.item];"
-      },
-      "name": "Manejo de errores HTTP",
-      "type": "n8n-nodes-base.function",
-      "typeVersion": 1,
-      "position": [
-        -1200,
-        368
-      ],
-      "id": "68432d8d-869f-4499-80df-40d448054953"
-    },
-    {
       "parameters": {
         "values": {
           "string": [
             {
-              "name": "log",
-              "value": "Revisión completada. Sin productos críticos."
+              "name": "estado",
+              "value": "Notificacion de stock critico enviada al administrador."
             }
           ]
         },
         "options": {}
-      },
+      }
+    },
+    {
+      "id": "set-log-noop-0001",
       "name": "Log - Sin alertas",
       "type": "n8n-nodes-base.set",
       "typeVersion": 1,
       "position": [
-        -896,
-        368
+        -980,
+        420
       ],
-      "id": "48b3c0d4-528a-404b-a476-4aa38d758013"
+      "parameters": {
+        "values": {
+          "string": [
+            {
+              "name": "estado",
+              "value": "Revision completada. Sin productos con stock critico."
+            }
+          ]
+        },
+        "options": {}
+      }
     },
     {
+      "id": "webhook-admin-0001",
+      "name": "Webhook - Respuesta Admin",
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 1,
+      "position": [
+        80,
+        -80
+      ],
+      "webhookId": "695fe408-ee92-4dde-b017-62e4c09ac2a9",
       "parameters": {
-        "functionCode": "/* Genera el RESUMEN DE EJECUCIÓN final según especificación */\nconst fecha = $now.format('DD/MM/YYYY HH:mm','America/Guayaquil');\nconst productosRevisados = Array.isArray($json.productosRevisados) ? $json.productosRevisados.length : ($json.productosCriticos ? $json.productosCriticos.length : 0);\nconst productosCriticos = $json.productosCriticos ? $json.productosCriticos.length : 0;\nconst notificacionEnviada = $json.notificacionId ? 'Sí' : 'No';\nconst aprobacion = $json.aprobacion === 'aprobado' ? 'Aprobado' : ($json.aprobacion === 'rechazado' ? 'Rechazado' : 'Pendiente');\nconst emailEnviado = $json.emailEnviado ? 'Enviado' : 'No enviado';\nconst estadoFinal = $json.estadoFinal || (aprobacion === 'Aprobado' && emailEnviado === 'Enviado' ? 'Completado' : 'Cancelado');\n\nconst resumen = `RESUMEN DE EJECUCIÓN — ${fecha}\\n─────────────────────────────────────\\nProductos revisados: ${productosRevisados}\\nProductos críticos encontrados: ${productosCriticos}\\nNotificación enviada al admin: ${notificacionEnviada}\\nAprobación del admin: ${aprobacion}\\nEmail al proveedor: ${emailEnviado}\\nEstado final: ${estadoFinal}\\n─────────────────────────────────────`;\n\nreturn [{ json: { resumen, fecha, productosRevisados, productosCriticos, notificacionEnviada, aprobacion, emailEnviado, estadoFinal } }];"
-      },
-      "name": "Generar resumen interno",
+        "httpMethod": "POST",
+        "path": "unitex-admin-response",
+        "options": {
+          "responseMode": "onReceived"
+        }
+      }
+    },
+    {
+      "id": "fn-normalizar-0001",
+      "name": "Normalizar datos admin",
       "type": "n8n-nodes-base.function",
       "typeVersion": 1,
       "position": [
-        1200,
-        128
+        340,
+        -80
       ],
-      "id": "4f64cc4d-f89d-4c19-b2fa-823344088c9b"
+      "parameters": {
+        "functionCode": "/* Extrae del body del webhook: decision, idNotificacion, productos, mensaje */\nvar data = $json.body || $json;\nvar decision = (data.decision || \"\").toLowerCase().trim();\nvar idNotificacion = data.idNotificacion || data.id || \"\";\nvar productos = Array.isArray(data.productos) ? data.productos : [];\nvar mensaje = data.mensaje || \"\";\n\n// Flag silencioso — no lanza excepcion para que el webhook siempre responda\nvar valid = (idNotificacion !== '' && decision !== '');\n\nreturn [{ json: { decision: decision, idNotificacion: idNotificacion, productos: productos, mensaje: mensaje, valid: valid } }];"
+      }
+    },
+    {
+      "id": "if-aprobado-0001",
+      "name": "Verificar decision admin",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 1,
+      "position": [
+        600,
+        -80
+      ],
+      "parameters": {
+        "conditions": {
+          "string": [
+            {
+              "value1": "={{ $json.decision }}",
+              "value2": "aprobado"
+            }
+          ]
+        }
+      }
+    },
+    {
+      "id": "fn-email-0001",
+      "name": "Construir email proveedor",
+      "type": "n8n-nodes-base.function",
+      "typeVersion": 1,
+      "position": [
+        860,
+        -220
+      ],
+      "parameters": {
+        "functionCode": "/* Construye el asunto y cuerpo del email para el proveedor.\n   Usa los productos que vienen de Normalizar datos admin. */\nvar productos = $json.productos || [];\nvar idNotificacion = $json.idNotificacion || \"\";\nvar ahora = new Date();\nvar opciones = { timeZone: \"America/Guayaquil\", day: \"2-digit\", month: \"2-digit\", year: \"numeric\", hour: \"2-digit\", minute: \"2-digit\" };\nvar fechaStr = ahora.toLocaleDateString(\"es-EC\", opciones);\n\nvar listaProductos = productos.length > 0\n  ? productos.map(function(p) {\n      return \"  - \" + p.nombre\n        + \" | Stock actual: \" + p.stock + \" unidades\"\n        + \" | Umbral minimo: \" + (p.umbral || 5) + \" unidades\"\n        + (p.descripcion ? \" | \" + p.descripcion : \"\");\n    }).join(\"\\n\")\n  : \"  - (Ver detalle en el sistema Unitex)\";\n\nvar asunto = \"Solicitud de reposicion de stock - Unitex - \" + ahora.toLocaleDateString(\"es-EC\", { timeZone: \"America/Guayaquil\", day: \"2-digit\", month: \"2-digit\", year: \"numeric\" });\n\nvar cuerpo = [\n  \"Estimado proveedor,\",\n  \"\",\n  \"Le informamos que tras la revision automatica de inventario del \" + fechaStr + \",\",\n  \"los siguientes productos requieren reposicion urgente:\",\n  \"\",\n  listaProductos,\n  \"\",\n  \"Solicitamos amablemente confirmar:\",\n  \"  1. Disponibilidad de los productos listados\",\n  \"  2. Cantidad maxima disponible para entrega inmediata\",\n  \"  3. Tiempo estimado de entrega\",\n  \"  4. Precio unitario actualizado si hubiera cambios\",\n  \"\",\n  \"Este pedido fue aprobado por el administrador de Unitex y generado\",\n  \"automaticamente por nuestro sistema de monitoreo de inventario.\",\n  \"\",\n  \"Quedamos atentos a su respuesta.\",\n  \"\",\n  \"Saludos cordiales,\",\n  \"Sistema Unitex - Gestion de Inventario\",\n  \"Referencia de gestion: \" + idNotificacion,\n  \"Fecha: \" + fechaStr\n].join(\"\\n\");\n\nreturn [{ json: {\n  asunto: asunto,\n  cuerpo: cuerpo,\n  idNotificacion: idNotificacion,\n  productos: productos,\n  cantidadProductos: productos.length\n} }];"
+      }
+    },
+    {
+      "id": "email-prov-0001",
+      "name": "Enviar email al proveedor",
+      "type": "n8n-nodes-base.emailSend",
+      "typeVersion": 1,
+      "position": [
+        1120,
+        -220
+      ],
+      "parameters": {
+        "fromEmail": "mateo.paredes.0012@gmail.com",
+        "toEmail": "mateokabuto@gmail.com",
+        "subject": "={{ $json.asunto }}",
+        "text": "={{ $json.cuerpo }}",
+        "options": {}
+      }
+    },
+    {
+      "id": "http-marcar-0001",
+      "name": "Marcar notificacion gestionada",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 1,
+      "position": [
+        1380,
+        -220
+      ],
+      "parameters": {
+        "requestMethod": "PATCH",
+        "url": "={{ `https://unitex-backend.onrender.com/api/notificaciones/webhook/${$node[\"Normalizar datos admin\"].json.idNotificacion}/leida` }}",
+        "options": {
+          "fullResponse": false
+        }
+      }
+    },
+    {
+      "id": "fn-resumen-aprobado-0001",
+      "name": "Resumen - Aprobado",
+      "type": "n8n-nodes-base.function",
+      "typeVersion": 1,
+      "position": [
+        1640,
+        -220
+      ],
+      "parameters": {
+        "functionCode": "/* Resumen cuando el admin APROBO la solicitud */\nvar norm = $node[\"Normalizar datos admin\"].json;\nvar ahora = new Date();\nvar fecha = ahora.toLocaleDateString(\"es-EC\", {\n  timeZone: \"America/Guayaquil\", day: \"2-digit\", month: \"2-digit\", year: \"numeric\",\n  hour: \"2-digit\", minute: \"2-digit\"\n});\nvar cantProd = Array.isArray(norm.productos) ? norm.productos.length : 0;\nvar resumen = [\n  \"=== RESUMEN GESTION UNITEX ===\",\n  \"Fecha: \" + fecha,\n  \"Notificacion ID: \" + norm.idNotificacion,\n  \"Decision admin: APROBADO\",\n  \"Productos gestionados: \" + cantProd,\n  \"Email enviado al proveedor: SI\",\n  \"Estado final: Completado\",\n  \"==============================\"\n].join(\"\\n\");\nreturn [{ json: { resumen: resumen, decision: \"aprobado\", idNotificacion: norm.idNotificacion, cantidadProductos: cantProd, emailEnviado: true } }];"
+      }
+    },
+    {
+      "id": "fn-resumen-rechazado-0001",
+      "name": "Resumen - Rechazado",
+      "type": "n8n-nodes-base.function",
+      "typeVersion": 1,
+      "position": [
+        860,
+        60
+      ],
+      "parameters": {
+        "functionCode": "/* Resumen cuando el admin RECHAZO la solicitud */\nvar norm = $json;\nvar ahora = new Date();\nvar fecha = ahora.toLocaleDateString(\"es-EC\", {\n  timeZone: \"America/Guayaquil\", day: \"2-digit\", month: \"2-digit\", year: \"numeric\",\n  hour: \"2-digit\", minute: \"2-digit\"\n});\nvar cantProd = Array.isArray(norm.productos) ? norm.productos.length : 0;\nvar resumen = [\n  \"=== RESUMEN GESTION UNITEX ===\",\n  \"Fecha: \" + fecha,\n  \"Notificacion ID: \" + norm.idNotificacion,\n  \"Decision admin: RECHAZADO\",\n  \"Productos afectados: \" + cantProd,\n  \"Email enviado al proveedor: NO\",\n  \"Estado final: Cancelado por admin\",\n  \"==============================\"\n].join(\"\\n\");\nreturn [{ json: { resumen: resumen, decision: \"rechazado\", idNotificacion: norm.idNotificacion, cantidadProductos: cantProd, emailEnviado: false } }];"
+      }
     }
   ],
   "pinData": {},
@@ -269,41 +266,29 @@
       "main": [
         [
           {
-            "node": "Consultar stock crítico",
+            "node": "Consultar stock critico",
             "type": "main",
             "index": 0
           }
         ]
       ]
     },
-    "Consultar stock crítico": {
+    "Consultar stock critico": {
       "main": [
         [
           {
-            "node": "Manejo de errores HTTP",
-            "type": "main",
-            "index": 0
-
-          }
-        ]
-      ]
-    },
-    "Manejo de errores HTTP": {
-      "main": [
-        [
-          {
-            "node": "¿Sin productos críticos?",
+            "node": "Hay productos criticos",
             "type": "main",
             "index": 0
           }
         ]
       ]
     },
-    "¿Sin productos críticos?": {
+    "Hay productos criticos": {
       "main": [
         [
           {
-            "node": "Comprobar notificaciones sin leer",
+            "node": "Preparar notificacion admin",
             "type": "main",
             "index": 0
           }
@@ -317,29 +302,7 @@
         ]
       ]
     },
-    "Comprobar notificaciones sin leer": {
-      "main": [
-        [
-          {
-            "node": "Detectar duplicado",
-            "type": "main",
-            "index": 0
-          }
-        ]
-      ]
-    },
-    "Detectar duplicado": {
-      "main": [
-        [
-          {
-            "node": "Preparar datos para notificación",
-            "type": "main",
-            "index": 0
-          }
-        ]
-      ]
-    },
-    "Preparar datos para notificación": {
+    "Preparar notificacion admin": {
       "main": [
         [
           {
@@ -354,7 +317,7 @@
       "main": [
         [
           {
-            "node": "Generar resumen interno",
+            "node": "Log - Notificacion enviada",
             "type": "main",
             "index": 0
           }
@@ -364,46 +327,48 @@
     "Webhook - Respuesta Admin": {
       "main": [
         [
-          {            "node": "Normalizar respuesta admin",
+          {
+            "node": "Normalizar datos admin",
             "type": "main",
             "index": 0
           }
         ]
       ]
     },
-    "Normalizar respuesta admin": {
+    "Normalizar datos admin": {
       "main": [
         [
           {
-            "node": "Verificar estado en backend",
+            "node": "Verificar decision admin",
             "type": "main",
             "index": 0
           }
         ]
       ]
     },
-    "Verificar estado en backend": {
-      "main": [
-        [
-          {            "node": "¿Admin aprobó?",
-            "type": "main",
-            "index": 0
-          }
-        ]
-      ]
-    },
-    "¿Admin aprobó?": {
+    "Verificar decision admin": {
       "main": [
         [
           {
-            "node": "Enviar email al proveedor",
+            "node": "Construir email proveedor",
             "type": "main",
             "index": 0
           }
         ],
         [
           {
-            "node": "Generar resumen interno",
+            "node": "Resumen - Rechazado",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Construir email proveedor": {
+      "main": [
+        [
+          {
+            "node": "Enviar email al proveedor",
             "type": "main",
             "index": 0
           }
@@ -414,29 +379,18 @@
       "main": [
         [
           {
-            "node": "Marcar notificación como gestionada",
+            "node": "Marcar notificacion gestionada",
             "type": "main",
             "index": 0
           }
         ]
       ]
     },
-    "Marcar notificación como gestionada": {
+    "Marcar notificacion gestionada": {
       "main": [
         [
           {
-            "node": "Generar resumen interno",
-            "type": "main",
-            "index": 0
-          }
-        ]
-      ]
-    },
-    "Log - Sin alertas": {
-      "main": [
-        [
-          {
-            "node": "Generar resumen interno",
+            "node": "Resumen - Aprobado",
             "type": "main",
             "index": 0
           }
@@ -444,10 +398,9 @@
       ]
     }
   },
-  "active": false,
+  "active": true,
   "settings": {
-    "executionOrder": "v1",
-    "binaryMode": "separate"
+    "executionOrder": "v1"
   },
   "versionId": "ed71fd82-a93a-4a5a-a8cf-f3bcd12675c7",
   "meta": {

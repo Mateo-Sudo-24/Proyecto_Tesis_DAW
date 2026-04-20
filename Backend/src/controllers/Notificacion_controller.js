@@ -314,7 +314,13 @@ export const aprobarPedido = async (req, res) => {
     const n8nUrl = process.env.N8N_WEBHOOK_URL;
     if (n8nUrl) {
       try {
-        await axios.post(n8nUrl, { decision: 'aprobado', idNotificacion: id }, {
+        const datosDescifrados = notif.descifrarDatos();
+        await axios.post(n8nUrl, {
+          decision: 'aprobado',
+          idNotificacion: id,
+          mensaje: datosDescifrados.mensaje || notif.mensaje,
+          productos: datosDescifrados.productos || notif.productos || []
+        }, {
           headers: { 'Content-Type': 'application/json' },
           timeout: 5000
         });
@@ -352,7 +358,13 @@ export const rechazarPedido = async (req, res) => {
     const n8nUrl = process.env.N8N_WEBHOOK_URL;
     if (n8nUrl) {
       try {
-        await axios.post(n8nUrl, { decision: 'rechazado', idNotificacion: id }, {
+        const datosDescifrados = notif.descifrarDatos();
+        await axios.post(n8nUrl, {
+          decision: 'rechazado',
+          idNotificacion: id,
+          mensaje: datosDescifrados.mensaje || notif.mensaje,
+          productos: datosDescifrados.productos || notif.productos || []
+        }, {
           headers: { 'Content-Type': 'application/json' },
           timeout: 5000
         });
