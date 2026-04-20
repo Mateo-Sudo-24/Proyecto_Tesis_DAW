@@ -5,6 +5,7 @@ import {
   marcarLeida,
   obtenerNotificacionesNoLeidas,
   obtenerNotificacionesNoLeidasWebhook,
+  obtenerAprobadasPendientesWebhook,
   eliminarNotificacion,
   marcarLeidaWebhook,
   aprobarPedido,
@@ -23,6 +24,9 @@ const router = Router();
 router.post('/webhook', recibirNotificacion);
 
 router.get('/webhook/no-leidas', obtenerNotificacionesNoLeidasWebhook);
+
+// GET /api/notificaciones/webhook/aprobadas -> Polling n8n: notificaciones aprobadas pendientes de email
+router.get('/webhook/aprobadas', obtenerAprobadasPendientesWebhook);
 
 // Marcar notificación como leída desde webhook N8N (sin JWT)
 router.patch('/webhook/:id/leida', marcarLeidaWebhook);

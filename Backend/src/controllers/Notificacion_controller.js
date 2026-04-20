@@ -277,6 +277,32 @@ export const obtenerNotificacionesNoLeidasWebhook = async (req, res) => {
   }
 };
 
+// ✅ Obtener notificaciones APROBADAS pendientes de procesar (polling n8n - SIN JWT)
+export const obtenerAprobadasPendientesWebhook = async (req, res) => {
+  try {
+    const notifs = await Notificacion.find({ estadoGestion: 'aprobado' })
+      .sort({ createdAt: -1 })
+      .limit(50);
+
+    const notifsDescifradas = notifs.map(n => {
+      const decrypted = n.descifrarDatos();
+      return {
+        _id: n._id,
+        mensaje: decrypted.mensaje || '',
+        productos: decrypted.productos || [],
+        estadoGestion: n.estadoGestion,
+        createdAt: n.createdAt
+      };
+    });
+
+    console.log(`✅ Polling aprobadas: ${notifsDescifradas.length} pendientes`);
+    res.json({ ok: true, notificaciones: notifsDescifradas, total: notifsDescifradas.length });
+  } catch (error) {
+    console.error('Error obtener aprobadas pendientes (webhook):', error);
+    res.status(500).json({ ok: false, error: 'Error al obtener notificaciones aprobadas' });
+  }
+};
+
 // ✅ Verificar estado de notificación desde webhook N8N (SIN JWT) — usado por n8n para confirmar decisión
 export const verificarEstadoNotificacionWebhook = async (req, res) => {
   const { id } = req.params;
