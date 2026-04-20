@@ -108,7 +108,7 @@ const registrarProducto = async (req, res) => {
             await fs.unlink(req.files.imagen.tempFilePath);
         } 
         // ✅ Opción 2: URL de Cloudinary directa en el body
-        else if (imagenUrl && imagenUrl.includes('cloudinary') || imagenUrl.includes('res.cloudinary')) {
+        else if (imagenUrl && (imagenUrl.includes('cloudinary') || imagenUrl.includes('res.cloudinary'))) {
             nuevoProducto.imagenUrl = imagenUrl;
             
             // ✅ Descargar y guardar como Buffer

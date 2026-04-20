@@ -2,250 +2,417 @@
   "name": "Unitex Stock Monitor",
   "nodes": [
     {
-      "id": "cron-0001",
+      "parameters": {},
+      "id": "19ed5782-3f34-4224-bdf4-450ee28d2634",
       "name": "Cron Trigger",
       "type": "n8n-nodes-base.cron",
       "typeVersion": 1,
-      "position": [-1800, 280],
-      "parameters": {
-        "mode": "everyDay",
-        "hour": 8,
-        "minute": 0
-      }
+      "position": [
+        -1984,
+        240
+      ]
     },
     {
-      "id": "http-stock-0001",
+      "parameters": {
+        "url": "https://unitex-backend.onrender.com/api/productos/stock-critico",
+        "options": {
+          "fullResponse": false
+        },
+        "queryParametersUi": {
+          "parameter": [
+            {
+              "name": "umbral",
+              "value": "5"
+            }
+          ]
+        }
+      },
+      "id": "e4655f3e-d0dd-4fe2-8c29-5f5f575e5bc1",
       "name": "Consultar stock critico",
       "type": "n8n-nodes-base.httpRequest",
       "typeVersion": 1,
-      "position": [-1560, 280],
-      "parameters": {
-        "url": "https://unitex-backend.onrender.com/api/productos/stock-critico",
-        "options": { "fullResponse": false },
-        "queryParametersUi": {
-          "parameter": [{ "name": "umbral", "value": "5" }]
-        }
-      }
+      "position": [
+        -1760,
+        240
+      ]
     },
     {
-      "id": "if-criticos-0001",
-      "name": "Hay productos criticos",
-      "type": "n8n-nodes-base.if",
-      "typeVersion": 1,
-      "position": [-1280, 280],
       "parameters": {
         "conditions": {
           "number": [
             {
               "value1": "={{ Array.isArray($json) ? $json.length : 0 }}",
-              "operation": "larger",
-              "value2": 0
+              "operation": "larger"
             }
           ]
         }
-      }
+      },
+      "id": "7938a30c-a2dd-4c97-a467-c049fb3516dc",
+      "name": "Hay productos criticos",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 1,
+      "position": [
+        -1536,
+        240
+      ]
     },
     {
-      "id": "fn-preparar-0001",
+      "parameters": {
+        "functionCode": "var resp = $node[\"Consultar stock critico\"].json;\nvar productosCriticos = Array.isArray(resp) ? resp : (resp.productos || resp.data || []);\nif (!productosCriticos || productosCriticos.length === 0) return [];\nvar productosFormato = productosCriticos.map(function(p) {\n  return {\n    _id: p._id,\n    nombre: p.nombre || 'Producto',\n    descripcion: p.descripcion || '',\n    stock: p.stock || 0,\n    umbral: p.umbral != null ? p.umbral : (p.umbralCritico != null ? p.umbralCritico : 5),\n    precio: p.precio || 0\n  };\n});\nvar productosDetalle = productosFormato.map(function(p) {\n  return p.nombre + ' (Stock: ' + p.stock + ', umbral: ' + p.umbral + ')';\n}).join('; ');\nvar mensaje = 'ALERTA STOCK CRITICO: ' + productosFormato.length + ' producto(s) con stock bajo. ' + productosDetalle;\nreturn [{ json: { mensaje: mensaje, productos: productosFormato, tipo: 'stock_critico', cantidad: productosFormato.length } }];"
+      },
+      "id": "037c890f-8b13-4e63-a743-15782542ec0c",
       "name": "Preparar notificacion admin",
       "type": "n8n-nodes-base.function",
       "typeVersion": 1,
-      "position": [-980, 140],
-      "parameters": {
-        "functionCode": "var resp = $node[\"Consultar stock critico\"].json;\nvar productosCriticos = Array.isArray(resp) ? resp : (resp.productos || resp.data || []);\nif (!productosCriticos || productosCriticos.length === 0) return [];\nvar productosFormato = productosCriticos.map(function(p) {\n  return {\n    _id: p._id,\n    nombre: p.nombre || 'Producto',\n    descripcion: p.descripcion || '',\n    stock: p.stock || 0,\n    umbral: p.umbral != null ? p.umbral : (p.umbralCritico != null ? p.umbralCritico : 5),\n    precio: p.precio || 0\n  };\n});\nvar productosDetalle = productosFormato.map(function(p) {\n  return p.nombre + ' (Stock: ' + p.stock + ', umbral: ' + p.umbral + ')';\n}).join('; ');\nvar mensaje = 'ALERTA STOCK CRITICO: ' + productosFormato.length + ' producto(s) con stock bajo. ' + productosDetalle;\nreturn [{ json: { mensaje: mensaje, productos: productosFormato, tipo: 'stock_critico', cantidad: productosFormato.length } }];"
-      }
+      "position": [
+        -1312,
+        144
+      ]
     },
     {
-      "id": "http-notif-0001",
-      "name": "Notificar al admin",
-      "type": "n8n-nodes-base.httpRequest",
-      "typeVersion": 1,
-      "position": [-680, 140],
       "parameters": {
         "requestMethod": "POST",
         "url": "https://unitex-backend.onrender.com/api/notificaciones/webhook",
         "jsonParameters": true,
-        "bodyParametersJson": "={{ { tipo: $json.tipo, mensaje: $json.mensaje, productos: $json.productos } }}",
-        "options": { "fullResponse": false }
-      }
+        "options": {
+          "fullResponse": false
+        },
+        "bodyParametersJson": "={{ { tipo: $json.tipo, mensaje: $json.mensaje, productos: $json.productos } }}"
+      },
+      "id": "6087ed92-7ec1-423e-aa27-1e5cd18e19c4",
+      "name": "Notificar al admin",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 1,
+      "position": [
+        -1088,
+        144
+      ]
     },
     {
-      "id": "set-log-ok-0001",
+      "parameters": {
+        "values": {
+          "string": [
+            {
+              "name": "estado",
+              "value": "Notificacion de stock critico enviada al administrador."
+            }
+          ]
+        },
+        "options": {}
+      },
+      "id": "08212f09-026e-4b32-9110-e718e1a7c1a3",
       "name": "Log - Notificacion enviada",
       "type": "n8n-nodes-base.set",
       "typeVersion": 1,
-      "position": [-380, 140],
-      "parameters": {
-        "values": {
-          "string": [{ "name": "estado", "value": "Notificacion de stock critico enviada al administrador." }]
-        },
-        "options": {}
-      }
+      "position": [
+        -864,
+        144
+      ]
     },
     {
-      "id": "set-log-noop-0001",
+      "parameters": {
+        "values": {
+          "string": [
+            {
+              "name": "estado",
+              "value": "Revision completada. Sin productos con stock critico."
+            }
+          ]
+        },
+        "options": {}
+      },
+      "id": "8ccc37ee-7a75-454b-8012-5a15c94d0e09",
       "name": "Log - Sin alertas",
       "type": "n8n-nodes-base.set",
       "typeVersion": 1,
-      "position": [-980, 420],
-      "parameters": {
-        "values": {
-          "string": [{ "name": "estado", "value": "Revision completada. Sin productos con stock critico." }]
-        },
-        "options": {}
-      }
+      "position": [
+        -1312,
+        336
+      ]
     },
     {
-      "id": "cron-poll-0001",
+      "parameters": {},
+      "id": "9c1437df-7824-4017-a87d-6a0ae2ce8c0e",
       "name": "Cron - Polling Aprobadas",
       "type": "n8n-nodes-base.cron",
       "typeVersion": 1,
-      "position": [-1800, 600],
-      "parameters": {
-        "mode": "everyX",
-        "value": 5,
-        "unit": "minutes"
-      }
+      "position": [
+        -1984,
+        656
+      ]
     },
     {
-      "id": "http-aprobadas-0001",
+      "parameters": {
+        "url": "https://unitex-backend.onrender.com/api/notificaciones/webhook/aprobadas",
+        "options": {
+          "fullResponse": false
+        }
+      },
+      "id": "07cc96e6-7261-46d8-8a33-04e205d616a3",
       "name": "Consultar aprobadas",
       "type": "n8n-nodes-base.httpRequest",
       "typeVersion": 1,
-      "position": [-1560, 600],
-      "parameters": {
-        "url": "https://unitex-backend.onrender.com/api/notificaciones/webhook/aprobadas",
-        "options": { "fullResponse": false }
-      }
+      "position": [
+        -1760,
+        656
+      ]
     },
     {
-      "id": "if-aprobadas-0001",
-      "name": "Hay aprobadas pendientes",
-      "type": "n8n-nodes-base.if",
-      "typeVersion": 1,
-      "position": [-1280, 600],
       "parameters": {
         "conditions": {
           "number": [
             {
               "value1": "={{ $json.total }}",
-              "operation": "larger",
-              "value2": 0
+              "operation": "larger"
             }
           ]
         }
-      }
+      },
+      "id": "1e23cdc7-186c-4a38-8695-3e332cd21e48",
+      "name": "Hay aprobadas pendientes",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 1,
+      "position": [
+        -1536,
+        656
+      ]
     },
     {
-      "id": "fn-split-0001",
+      "parameters": {
+        "functionCode": "var data = $json.notificaciones || [];\nif (data.length === 0) return [];\nreturn data.map(function(n) {\n  return { json: {\n    idNotificacion: String(n._id),\n    mensaje: n.mensaje || '',\n    productos: Array.isArray(n.productos) ? n.productos : []\n  }};\n});"
+      },
+      "id": "8db330e7-6a91-441f-8e7f-eee2f3961196",
       "name": "Separar por notificacion",
       "type": "n8n-nodes-base.function",
       "typeVersion": 1,
-      "position": [-980, 600],
-      "parameters": {
-        "functionCode": "var data = $json.notificaciones || [];\nif (data.length === 0) return [];\nreturn data.map(function(n) {\n  return { json: {\n    idNotificacion: String(n._id),\n    mensaje: n.mensaje || '',\n    productos: Array.isArray(n.productos) ? n.productos : []\n  }};\n});"
-      }
+      "position": [
+        -1312,
+        560
+      ]
     },
     {
-      "id": "fn-email-poll-0001",
+      "parameters": {
+        "functionCode": "var productos = $json.productos || [];\nvar idNotificacion = $json.idNotificacion || '';\nvar ahora = new Date();\nvar opciones = { timeZone: 'America/Guayaquil', day: '2-digit', month: '2-digit', year: 'numeric', hour: '2-digit', minute: '2-digit' };\nvar fechaStr = ahora.toLocaleDateString('es-EC', opciones);\nvar listaProductos = productos.length > 0\n  ? productos.map(function(p) {\n      return '  - ' + p.nombre\n        + ' | Stock actual: ' + p.stock + ' unidades'\n        + ' | Umbral minimo: ' + (p.umbral || 5) + ' unidades'\n        + (p.descripcion ? ' | ' + p.descripcion : '');\n    }).join('\\n')\n  : '  - (Ver detalle en el sistema Unitex)';\nvar asunto = 'Solicitud de reposicion de stock - Unitex - ' + ahora.toLocaleDateString('es-EC', { timeZone: 'America/Guayaquil', day: '2-digit', month: '2-digit', year: 'numeric' });\nvar cuerpo = [\n  'Estimado proveedor,',\n  '',\n  'Le informamos que tras la revision automatica de inventario del ' + fechaStr + ',',\n  'los siguientes productos requieren reposicion urgente:',\n  '',\n  listaProductos,\n  '',\n  'Solicitamos amablemente confirmar:',\n  '  1. Disponibilidad de los productos listados',\n  '  2. Cantidad maxima disponible para entrega inmediata',\n  '  3. Tiempo estimado de entrega',\n  '  4. Precio unitario actualizado si hubiera cambios',\n  '',\n  'Este pedido fue aprobado por el administrador de Unitex.',\n  '',\n  'Saludos cordiales,',\n  'Sistema Unitex - Gestion de Inventario',\n  'Referencia: ' + idNotificacion,\n  'Fecha: ' + fechaStr\n].join('\\n');\nreturn [{ json: { asunto: asunto, cuerpo: cuerpo, idNotificacion: idNotificacion, cantidadProductos: productos.length } }];"
+      },
+      "id": "a7ac9913-75d3-40a0-b52f-3a70d81be3d5",
       "name": "Construir email poll",
       "type": "n8n-nodes-base.function",
       "typeVersion": 1,
-      "position": [-680, 600],
-      "parameters": {
-        "functionCode": "var productos = $json.productos || [];\nvar idNotificacion = $json.idNotificacion || '';\nvar ahora = new Date();\nvar opciones = { timeZone: 'America/Guayaquil', day: '2-digit', month: '2-digit', year: 'numeric', hour: '2-digit', minute: '2-digit' };\nvar fechaStr = ahora.toLocaleDateString('es-EC', opciones);\nvar listaProductos = productos.length > 0\n  ? productos.map(function(p) {\n      return '  - ' + p.nombre\n        + ' | Stock actual: ' + p.stock + ' unidades'\n        + ' | Umbral minimo: ' + (p.umbral || 5) + ' unidades'\n        + (p.descripcion ? ' | ' + p.descripcion : '');\n    }).join('\\n')\n  : '  - (Ver detalle en el sistema Unitex)';\nvar asunto = 'Solicitud de reposicion de stock - Unitex - ' + ahora.toLocaleDateString('es-EC', { timeZone: 'America/Guayaquil', day: '2-digit', month: '2-digit', year: 'numeric' });\nvar cuerpo = [\n  'Estimado proveedor,',\n  '',\n  'Le informamos que tras la revision automatica de inventario del ' + fechaStr + ',',\n  'los siguientes productos requieren reposicion urgente:',\n  '',\n  listaProductos,\n  '',\n  'Solicitamos amablemente confirmar:',\n  '  1. Disponibilidad de los productos listados',\n  '  2. Cantidad maxima disponible para entrega inmediata',\n  '  3. Tiempo estimado de entrega',\n  '  4. Precio unitario actualizado si hubiera cambios',\n  '',\n  'Este pedido fue aprobado por el administrador de Unitex.',\n  '',\n  'Saludos cordiales,',\n  'Sistema Unitex - Gestion de Inventario',\n  'Referencia: ' + idNotificacion,\n  'Fecha: ' + fechaStr\n].join('\\n');\nreturn [{ json: { asunto: asunto, cuerpo: cuerpo, idNotificacion: idNotificacion, cantidadProductos: productos.length } }];"
-      }
+      "position": [
+        -1088,
+        560
+      ]
     },
     {
-      "id": "email-poll-0001",
-      "name": "Enviar email proveedor poll",
-      "type": "n8n-nodes-base.emailSend",
-      "typeVersion": 1,
-      "position": [-380, 600],
       "parameters": {
         "fromEmail": "mateo.paredes.0012@gmail.com",
         "toEmail": "mateokabuto@gmail.com",
         "subject": "={{ $json.asunto }}",
         "text": "={{ $json.cuerpo }}",
         "options": {}
+      },
+      "id": "c96680b8-d3f6-418c-b09d-9ec787221530",
+      "name": "Enviar email proveedor poll",
+      "type": "n8n-nodes-base.emailSend",
+      "typeVersion": 1,
+      "position": [
+        -864,
+        560
+      ],
+      "credentials": {
+        "smtp": {
+          "id": "5cookw8vtDc6wj9w",
+          "name": "SMTP account"
+        }
       }
     },
     {
-      "id": "http-marcar-poll-0001",
-      "name": "Marcar como completada",
-      "type": "n8n-nodes-base.httpRequest",
-      "typeVersion": 1,
-      "position": [-80, 600],
       "parameters": {
         "requestMethod": "PATCH",
         "url": "={{ `https://unitex-backend.onrender.com/api/notificaciones/webhook/${$node[\"Construir email poll\"].json.idNotificacion}/leida` }}",
-        "options": { "fullResponse": false }
-      }
+        "options": {
+          "fullResponse": false
+        }
+      },
+      "id": "d6ac1152-9792-4c5a-9fe4-482881432353",
+      "name": "Marcar como completada",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 1,
+      "position": [
+        -640,
+        560
+      ]
     },
     {
-      "id": "set-log-no-aprobadas-0001",
+      "parameters": {
+        "values": {
+          "string": [
+            {
+              "name": "estado",
+              "value": "Polling: sin notificaciones aprobadas pendientes."
+            }
+          ]
+        },
+        "options": {}
+      },
+      "id": "623f6d9b-2ea7-4fc3-bd1a-9f90d1ebc8bd",
       "name": "Log - Sin aprobaciones",
       "type": "n8n-nodes-base.set",
       "typeVersion": 1,
-      "position": [-1280, 780],
-      "parameters": {
-        "values": {
-          "string": [{ "name": "estado", "value": "Polling: sin notificaciones aprobadas pendientes." }]
-        },
-        "options": {}
-      }
+      "position": [
+        -1312,
+        752
+      ]
     }
   ],
   "pinData": {},
   "connections": {
     "Cron Trigger": {
-      "main": [[{ "node": "Consultar stock critico", "type": "main", "index": 0 }]]
+      "main": [
+        [
+          {
+            "node": "Consultar stock critico",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
     },
     "Consultar stock critico": {
-      "main": [[{ "node": "Hay productos criticos", "type": "main", "index": 0 }]]
+      "main": [
+        [
+          {
+            "node": "Hay productos criticos",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
     },
     "Hay productos criticos": {
       "main": [
-        [{ "node": "Preparar notificacion admin", "type": "main", "index": 0 }],
-        [{ "node": "Log - Sin alertas", "type": "main", "index": 0 }]
+        [
+          {
+            "node": "Preparar notificacion admin",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Log - Sin alertas",
+            "type": "main",
+            "index": 0
+          }
+        ]
       ]
     },
     "Preparar notificacion admin": {
-      "main": [[{ "node": "Notificar al admin", "type": "main", "index": 0 }]]
+      "main": [
+        [
+          {
+            "node": "Notificar al admin",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
     },
     "Notificar al admin": {
-      "main": [[{ "node": "Log - Notificacion enviada", "type": "main", "index": 0 }]]
+      "main": [
+        [
+          {
+            "node": "Log - Notificacion enviada",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
     },
     "Cron - Polling Aprobadas": {
-      "main": [[{ "node": "Consultar aprobadas", "type": "main", "index": 0 }]]
+      "main": [
+        [
+          {
+            "node": "Consultar aprobadas",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
     },
     "Consultar aprobadas": {
-      "main": [[{ "node": "Hay aprobadas pendientes", "type": "main", "index": 0 }]]
+      "main": [
+        [
+          {
+            "node": "Hay aprobadas pendientes",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
     },
     "Hay aprobadas pendientes": {
       "main": [
-        [{ "node": "Separar por notificacion", "type": "main", "index": 0 }],
-        [{ "node": "Log - Sin aprobaciones", "type": "main", "index": 0 }]
+        [
+          {
+            "node": "Separar por notificacion",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Log - Sin aprobaciones",
+            "type": "main",
+            "index": 0
+          }
+        ]
       ]
     },
     "Separar por notificacion": {
-      "main": [[{ "node": "Construir email poll", "type": "main", "index": 0 }]]
+      "main": [
+        [
+          {
+            "node": "Construir email poll",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
     },
     "Construir email poll": {
-      "main": [[{ "node": "Enviar email proveedor poll", "type": "main", "index": 0 }]]
+      "main": [
+        [
+          {
+            "node": "Enviar email proveedor poll",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
     },
     "Enviar email proveedor poll": {
-      "main": [[{ "node": "Marcar como completada", "type": "main", "index": 0 }]]
+      "main": [
+        [
+          {
+            "node": "Marcar como completada",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
     }
   },
   "active": true,
   "settings": {
-    "executionOrder": "v1"
+    "executionOrder": "v1",
+    "binaryMode": "separate"
   },
-  "versionId": "ed71fd82-a93a-4a5a-a8cf-f3bcd12675c7",
+  "versionId": "13d34dc1-3750-497f-81dd-1fefa81533f2",
   "meta": {
-    "instanceId": "28e7ff190706c7cb07016c6b8752a174d4c23fb653b519411b766474a86272c5"
+    "templateCredsSetupCompleted": true,
+    "instanceId": "b162e739525cb0c8d09241240b815087d594faa9c51a1d47484798ef753b1c93"
   },
-  "id": "HAyb2oBV279sZuoC",
+  "id": "mXNFZZVfxp2UzcTN",
   "tags": []
 }
