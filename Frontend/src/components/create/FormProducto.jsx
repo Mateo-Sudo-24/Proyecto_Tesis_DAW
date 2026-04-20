@@ -390,7 +390,7 @@ export const FormProducto = ({ productoToUpdate }) => {
                     </button>
                     <button
                         type="button"
-                        onClick={() => navigate('/dashboard/productos-admin')}
+                        onClick={() => navigate('/dashboard/create')}
                         className="flex-1 bg-gray-400 text-white py-2 px-4 rounded-lg hover:bg-gray-500 transition font-semibold"
                     >
                         Cancelar

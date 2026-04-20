@@ -79,17 +79,34 @@
       "parameters": {
         "requestMethod": "POST",
         "url": "https://unitex-backend.onrender.com/api/notificaciones/webhook",
+        "authentication": "none",
         "headers": {
           "Content-Type": "application/json"
         },
+        "sendBody": true,
+        "bodyParameters": {
+          "parameters": [
+            {
+              "name": "tipo",
+              "value": "stock_critico"
+            },
+            {
+              "name": "mensaje",
+              "value": "={{ 'Stock Crítico: ' + $json.productosCriticos.length + ' producto(s) bajo umbral' }}"
+            },
+            {
+              "name": "productos",
+              "value": "={{ $json.productosCriticos }}"
+            }
+          ]
+        },
         "options": {
           "fullResponse": false
-        },
-        "body": "={\"tipo\":\"stock_critico\",\"mensaje\":\"⚠️ Stock Crítico: \"+$json.productosCriticos.length+\" producto(s) bajo umbral (Revisión: \"+$now.format('DD/MM/YYYY HH:mm','America/Guayaquil')+\")\",\"productos\":$json.productosCriticos}"
+        }
       },
       "name": "Notificar al admin",
       "type": "n8n-nodes-base.httpRequest",
-      "typeVersion": 1,
+      "typeVersion": 3,
       "position": [
         -304,
         128

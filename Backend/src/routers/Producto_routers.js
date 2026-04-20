@@ -25,6 +25,20 @@ router.get('/recientes', productosRecientes);
 
 router.get('/stock-critico', getStockCritico);
 
+router.get('/categorias', async (req, res) => {
+  try {
+    const categorias = [
+      { _id: '1', nombre: 'Telas Premium' },
+      { _id: '2', nombre: 'Telas Básicas' },
+      { _id: '3', nombre: 'Accesorios' },
+      { _id: '4', nombre: 'Especiales' }
+    ];
+    res.json(categorias);
+  } catch (error) {
+    res.status(500).json({ msg: 'Error al obtener categorías' });
+  }
+});
+
 router.post('/buscar-similares', buscarProductosSimilares);
 
 // =======================================================================
