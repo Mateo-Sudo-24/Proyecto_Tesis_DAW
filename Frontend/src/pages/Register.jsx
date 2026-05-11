@@ -198,6 +198,11 @@ const registerStyles = `
         box-shadow: 0 6px 16px rgba(0,0,0,0.2);
     }
     .reg-btn-login:active { transform: scale(0.97); }
+    .reg-btn-login.disabled {
+        opacity: 0.45;
+        pointer-events: none;
+        cursor: not-allowed;
+    }
 
     /* ─── Panel imagen (derecha) ─── */
     .reg-image-panel {
@@ -413,14 +418,27 @@ export const Register = () => {
                             disabled={isLoading}
                             className="reg-btn-primary"
                         >
-                            {isLoading ? 'Registrando...' : 'Crear cuenta'}
+                            {isLoading ? (
+                                <>
+                                    <svg className="animate-spin" style={{width:'1.1rem',height:'1.1rem',marginRight:'0.4rem'}} xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                                        <circle cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" style={{opacity:0.25}} />
+                                        <path fill="currentColor" style={{opacity:0.75}} d="M4 12a8 8 0 018-8v8z" />
+                                    </svg>
+                                    Registrando...
+                                </>
+                            ) : 'Crear cuenta'}
                         </button>
                     </form>
 
                     {/* Footer del card */}
                     <div className="reg-footer">
                         <p className="reg-footer-text">¿Ya tienes una cuenta?</p>
-                        <Link to="/login" className="reg-btn-login">
+                        <Link
+                            to="/login"
+                            className={`reg-btn-login${isLoading ? ' disabled' : ''}`}
+                            onClick={isLoading ? (e) => e.preventDefault() : undefined}
+                            tabIndex={isLoading ? -1 : 0}
+                        >
                             Iniciar sesión
                         </Link>
                     </div>

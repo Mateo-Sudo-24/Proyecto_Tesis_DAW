@@ -15,18 +15,24 @@ const registro = async (req, res) => {
         const existeCliente = await Cliente.findOne({ email });
         if (existeCliente) return res.status(400).json({ msg: "El email ya se encuentra registrado." });
         
-        // Se crea la instancia con la contraseña en texto plano.
         const nuevoCliente = new Cliente(req.body);
-        
         const token = nuevoCliente.crearToken();
-        await sendMailToRegister(email, token);
-        
-        // El middleware pre('save') del modelo se encargará del hasheo.
-        await nuevoCliente.save(); 
+
+        // Guardar primero, luego enviar correo
+        await nuevoCliente.save();
+
+        // Enviar correo en segundo plano sin bloquear la respuesta
+        sendMailToRegister(email, token).catch(err =>
+            console.error("⚠️ Error al enviar correo de confirmación:", err.message)
+        );
         
         res.status(200).json({ msg: "Registro exitoso. Revisa tu correo para confirmar tu cuenta." });
     } catch (error) {
-        res.status(500).json({ msg: "Error en el servidor durante el registro." });
+        console.error("❌ Error en registro:", error);
+        const msg = error.code === 11000
+            ? "El email ya se encuentra registrado."
+            : error.message || "Error en el servidor durante el registro.";
+        res.status(500).json({ msg });
     }
 };
 

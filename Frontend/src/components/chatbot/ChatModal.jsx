@@ -6,6 +6,39 @@ import { buscarProductosSimilares } from '../../services/productoService';
 import { toast } from 'react-toastify';
 import './ChatModal.css';
 
+// Convierte markdown básico a JSX sin dependencias externas
+const renderMarkdown = (text) => {
+    if (!text) return null;
+    const lines = text.split('\n');
+    return lines.map((line, i) => {
+        // Línea de lista
+        const isBullet = /^[\*\-]\s/.test(line);
+        const content = isBullet ? line.replace(/^[\*\-]\s/, '') : line;
+
+        // Parsear negrilla e itálica inline
+        const parseInline = (str) => {
+            const parts = [];
+            const regex = /\*\*\*(.+?)\*\*\*|\*\*(.+?)\*\*|\*(.+?)\*/g;
+            let last = 0, m;
+            while ((m = regex.exec(str)) !== null) {
+                if (m.index > last) parts.push(str.slice(last, m.index));
+                if (m[1]) parts.push(<strong key={m.index}><em>{m[1]}</em></strong>);
+                else if (m[2]) parts.push(<strong key={m.index}>{m[2]}</strong>);
+                else if (m[3]) parts.push(<em key={m.index}>{m[3]}</em>);
+                last = regex.lastIndex;
+            }
+            if (last < str.length) parts.push(str.slice(last));
+            return parts.length ? parts : str;
+        };
+
+        if (isBullet) {
+            return <li key={i} style={{ marginLeft: '1rem', listStyleType: 'disc' }}>{parseInline(content)}</li>;
+        }
+        if (!line.trim()) return <br key={i} />;
+        return <p key={i} style={{ margin: '0.2rem 0' }}>{parseInline(line)}</p>;
+    });
+};
+
 const ChatModal = ({ onClose }) => {
     const [messages, setMessages] = useState([]);
     const [input, setInput] = useState('');
@@ -161,7 +194,10 @@ const ChatModal = ({ onClose }) => {
                                 {msg.role === 'user' ? '👤' : '🤖'}
                             </div>
                             <div className="chat-message-content">
-                                {msg.content || (msg.role === 'assistant' && isLoading && '✍️ Pensando...')}
+                                {msg.role === 'assistant'
+                                    ? <>{renderMarkdown(msg.content) || (isLoading && '✍\uFE0F Pensando...')}</>
+                                    : msg.content
+                                }
                                 {msg.image && msg.role === 'user' && (
                                     <img src={msg.image} alt="Imagen compartida" style={{ maxWidth: '200px', marginTop: '8px', borderRadius: '8px' }} />
                                 )}

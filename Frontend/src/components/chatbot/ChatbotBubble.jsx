@@ -1,7 +1,7 @@
 import { useState } from 'react';
 import { useLocation } from 'react-router-dom';
-import { FaQuestionCircle } from "react-icons/fa";
 import ChatModal from './ChatModal';
+import chatIcon from '../../assets/cutting.png';
 
 const ChatbotBubble = () => {
     const [isModalOpen, setIsModalOpen] = useState(false);
@@ -29,7 +29,7 @@ const ChatbotBubble = () => {
                 "
                 title="Asesor de Intex - Análisis de Telas con IA"
             >
-                <FaQuestionCircle size={28} />
+                <img src={chatIcon} alt="Asistente Intex" className="w-9 h-9 object-contain" />
             </button>
 
             {isModalOpen && <ChatModal onClose={() => setIsModalOpen(false)} />}
