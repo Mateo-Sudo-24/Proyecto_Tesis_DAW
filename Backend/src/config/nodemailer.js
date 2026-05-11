@@ -10,6 +10,7 @@ const transporter = nodemailer.createTransport({
     host: process.env.HOST_MAILTRAP,
     port: smtpPort,
     secure: smtpPort === 465,   // true → SSL (465)  |  false → STARTTLS (587)
+    family: 4,                  // Forzar IPv4 (Render no soporta IPv6 en plan gratuito)
     auth: {
         user: process.env.USER_MAILTRAP,
         pass: process.env.PASS_MAILTRAP,
