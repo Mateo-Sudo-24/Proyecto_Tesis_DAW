@@ -1,11 +1,27 @@
-import { Resend } from 'resend';
+import nodemailer from 'nodemailer';
 import dotenv from 'dotenv';
 dotenv.config();
 
-const resend = new Resend(process.env.RESEND_API_KEY);
+const transporter = nodemailer.createTransport({
+    host: process.env.HOST_MAILTRAP,
+    port: Number(process.env.PORT_MAILTRAP) || 587,
+    secure: false,   // STARTTLS en 587
+    auth: {
+        user: process.env.USER_MAILTRAP,
+        pass: process.env.PASS_MAILTRAP,
+    },
+});
 
-// El remitente por defecto de Resend (sin dominio verificado)
-const FROM = 'Soporte Unitex <onboarding@resend.dev>';
+transporter.verify((error) => {
+    if (error) {
+        console.error('❌ Error de conexión SMTP:', error.message);
+        console.error('   Host:', process.env.HOST_MAILTRAP, '| Puerto:', process.env.PORT_MAILTRAP, '| Usuario:', process.env.USER_MAILTRAP);
+    } else {
+        console.log('✅ Brevo SMTP conectado correctamente.');
+    }
+});
+
+const FROM = `"Soporte Unitex" <${process.env.USER_MAILTRAP}>`;
 
 // Paleta de colores y estilos base para todos los correos
 const COLORS = { primary: '#B2753B', background: '#FEFAF1', text: '#333333' };
@@ -25,7 +41,7 @@ const baseStyle = `
 
 const sendMailToRegister = async (userMail, token) => {
     const confirmationLink = `${process.env.URL_FRONTEND}/confirmar/${token}`;
-    const { error } = await resend.emails.send({
+    await transporter.sendMail({
         from: FROM,
         to: userMail,
         subject: 'Unitex - Confirma tu cuenta',
@@ -34,17 +50,16 @@ const sendMailToRegister = async (userMail, token) => {
                 <h2>¡Bienvenido a Unitex!</h2>
                 <p>Gracias por registrarte. Para completar tu registro y activar tu cuenta, haz clic en el siguiente botón:</p>
                 <div class="button-container"><a href="${confirmationLink}" class="button">Confirmar Mi Cuenta</a></div>
-                <p>Si no realizaste esta solicitud, puedes ignorar este correo.</p>
+                <p>Si no realizaste esta solicitud, puedes ignorar este correo de forma segura.</p>
                 <hr><footer>© ${new Date().getFullYear()} Unitex. Todos los derechos reservados.</footer>
             </div></body></html>`
     });
-    if (error) throw new Error(error.message);
     console.log('✅ Correo de confirmación enviado a:', userMail);
 };
 
 const sendMailToRecoveryPassword = async (userMail, token) => {
     const recoveryLink = `${process.env.URL_FRONTEND}/reset/${token}`;
-    const { error } = await resend.emails.send({
+    await transporter.sendMail({
         from: FROM,
         to: userMail,
         subject: 'Unitex - Restablece tu contraseña',
@@ -57,13 +72,12 @@ const sendMailToRecoveryPassword = async (userMail, token) => {
                 <hr><footer>© ${new Date().getFullYear()} Unitex. Todos los derechos reservados.</footer>
             </div></body></html>`
     });
-    if (error) throw new Error(error.message);
     console.log('✅ Correo de recuperación enviado a:', userMail);
 };
 
 const sendMailToInviteUser = async (userMail, token) => {
     const inviteLink = `${process.env.URL_FRONTEND}/vendedores/setup-account/${token}`;
-    const { error } = await resend.emails.send({
+    await transporter.sendMail({
         from: FROM,
         to: userMail,
         subject: 'Unitex - ¡Has sido invitado a unirte!',
@@ -76,13 +90,12 @@ const sendMailToInviteUser = async (userMail, token) => {
                 <hr><footer>© ${new Date().getFullYear()} Unitex. Todos los derechos reservados.</footer>
             </div></body></html>`
     });
-    if (error) throw new Error(error.message);
     console.log('✅ Correo de invitación enviado a:', userMail);
 };
 
 const sendMailToInviteCliente = async (userMail, token) => {
     const inviteLink = `${process.env.URL_FRONTEND}/clientes/setup-account/${token}`;
-    const { error } = await resend.emails.send({
+    await transporter.sendMail({
         from: FROM,
         to: userMail,
         subject: 'Unitex - ¡Tu cuenta ha sido creada!',
@@ -95,7 +108,6 @@ const sendMailToInviteCliente = async (userMail, token) => {
                 <hr><footer>© ${new Date().getFullYear()} Unitex. Todos los derechos reservados.</footer>
             </div></body></html>`
     });
-    if (error) throw new Error(error.message);
     console.log('✅ Correo de invitación a cliente enviado a:', userMail);
 };
 
