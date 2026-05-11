@@ -300,6 +300,44 @@ const styles = `
     }
     .ch-send-btn:hover { background: var(--orange-dark); transform: scale(1.05); }
     .ch-send-btn:disabled { background: #d1d5db; box-shadow: none; cursor: not-allowed; transform: none; }
+
+    /* ── Botón volver (solo móvil) ── */
+    .ch-back-btn { display: none; }
+
+    @media (max-width: 700px) {
+        .ch-wrap {
+            height: calc(100svh - 70px);
+            min-height: 0;
+            border-radius: 0;
+            border-left: none;
+            border-right: none;
+        }
+        /* Sidebar ocupa toda la pantalla en móvil */
+        .ch-sidebar { width: 100%; }
+        .ch-sidebar.mobile-hidden { display: none; }
+        /* Conversación oculta hasta seleccionar contacto */
+        .ch-conv.mobile-hidden { display: none; }
+        /* Botón ← visible en móvil */
+        .ch-back-btn {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            width: 34px; height: 34px;
+            border: none;
+            background: #f3f4f6;
+            border-radius: 50%;
+            cursor: pointer;
+            font-size: 1.1rem;
+            color: #374151;
+            flex-shrink: 0;
+        }
+        .ch-back-btn:hover { background: #e5e7eb; }
+        /* Burbujas más anchas en móvil */
+        .ch-msg-bubble-wrap { max-width: 82%; }
+        .ch-messages { padding: 0.75rem; }
+        .ch-input-area { padding: 0.65rem 0.75rem; }
+        .ch-conv-header { padding: 0.7rem 0.85rem; }
+    }
 `;
 
 const Chat = () => {
@@ -312,6 +350,7 @@ const Chat = () => {
     const [clienteActivo, setClienteActivo] = useState(null);
     const [conversaciones, setConversaciones] = useState({});
     const [msgsCliente, setMsgsCliente] = useState([]);
+    const [showConversacion, setShowConversacion] = useState(false);
 
     const { register, handleSubmit, reset, watch } = useForm();
     const msgText = watch('mensaje', '');
@@ -377,6 +416,7 @@ const Chat = () => {
     const seleccionarCliente = (cliente) => {
         setClienteActivo(cliente);
         socket?.emit('solicitar_historial', { clienteId: cliente.id });
+        setShowConversacion(true); // en móvil, mostrar conversación
     };
 
     // Enviar mensaje
@@ -425,7 +465,7 @@ const Chat = () => {
             <div className="ch-wrap">
 
                 {/* ── Sidebar ── */}
-                <aside className="ch-sidebar">
+                <aside className={`ch-sidebar${(!isStaff || showConversacion) ? ' mobile-hidden' : ''}`}>
                     <div className="ch-sidebar-header">
                         <p className="ch-sidebar-title">💬 Chat</p>
                         <p className="ch-sidebar-sub">
@@ -499,7 +539,7 @@ const Chat = () => {
                 </aside>
 
                 {/* ── Conversación ── */}
-                <div className="ch-conv">
+                <div className={`ch-conv${isStaff && !showConversacion ? ' mobile-hidden' : ''}`}>
                     {isStaff && !clienteActivo ? (
                         <div className="ch-conv-placeholder">
                             <div className="ch-conv-placeholder-icon">💬</div>
@@ -509,6 +549,16 @@ const Chat = () => {
                         <>
                             {/* Header */}
                             <div className="ch-conv-header">
+                                {/* Botón volver (solo móvil) */}
+                                {isStaff && (
+                                    <button
+                                        className="ch-back-btn"
+                                        onClick={() => setShowConversacion(false)}
+                                        title="Volver a contactos"
+                                    >
+                                        ←
+                                    </button>
+                                )}
                                 <div className={`ch-conv-avatar${isStaff ? '' : ' staff-avatar'}`}>
                                     {isStaff ? initial(clienteActivo?.nombre) : '🛡️'}
                                 </div>

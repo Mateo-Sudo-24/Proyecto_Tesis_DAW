@@ -266,6 +266,22 @@ const bmStyles = `
         font-size: 0.75rem;
         color: #9ca3af;
     }
+
+    /* ── Responsive móvil ── */
+    @media (max-width: 520px) {
+        .bm-panel {
+            position: fixed;
+            right: 0.5rem;
+            left: 0.5rem;
+            top: auto;
+            width: auto;
+            max-height: 85vh;
+        }
+        .bm-list { max-height: calc(85vh - 130px); }
+        .bm-panel::before { display: none; }
+        .bm-filter-btn { font-size: 0.68rem; padding: 0.5rem 0.3rem; }
+        .bm-filter-count { display: none; }
+    }
 `;
 
 const necesitaGestion = (n) =>

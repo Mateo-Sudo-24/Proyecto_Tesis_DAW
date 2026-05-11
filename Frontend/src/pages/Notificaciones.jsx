@@ -191,6 +191,43 @@ const styles = `
     .spinner { width: 3rem; height: 3rem; border: 4px solid #1f2937; border-top-color: #f59e0b; border-radius: 9999px; animation: spin 0.75s linear infinite; }
     @keyframes spin { to { transform: rotate(360deg); } }
     .spinner-txt { font-size: 0.875rem; color: #9ca3af; font-weight: 500; }
+
+    /* ── Media queries móvil ── */
+    @media (max-width: 640px) {
+        .notif-page { padding: 1.25rem 0.75rem; }
+        .notif-header {
+            flex-direction: column;
+            align-items: flex-start;
+            padding: 1.25rem 1.25rem;
+        }
+        .notif-header h1 { font-size: 1.35rem; }
+        .pendientes-box { width: 100%; display: flex; align-items: center; gap: 0.75rem; padding: 0.6rem 1rem; }
+        .pendientes-box .num { font-size: 1.3rem; }
+        .notif-filtros {
+            flex-wrap: nowrap;
+            overflow-x: auto;
+            -webkit-overflow-scrolling: touch;
+            padding-bottom: 0.25rem;
+            gap: 0.4rem;
+        }
+        .notif-filtro-btn {
+            white-space: nowrap;
+            font-size: 0.8rem;
+            padding: 0.45rem 0.85rem;
+            flex-shrink: 0;
+        }
+        .notif-card-head { flex-wrap: wrap; gap: 0.5rem; }
+        .notif-actions {
+            width: 100%;
+            justify-content: flex-end;
+            gap: 0.4rem;
+        }
+        .notif-btn-accion { font-size: 0.7rem; padding: 0.35rem 0.6rem; }
+        .gestion-row { flex-direction: column; gap: 0.5rem; }
+        .btn-aprobar, .btn-rechazar { padding: 0.65rem; }
+        .producto-fila { flex-direction: column; align-items: flex-start; gap: 0.25rem; }
+        .producto-stock { text-align: left; }
+    }
 `;
 
 /* ── Helpers ──────────────────────────────────────────────────── */
