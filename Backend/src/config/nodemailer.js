@@ -16,6 +16,16 @@ const transporter = nodemailer.createTransport({
     },
 });
 
+// Verificar conexión SMTP al iniciar
+transporter.verify((error, success) => {
+    if (error) {
+        console.error("❌ Error de conexión SMTP:", error.message);
+        console.error("   Host:", process.env.HOST_MAILTRAP, "| Puerto:", smtpPort, "| Usuario:", process.env.USER_MAILTRAP);
+    } else {
+        console.log("✅ Servidor SMTP conectado correctamente.");
+    }
+});
+
 // Paleta de colores y estilos base para todos los correos
 const COLORS = {
     primary: '#B2753B',

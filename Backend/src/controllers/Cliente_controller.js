@@ -18,13 +18,19 @@ const registro = async (req, res) => {
         const nuevoCliente = new Cliente(req.body);
         const token = nuevoCliente.crearToken();
 
-        // Guardar primero, luego enviar correo
+        // Guardar primero
         await nuevoCliente.save();
 
-        // Enviar correo en segundo plano sin bloquear la respuesta
-        sendMailToRegister(email, token).catch(err =>
-            console.error("⚠️ Error al enviar correo de confirmación:", err.message)
-        );
+        // Enviar correo con await para capturar errores SMTP
+        try {
+            await sendMailToRegister(email, token);
+        } catch (mailError) {
+            console.error("❌ Error SMTP al enviar correo de confirmación:", mailError);
+            // El cliente ya se guardó; informar que el correo falló pero el registro sí
+            return res.status(200).json({
+                msg: `Cuenta creada, pero no se pudo enviar el correo de confirmación. Error SMTP: ${mailError.message}`
+            });
+        }
         
         res.status(200).json({ msg: "Registro exitoso. Revisa tu correo para confirmar tu cuenta." });
     } catch (error) {
