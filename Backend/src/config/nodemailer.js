@@ -3,7 +3,7 @@ dotenv.config();
 
 // Brevo API HTTP — no usa SMTP, funciona en Render sin restricciones de puerto
 const BREVO_API_URL = 'https://api.brevo.com/v3/smtp/email';
-const BREVO_API_KEY = process.env.PASS_MAILTRAP; // xsmtpsib-... sirve como API key
+const BREVO_API_KEY = process.env.BREVO_API_KEY;
 
 const sendBrevo = async (to, subject, html) => {
     const res = await fetch(BREVO_API_URL, {
