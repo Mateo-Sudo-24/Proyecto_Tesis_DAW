@@ -60,36 +60,90 @@ export const Confirm = () => {
     }, [token, location.pathname]);
 
     return (
-        <div className="flex flex-col items-center justify-center h-screen bg-white">
+        <div className="min-h-screen flex">
             <ToastContainer />
 
-            <div className="w-40 h-40 bg-amber-100 rounded-full flex items-center justify-center border-4 border-amber-300 mb-8">
-                <span className="text-amber-800 font-bold text-4xl">IN</span>
+            {/* Panel izquierdo - imagen */}
+            <div className="hidden lg:flex w-1/2 relative overflow-hidden">
+                <img
+                    src="/images/registro.jpg"
+                    alt="Confirmación"
+                    className="w-full h-full object-cover"
+                />
+                <div className="absolute inset-0 bg-gradient-to-br from-amber-900/60 to-gray-900/70 flex flex-col items-center justify-center p-12">
+                    <h1 className="text-white text-5xl font-bold tracking-widest mb-4">UNITEX</h1>
+                    <p className="text-amber-200 text-lg text-center">Gestión textil inteligente para tu negocio</p>
+                </div>
             </div>
 
-            <div className="flex flex-col items-center justify-center text-center px-4">
-                {status === 'success' && (
-                    <>
-                        <p className="text-3xl md:text-4xl lg:text-5xl text-gray-800 mt-4">Verificacion Exitosa!</p>
-                        <p className="md:text-lg lg:text-xl text-gray-600 mt-8">{message}</p>
-                        <Link to="/login" className="p-3 m-5 w-full text-center bg-gray-600 text-slate-300 border rounded-xl hover:scale-110 duration-300 hover:bg-gray-900 hover:text-white">Iniciar sesion</Link>
-                    </>
-                )}
+            {/* Panel derecho - contenido */}
+            <div className="flex-1 flex flex-col items-center justify-center bg-gray-50 px-8 py-16">
 
-                {status === 'error' && (
-                    <>
-                        <p className="text-3xl md:text-4xl lg:text-5xl text-gray-800 mt-4">Error de Verificacion</p>
-                        <p className="md:text-lg lg:text-xl text-gray-600 mt-8">{message}</p>
-                        <Link to="/register" className="p-3 m-5 w-full text-center bg-gray-600 text-slate-300 border rounded-xl hover:scale-110 duration-300 hover:bg-gray-900 hover:text-white">Volver a Registrarse</Link>
-                    </>
-                )}
+                {/* Logo móvil */}
+                <div className="lg:hidden mb-8">
+                    <span className="text-3xl font-bold text-amber-700 tracking-widest">UNITEX</span>
+                </div>
 
-                {status === 'verifying' && (
-                    <>
-                        <p className="text-3xl md:text-4xl lg:text-5xl text-gray-800 mt-4">Verificando...</p>
-                        <p className="md:text-lg lg:text-xl text-gray-600 mt-8">{message}</p>
-                    </>
-                )}
+                {/* Icono de estado */}
+                <div className={`w-24 h-24 rounded-full flex items-center justify-center mb-8 shadow-lg ${
+                    status === 'success' ? 'bg-green-100 border-4 border-green-400' :
+                    status === 'error'   ? 'bg-red-100 border-4 border-red-400' :
+                                          'bg-amber-100 border-4 border-amber-400'
+                }`}>
+                    {status === 'success' && (
+                        <svg className="w-12 h-12 text-green-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
+                        </svg>
+                    )}
+                    {status === 'error' && (
+                        <svg className="w-12 h-12 text-red-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                        </svg>
+                    )}
+                    {status === 'verifying' && (
+                        <svg className="w-12 h-12 text-amber-500 animate-spin" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
+                        </svg>
+                    )}
+                </div>
+
+                {/* Contenido por estado */}
+                <div className="w-full max-w-md text-center">
+                    {status === 'success' && (
+                        <>
+                            <h2 className="text-3xl font-bold text-gray-800 mb-3">¡Verificación Exitosa!</h2>
+                            <p className="text-gray-500 mb-8">{message}</p>
+                            <Link
+                                to="/login"
+                                className="block w-full py-3 px-6 bg-amber-700 text-white font-semibold rounded-xl hover:bg-amber-800 transition-all duration-300 shadow-md hover:shadow-lg"
+                            >
+                                Iniciar sesión
+                            </Link>
+                        </>
+                    )}
+
+                    {status === 'error' && (
+                        <>
+                            <h2 className="text-3xl font-bold text-gray-800 mb-3">Error de Verificación</h2>
+                            <p className="text-gray-500 mb-8">{message}</p>
+                            <Link
+                                to="/register"
+                                className="block w-full py-3 px-6 bg-gray-700 text-white font-semibold rounded-xl hover:bg-gray-900 transition-all duration-300 shadow-md hover:shadow-lg"
+                            >
+                                Volver a registrarse
+                            </Link>
+                        </>
+                    )}
+
+                    {status === 'verifying' && (
+                        <>
+                            <h2 className="text-3xl font-bold text-gray-800 mb-3">Verificando...</h2>
+                            <p className="text-gray-500">{message}</p>
+                        </>
+                    )}
+                </div>
+
+                <p className="mt-12 text-xs text-gray-400">© {new Date().getFullYear()} Unitex. Todos los derechos reservados.</p>
             </div>
         </div>
     );
