@@ -4,6 +4,7 @@ import Carrito from '../models/Carrito.js';
 import Producto from '../models/Producto.js';
 import Notificacion from '../models/Notificacion.js';
 import Administrador from '../models/Administrador.js';
+import Vendedor from '../models/Vendedor.js';
 import mongoose from "mongoose";
 import stripe from '../config/stripe.js';
 
@@ -23,6 +24,25 @@ const crearNotificacionPago = async (orden) => {
         ));
     } catch (err) {
         console.error('❌ Error al crear notificación de pago:', err.message);
+    }
+};
+
+// ─── Helper: crear notificación de confirmación para todos los vendedores ────
+const crearNotificacionConfirmacionVendedores = async (orden) => {
+    try {
+        const vendedores = await Vendedor.find().select('_id');
+        await Promise.all(vendedores.map(v =>
+            Notificacion.crearConCifrado({
+                vendedor: v._id,
+                tipo: 'confirmacion_pedido',
+                mensaje: `✅ El administrador confirmó el pago de la Orden #${orden.codigoOrden ?? orden._id.toString().slice(-6).toUpperCase()} por $${(orden.precioTotal ?? orden.total ?? 0).toFixed(2)} — Método: ${orden.metodoPago}. El pedido está listo para ser procesado.`,
+                leida: false,
+                estadoGestion: 'pendiente',
+                metadatos: { timestamp: new Date() }
+            })
+        ));
+    } catch (err) {
+        console.error('❌ Error al crear notificación de confirmación para vendedores:', err.message);
     }
 };
 
@@ -187,15 +207,21 @@ const actualizarEstadoOrden = async (req, res) => {
         orden.fechaEnvio = estadoEnvio ? new Date() : null;
       }
       if (estadoOrden) {
-        // Vendedor solo puede establecer estados relacionados con envío: 'procesando', 'enviado'
-        if (!['procesando', 'enviado'].includes(estadoOrden)) {
-          return res.status(403).json({ msg: "Los vendedores solo pueden actualizar a estados: 'procesando', 'enviado'." });
+        // Vendedor gestiona manualmente todo el flujo de la orden
+        if (!['procesando', 'enviado', 'entregado'].includes(estadoOrden)) {
+          return res.status(403).json({ msg: "Los vendedores solo pueden actualizar a estados: 'procesando', 'enviado', 'entregado'." });
         }
         orden.estadoOrden = estadoOrden;
       }
     }
 
     const ordenActualizada = await orden.save();
+
+    // Notificar a vendedores cuando admin confirma pago
+    if (rol === 'administrador' && estadoPago === true) {
+      crearNotificacionConfirmacionVendedores(ordenActualizada).catch(() => {});
+    }
+
     res.status(200).json({ msg: "Estado de la orden actualizado.", orden: ordenActualizada });
   } catch (error) {
     res.status(500).json({ msg: "Error al actualizar la orden." });

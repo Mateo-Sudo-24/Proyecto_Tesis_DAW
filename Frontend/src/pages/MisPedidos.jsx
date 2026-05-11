@@ -47,19 +47,26 @@ const pageStyles = `
     .mp-step-dot.active { background:var(--orange-main); border-color:var(--orange-main); color:#fff; box-shadow:0 0 0 4px rgba(232,118,10,0.18); }
     .mp-step-dot.done { background:#10b981; border-color:#10b981; color:#fff; }
     .mp-step-dot.canceled { background:#ef4444; border-color:#ef4444; color:#fff; }
+    .mp-step-dot.clickable { cursor:pointer; }
+    .mp-step-dot.clickable:hover { transform:scale(1.18); box-shadow:0 0 0 6px rgba(232,118,10,0.22); border-color:var(--orange-main); color:var(--orange-main); }
+    .mp-step-dot.updating { opacity:0.55; cursor:not-allowed; pointer-events:none; }
     .mp-step-label { font-size:0.62rem; color:#9ca3af; font-weight:600; margin-top:0.3rem; text-align:center; text-transform:capitalize; white-space:nowrap; }
     .mp-step-label.active { color:var(--orange-main); }
     .mp-step-label.done { color:#10b981; }
+    .mp-step-label.clickable { color:var(--orange-main); }
     .mp-step-connector { flex:1; height:2px; background:#e5e7eb; margin-bottom:1.25rem; transition:background 0.2s; min-width:12px; }
     .mp-step-connector.done { background:#10b981; }
     .mp-section-title { font-size:1rem; font-weight:700; color:#374151; margin:0 0 0.75rem; }
+    .mp-vendor-hint { font-size:0.68rem; color:#9ca3af; margin-top:0.35rem; font-style:italic; }
 `;
 
 const ORDER_STEPS = ['pendiente', 'procesando', 'enviado', 'entregado'];
 
 const estadoIcono = { pendiente:'⏳', procesando:'⚙️', enviado:'🚚', entregado:'✅', cancelado:'❌', pagado:'💰' };
 
-const ProgressBar = ({ estadoOrden }) => {
+const ProgressBar = ({ estadoOrden, isVendedor, ordenId, token, onStatusUpdate }) => {
+    const [updating, setUpdating] = useState(false);
+
     if (estadoOrden === 'cancelado') {
         return (
             <div style={{ display:'flex', alignItems:'center', gap:'0.5rem', marginTop:'0.75rem' }}>
@@ -68,33 +75,95 @@ const ProgressBar = ({ estadoOrden }) => {
             </div>
         );
     }
+
+    // Índice actual: si estadoOrden es 'pagado', lo tratamos como 'pendiente' (idx 0)
     const currentIdx = ORDER_STEPS.indexOf(estadoOrden);
+    const effectiveIdx = currentIdx === -1 ? 0 : currentIdx;
+
+    const handleStepClick = async (step, stepIdx) => {
+        // Solo el paso siguiente al actual es clickeable
+        if (stepIdx !== effectiveIdx + 1) return;
+        if (!isVendedor || updating) return;
+
+        setUpdating(true);
+        try {
+            const res = await fetch(
+                `${import.meta.env.VITE_BACKEND_URL}/ordenes/${ordenId}`,
+                {
+                    method: 'PATCH',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        Authorization: `Bearer ${token}`,
+                    },
+                    body: JSON.stringify({ estadoOrden: step }),
+                }
+            );
+            if (!res.ok) throw new Error('No se pudo actualizar el estado.');
+            const data = await res.json();
+            toast.success(`✅ Pedido marcado como "${step}"`);
+            onStatusUpdate(data.orden ?? { estadoOrden: step });
+        } catch {
+            toast.error('Error al actualizar el estado del pedido.');
+        } finally {
+            setUpdating(false);
+        }
+    };
+
     return (
-        <div className="mp-progress">
-            {ORDER_STEPS.map((step, i) => {
-                const isDone   = i < currentIdx;
-                const isActive = i === currentIdx;
-                return (
-                    <div key={step} style={{ display:'contents' }}>
-                        <div className="mp-step">
-                            <div className={`mp-step-dot${isDone ? ' done' : isActive ? ' active' : ''}`}>
-                                {isDone ? '✓' : (i + 1)}
+        <>
+            <div className="mp-progress">
+                {ORDER_STEPS.map((step, i) => {
+                    const isDone   = i < effectiveIdx;
+                    const isActive = i === effectiveIdx;
+                    // Solo el paso siguiente al actual es clickeable para el vendedor
+                    const isClickable = isVendedor && !updating && i === effectiveIdx + 1 && step !== 'pendiente';
+                    const isUpdating  = updating && i === effectiveIdx + 1;
+
+                    const dotClass = [
+                        'mp-step-dot',
+                        isDone   ? 'done'   : '',
+                        isActive ? 'active' : '',
+                        isClickable ? 'clickable' : '',
+                        isUpdating  ? 'updating'  : '',
+                    ].filter(Boolean).join(' ');
+
+                    const labelClass = [
+                        'mp-step-label',
+                        isDone   ? 'done'   : '',
+                        isActive ? 'active' : '',
+                        isClickable ? 'clickable' : '',
+                    ].filter(Boolean).join(' ');
+
+                    return (
+                        <div key={step} style={{ display:'contents' }}>
+                            <div className="mp-step">
+                                <div
+                                    className={dotClass}
+                                    onClick={isClickable ? () => handleStepClick(step, i) : undefined}
+                                    title={isClickable ? `Marcar como "${step}"` : undefined}
+                                >
+                                    {isUpdating ? '…' : isDone ? '✓' : (i + 1)}
+                                </div>
+                                <span className={labelClass}>{step}</span>
                             </div>
-                            <span className={`mp-step-label${isDone ? ' done' : isActive ? ' active' : ''}`}>
-                                {step}
-                            </span>
+                            {i < ORDER_STEPS.length - 1 && (
+                                <div className={`mp-step-connector${isDone ? ' done' : ''}`} />
+                            )}
                         </div>
-                        {i < ORDER_STEPS.length - 1 && (
-                            <div className={`mp-step-connector${isDone ? ' done' : ''}`} />
-                        )}
-                    </div>
-                );
-            })}
-        </div>
+                    );
+                })}
+            </div>
+            {isVendedor && estadoOrden !== 'entregado' && estadoOrden !== 'cancelado' && (
+                <p className="mp-vendor-hint">
+                    💡 Haz clic en el siguiente círculo para avanzar el estado del pedido.
+                </p>
+            )}
+        </>
     );
 };
 
-const OrdenCard = ({ orden, index }) => {
+const OrdenCard = ({ orden: ordenInicial, index, isVendedor, token }) => {
+    const [orden, setOrden] = useState(ordenInicial);
     const [open, setOpen] = useState(false);
     const fecha = new Date(orden.createdAt).toLocaleDateString('es-ES', { day:'2-digit', month:'short', year:'numeric' });
     const total = orden.total ?? orden.items?.reduce((s, it) => s + (it.precio * it.cantidad), 0) ?? 0;
@@ -104,6 +173,10 @@ const OrdenCard = ({ orden, index }) => {
         completado: 'pago-completado',
         fallido: 'pago-fallido',
     }[orden.estadoPago] ?? 'pago-pendiente';
+
+    const handleStatusUpdate = (ordenActualizada) => {
+        setOrden(prev => ({ ...prev, ...ordenActualizada }));
+    };
 
     return (
         <div className="mp-card">
@@ -122,7 +195,13 @@ const OrdenCard = ({ orden, index }) => {
                 </div>
             </div>
 
-            <ProgressBar estadoOrden={orden.estadoOrden} />
+            <ProgressBar
+                estadoOrden={orden.estadoOrden}
+                isVendedor={isVendedor}
+                ordenId={orden._id}
+                token={token}
+                onStatusUpdate={handleStatusUpdate}
+            />
 
             <div className="mp-divider" />
 
@@ -205,7 +284,7 @@ const MisPedidos = () => {
 
     const titulo = isVendedor ? 'Pedidos en curso' : 'Mis pedidos';
     const subtitulo = isVendedor
-        ? 'Visualiza el estado de todos los pedidos realizados en la tienda.'
+        ? 'Gestiona manualmente el estado de cada pedido: haz clic en el siguiente paso para avanzarlo.'
         : 'Consulta el estado de tus pedidos realizados.';
 
     return (
@@ -234,7 +313,13 @@ const MisPedidos = () => {
                     <>
                         <p className="mp-section-title">{ordenes.length} pedido{ordenes.length !== 1 ? 's' : ''}</p>
                         {ordenes.map((orden, i) => (
-                            <OrdenCard key={orden._id} orden={orden} index={i} />
+                            <OrdenCard
+                                key={orden._id}
+                                orden={orden}
+                                index={i}
+                                isVendedor={isVendedor}
+                                token={token}
+                            />
                         ))}
                     </>
                 )}

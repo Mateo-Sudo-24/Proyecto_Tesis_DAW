@@ -387,19 +387,34 @@ const Carrito = () => {
             "POST"
         );
 
+        if (!response?.orden) {
+            setIsCreatingOrder(false);
+            return;
+        }
+
+        const ordenRecien = response.orden;
+        setOrdenCreada(ordenRecien);
+
+        // Si es Stripe, mostrar modal de pago con tarjeta
+        if (metodoPago === "Stripe") {
+            setIsCreatingOrder(false);
+            toast.success("Orden creada. Completa el pago con tarjeta.");
+            setShowModalPago(true);
+            return;
+        }
+
+        // Para métodos no-Stripe: registrar pago directamente en backend
+        const pagoRes = await fetchDataBackend(
+            `${import.meta.env.VITE_BACKEND_URL}/ordenes/pagar`,
+            { ordenId: ordenRecien._id },
+            "POST"
+        );
+
         setIsCreatingOrder(false);
 
-        if (response?.orden) {
-            toast.success("Orden creada exitosamente");
-            setOrdenCreada(response.orden);
-            
-            // Si es Stripe, mostrar el modal de pago
-            if (metodoPago === "Stripe") {
-                setShowModalPago(true);
-            } else {
-                // Para otros métodos de pago, redirigir directamente
-                navigate(`/orden-completa/${response.orden._id}`);
-            }
+        if (pagoRes) {
+            toast.success(`✅ ¡Pedido confirmado! Pago registrado correctamente.`);
+            setTimeout(() => navigate('/dashboard/mis-pedidos'), 1800);
         }
     };
 

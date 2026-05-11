@@ -10,10 +10,12 @@ import {
   marcarLeidaWebhook,
   aprobarPedido,
   rechazarPedido,
-  verificarEstadoNotificacionWebhook
+  verificarEstadoNotificacionWebhook,
+  obtenerNotificacionesVendedor,
+  marcarLeidaVendedor
 } from '../controllers/Notificacion_controller.js';
 import { verificarTokenJWT } from '../middlewares/JWT.js';
-import { esAdmin } from '../middlewares/AuthMiddleware.js';
+import { esAdmin, esVendedor } from '../middlewares/AuthMiddleware.js';
 
 const router = Router();
 
@@ -55,5 +57,15 @@ router.patch('/:id/rechazar', verificarTokenJWT, esAdmin, rechazarPedido);
 
 // DELETE /api/notificaciones/:id -> Eliminar notificación
 router.delete('/:id', verificarTokenJWT, esAdmin, eliminarNotificacion);
+
+// =======================================================================
+// ==         RUTAS PROTEGIDAS PARA VENDEDOR                           ==
+// =======================================================================
+
+// GET /api/notificaciones/vendedor -> Obtener notificaciones del vendedor
+router.get('/vendedor', verificarTokenJWT, esVendedor, obtenerNotificacionesVendedor);
+
+// PATCH /api/notificaciones/vendedor/:id/leida -> Marcar notificación como leída
+router.patch('/vendedor/:id/leida', verificarTokenJWT, esVendedor, marcarLeidaVendedor);
 
 export default router;

@@ -305,10 +305,27 @@ export default function BandejaMensajes() {
     const [filtro, setFiltro] = useState('todas');
     const panelRef = useRef(null);
 
+    // Detectar rol del usuario desde el store de auth en localStorage
+    const getRol = () => {
+        try {
+            return JSON.parse(localStorage.getItem('auth-token'))?.state?.rol ?? null;
+        } catch { return null; }
+    };
+
+    const getToken = () => {
+        try {
+            return JSON.parse(localStorage.getItem('auth-token'))?.state?.token ?? null;
+        } catch { return null; }
+    };
+
     const fetchNotifs = async () => {
         try {
-            const token = JSON.parse(localStorage.getItem('auth-token'))?.state?.token;
-            const res = await fetch(`${import.meta.env.VITE_BACKEND_URL}/notificaciones`, {
+            const token = getToken();
+            const rol = getRol();
+            const endpoint = rol === 'vendedor'
+                ? `${import.meta.env.VITE_BACKEND_URL}/notificaciones/vendedor`
+                : `${import.meta.env.VITE_BACKEND_URL}/notificaciones`;
+            const res = await fetch(endpoint, {
                 headers: { Authorization: `Bearer ${token}` }
             });
             if (!res.ok) return;
@@ -337,8 +354,12 @@ export default function BandejaMensajes() {
 
     const marcarLeida = async (id) => {
         try {
-            const token = JSON.parse(localStorage.getItem('auth-token'))?.state?.token;
-            const res = await fetch(`${import.meta.env.VITE_BACKEND_URL}/notificaciones/${id}/leida`, {
+            const token = getToken();
+            const rol = getRol();
+            const endpoint = rol === 'vendedor'
+                ? `${import.meta.env.VITE_BACKEND_URL}/notificaciones/vendedor/${id}/leida`
+                : `${import.meta.env.VITE_BACKEND_URL}/notificaciones/${id}/leida`;
+            const res = await fetch(endpoint, {
                 method: 'PATCH',
                 headers: { Authorization: `Bearer ${token}` }
             });
@@ -349,7 +370,7 @@ export default function BandejaMensajes() {
     const gestionarPedido = async (id, decision) => {
         setGestionando(id);
         try {
-            const token = JSON.parse(localStorage.getItem('auth-token'))?.state?.token;
+            const token = getToken();
             const res = await fetch(`${import.meta.env.VITE_BACKEND_URL}/notificaciones/${id}/${decision}`, {
                 method: 'PATCH',
                 headers: { Authorization: `Bearer ${token}` }

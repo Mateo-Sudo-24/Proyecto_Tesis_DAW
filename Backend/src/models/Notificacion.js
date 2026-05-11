@@ -37,7 +37,8 @@ const decryptData = (encryptedData) => {
 
 const NotificacionSchema = new mongoose.Schema({
   administrador: { type: mongoose.Schema.Types.ObjectId, ref: 'Administrador', default: null },
-  tipo: { type: String, default: 'stock_critico', enum: ['stock_critico', 'orden_creada', 'pago_completado', 'envio_listo', 'solicitud_cancelacion'] },
+  vendedor: { type: mongoose.Schema.Types.ObjectId, ref: 'Vendedor', default: null },
+  tipo: { type: String, default: 'stock_critico', enum: ['stock_critico', 'orden_creada', 'pago_completado', 'envio_listo', 'solicitud_cancelacion', 'confirmacion_pedido'] },
   mensaje: { type: String, required: true },
   mensajeCifrado: { type: String, default: null }, // Almacena mensaje cifrado
   productos: [{ 

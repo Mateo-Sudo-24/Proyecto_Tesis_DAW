@@ -406,3 +406,41 @@ export const rechazarPedido = async (req, res) => {
     res.status(500).json({ ok: false, msg: 'Error al rechazar pedido' });
   }
 };
+
+// ─── Notificaciones para VENDEDOR ────────────────────────────────────────────
+
+// GET /api/notificaciones/vendedor → Todas las notificaciones del vendedor autenticado
+export const obtenerNotificacionesVendedor = async (req, res) => {
+  const { _id, rol } = req.usuario;
+  if (rol !== 'vendedor') {
+    return res.status(403).json({ msg: 'Acceso denegado. Solo vendedores.' });
+  }
+  try {
+    const notifs = await Notificacion.find({ vendedor: _id })
+      .sort({ createdAt: -1 })
+      .limit(50);
+    res.json({ ok: true, notificaciones: notifs });
+  } catch (error) {
+    res.status(500).json({ msg: 'Error al obtener notificaciones', ok: false });
+  }
+};
+
+// PATCH /api/notificaciones/vendedor/:id/leida → Marcar notificación de vendedor como leída
+export const marcarLeidaVendedor = async (req, res) => {
+  const { id } = req.params;
+  const { _id, rol } = req.usuario;
+  if (rol !== 'vendedor') {
+    return res.status(403).json({ msg: 'Acceso denegado. Solo vendedores.' });
+  }
+  try {
+    const notif = await Notificacion.findById(id);
+    if (!notif) return res.status(404).json({ msg: 'Notificación no encontrada' });
+    if (!notif.vendedor || notif.vendedor.toString() !== _id.toString()) {
+      return res.status(403).json({ msg: 'No tienes permiso para modificar esta notificación' });
+    }
+    await Notificacion.findByIdAndUpdate(id, { leida: true });
+    res.json({ ok: true });
+  } catch (error) {
+    res.status(500).json({ msg: 'Error al actualizar notificación', ok: false });
+  }
+};
