@@ -7,9 +7,7 @@ import cors from 'cors';
 import mongoose from 'mongoose';
 import cloudinary from 'cloudinary';
 import fileUpload from 'express-fileupload';
-import passport from 'passport';
-import session from 'express-session';
-import MongoStore from 'connect-mongo';
+
 
 // --- Tus Routers --- ¡ESTA ES LA SECCIÓN QUE FALTABA! ---
 import routerAdministrador from './routers/Administrador_routers.js';
@@ -22,9 +20,6 @@ import routerBot from './routers/Bot_routers.js';
 import routerChatbot from './routers/Chatbot_routers.js';
 import notificacionRouter from './routers/Notificacion_router.js';
 import routerAuth from './routers/Auth_routers.js';
-
-// --- Configuración de Passport --- (REMOVIDO: No se usa OAuth)
-// import './config/passport.js';
 
 
 // =======================================================================
@@ -77,20 +72,7 @@ app.use(cors(corsOptions));
 app.use(express.json());
 app.use(fileUpload({ useTempFiles: true, tempFileDir: './uploads' }));
 
-// --- Middlewares de Sesión y Passport ---
-app.use(session({
-  secret: process.env.SESSION_SECRET,
-  resave: false,
-  saveUninitialized: false,
-  store: MongoStore.create({ // Ahora 'MongoStore' está definido y funcionará
-    mongoUrl: isProduction ? process.env.MONGODB_URI_PRODUCTION : process.env.MONGODB_URI_LOCAL
-  }),
-  cookie: {
-    maxAge: 1000 * 60 * 60 * 24 // 1 día
-  }
-}));
-app.use(passport.initialize());
-app.use(passport.session());
+
 
 
 // =======================================================================
