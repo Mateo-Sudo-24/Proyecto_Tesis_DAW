@@ -194,15 +194,26 @@ const styles = `
 
     /* ── Media queries móvil ── */
     @media (max-width: 640px) {
-        .notif-page { padding: 1.25rem 0.75rem; }
+        .notif-page { padding: 0.75rem 0; }
+        .notif-inner { padding: 0 0.75rem; }
         .notif-header {
             flex-direction: column;
             align-items: flex-start;
-            padding: 1.25rem 1.25rem;
+            padding: 1rem 1.1rem;
+            gap: 0.75rem;
+            border-radius: 0.75rem;
         }
-        .notif-header h1 { font-size: 1.35rem; }
-        .pendientes-box { width: 100%; display: flex; align-items: center; gap: 0.75rem; padding: 0.6rem 1rem; }
-        .pendientes-box .num { font-size: 1.3rem; }
+        .notif-header h1 { font-size: 1.25rem; }
+        .notif-header p  { font-size: 0.8rem; }
+        .pendientes-box {
+            width: 100%;
+            display: flex;
+            align-items: center;
+            gap: 0.75rem;
+            padding: 0.5rem 0.875rem;
+            border-radius: 0.5rem;
+        }
+        .pendientes-box .num { font-size: 1.25rem; }
         .notif-filtros {
             flex-wrap: nowrap;
             overflow-x: auto;

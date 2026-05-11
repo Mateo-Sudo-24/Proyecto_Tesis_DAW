@@ -17,12 +17,13 @@ const bmStyles = `
         font-size: 1.1rem;
         color: #fff;
         flex-shrink: 0;
+        overflow: visible;
     }
     .bm-bell-btn:hover { background: rgba(255,255,255,0.16); }
 
     .bm-badge {
         position: absolute;
-        top: 2px; right: 2px;
+        top: -5px; right: -5px;
         min-width: 17px; height: 17px;
         background: #ef4444;
         color: #fff;
@@ -33,6 +34,8 @@ const bmStyles = `
         padding: 0 3px;
         border: 2px solid #1f2937;
         line-height: 1;
+        pointer-events: none;
+        z-index: 2;
     }
     .bm-badge.orange { background: #e8760a; }
 
@@ -379,19 +382,22 @@ export default function BandejaMensajes() {
         <>
             <style>{bmStyles}</style>
             <div className="bm-wrap" ref={panelRef}>
-                {/* Campana */}
+                {/* Campana — badge fuera del button para evitar clip en móvil */}
                 <button
                     className="bm-bell-btn"
                     onClick={() => setAbierta(v => !v)}
                     title="Notificaciones"
                 >
                     🔔
-                    {totalBadge > 0 && (
-                        <span className={`bm-badge${pendientes > 0 ? '' : ' orange'}`}>
-                            {totalBadge > 9 ? '9+' : totalBadge}
-                        </span>
-                    )}
                 </button>
+                {totalBadge > 0 && (
+                    <span
+                        className={`bm-badge${pendientes > 0 ? '' : ' orange'}`}
+                        onClick={() => setAbierta(v => !v)}
+                    >
+                        {totalBadge > 9 ? '9+' : totalBadge}
+                    </span>
+                )}
 
                 {/* Panel */}
                 {abierta && (
