@@ -259,9 +259,46 @@ const styles = `
         letter-spacing: 0.03em;
         border-top: 1px solid rgba(255,255,255,0.06);
     }
+    /* ── Mobile sidebar ── */
+    .dsb-sidebar-overlay {
+        display: none;
+        position: fixed;
+        inset: 0;
+        background: rgba(0,0,0,0.55);
+        z-index: 30;
+    }
     @media (max-width: 768px) {
-        .dsb-sidebar { display: none; }
+        .dsb-sidebar-overlay.open { display: block; }
+        .dsb-sidebar {
+            position: fixed;
+            top: 0; left: 0;
+            height: 100vh;
+            z-index: 40;
+            transform: translateX(-100%);
+            transition: transform 0.28s cubic-bezier(.4,0,.2,1);
+            box-shadow: 4px 0 24px rgba(0,0,0,0.35);
+        }
+        .dsb-sidebar.mobile-open {
+            transform: translateX(0);
+        }
         .dsb-content { padding: 1rem; }
+        .dsb-topbar { justify-content: space-between; padding: 0.7rem 1rem; }
+    }
+    /* ── Hamburger button ── */
+    .dsb-hamburger {
+        display: none;
+        background: none;
+        border: none;
+        cursor: pointer;
+        padding: 0.35rem;
+        border-radius: 0.375rem;
+        color: #f9fafb;
+        transition: background 0.15s;
+    }
+    .dsb-hamburger:hover { background: rgba(255,255,255,0.08); }
+    .dsb-hamburger svg { display: block; }
+    @media (max-width: 768px) {
+        .dsb-hamburger { display: flex; align-items: center; }
     }
 `;
 
@@ -272,6 +309,9 @@ const Dashboard = () => {
     const { clearToken } = storeAuth()
     const { user } = storeProfile()
     const [gestionOpen, setGestionOpen] = useState(false)
+    const [sidebarOpen, setSidebarOpen] = useState(false)
+
+    const closeSidebar = () => setSidebarOpen(false)
 
     const displayName = user?.nombre || user?.nombrePropietario || "Usuario"
     const initial = displayName.charAt(0).toUpperCase()
@@ -280,6 +320,7 @@ const Dashboard = () => {
     const isAdmin = user?.rol === "administrador"
 
     const lc = (path) => `dsb-nav-link${urlActual === path ? ' active' : ''}`
+    const lcMobile = (path) => { closeSidebar(); return lc(path); }
 
     const gestionActive = urlActual === '/dashboard/listar' || urlActual === '/dashboard/crear'
 
@@ -288,8 +329,14 @@ const Dashboard = () => {
             <style>{styles}</style>
             <div className="dsb-layout">
 
+                {/* ── Overlay móvil ── */}
+                <div
+                    className={`dsb-sidebar-overlay${sidebarOpen ? ' open' : ''}`}
+                    onClick={closeSidebar}
+                />
+
                 {/* ── Sidebar ── */}
-                <aside className="dsb-sidebar">
+                <aside className={`dsb-sidebar${sidebarOpen ? ' mobile-open' : ''}`}>
 
                     {/* Brand */}
                     <div className="dsb-brand">
@@ -313,11 +360,11 @@ const Dashboard = () => {
                     <nav className="dsb-nav">
                         <span className="dsb-nav-section">Principal</span>
 
-                        <Link to="/dashboard" className={lc('/dashboard')}>
+                        <Link to="/dashboard" className={lc('/dashboard')} onClick={closeSidebar}>
                             <span className="dsb-icon">👤</span> Perfil
                         </Link>
 
-                        <Link to="/dashboard/chat" className={lc('/dashboard/chat')}>
+                        <Link to="/dashboard/chat" className={lc('/dashboard/chat')} onClick={closeSidebar}>
                             <span className="dsb-icon">💬</span> Chat
                         </Link>
 
@@ -337,10 +384,10 @@ const Dashboard = () => {
                                     </div>
                                 </button>
                                 <div className={`dsb-submenu${gestionOpen ? ' open' : ''}`}>
-                                    <Link to="/dashboard/listar" className={lc('/dashboard/listar')}>
+                                    <Link to="/dashboard/listar" className={lc('/dashboard/listar')} onClick={closeSidebar}>
                                         <span className="dsb-icon">📋</span> Listar
                                     </Link>
-                                    <Link to="/dashboard/crear" className={lc('/dashboard/crear')}>
+                                    <Link to="/dashboard/crear" className={lc('/dashboard/crear')} onClick={closeSidebar}>
                                         <span className="dsb-icon">➕</span> Crear
                                     </Link>
                                 </div>
@@ -350,10 +397,10 @@ const Dashboard = () => {
                         {/* Admin específico */}
                         {isAdmin && (
                             <>
-                                <Link to="/dashboard/productos-admin" className={lc('/dashboard/productos-admin')}>
+                                <Link to="/dashboard/productos-admin" className={lc('/dashboard/productos-admin')} onClick={closeSidebar}>
                                     <span className="dsb-icon">📦</span> Productos
                                 </Link>
-                                <Link to="/dashboard/notificaciones" className={lc('/dashboard/notificaciones')}>
+                                <Link to="/dashboard/notificaciones" className={lc('/dashboard/notificaciones')} onClick={closeSidebar}>
                                     <span className="dsb-icon">🔔</span> Notificaciones
                                 </Link>
                             </>
@@ -363,10 +410,10 @@ const Dashboard = () => {
                         {isCliente && (
                             <>
                                 <span className="dsb-nav-section">Tienda</span>
-                                <Link to="/dashboard/productos" className={lc('/dashboard/productos')}>
+                                <Link to="/dashboard/productos" className={lc('/dashboard/productos')} onClick={closeSidebar}>
                                     <span className="dsb-icon">🧵</span> Productos
                                 </Link>
-                                <Link to="/dashboard/carrito" className={lc('/dashboard/carrito')}>
+                                <Link to="/dashboard/carrito" className={lc('/dashboard/carrito')} onClick={closeSidebar}>
                                     <span className="dsb-icon">🛒</span> Carrito
                                 </Link>
                             </>
@@ -387,6 +434,27 @@ const Dashboard = () => {
                 {/* ── Main ── */}
                 <div className="dsb-main">
                     <header className="dsb-topbar">
+                        {/* Botón hamburguesa (solo móvil) */}
+                        <button
+                            className="dsb-hamburger"
+                            onClick={() => setSidebarOpen(o => !o)}
+                            aria-label="Abrir menú"
+                        >
+                            <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round">
+                                {sidebarOpen ? (
+                                    <>
+                                        <line x1="18" y1="6" x2="6" y2="18"/>
+                                        <line x1="6" y1="6" x2="18" y2="18"/>
+                                    </>
+                                ) : (
+                                    <>
+                                        <line x1="3" y1="6" x2="21" y2="6"/>
+                                        <line x1="3" y1="12" x2="21" y2="12"/>
+                                        <line x1="3" y1="18" x2="21" y2="18"/>
+                                    </>
+                                )}
+                            </svg>
+                        </button>
                         <div className="dsb-topbar-user">
                             <span className="dsb-topbar-name">{displayName}</span>
                             <div
