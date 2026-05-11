@@ -1,8 +1,309 @@
 import { useEffect, useState } from "react";
 import { toast } from "react-toastify";
 import { Link, useNavigate } from "react-router-dom";
-import useFetch from "../../hooks/useFetch"; // Asegúrate de que la ruta sea correcta
-import ModalPago from "./ModalPago.jsx"; // ajusta la ruta si es diferente
+import useFetch from "../../hooks/useFetch";
+import ModalPago from "./ModalPago.jsx";
+
+const cartStyles = `
+    :root {
+        --orange-main:   #e8760a;
+        --orange-dark:   #c4620a;
+        --orange-light:  #fde8ce;
+        --orange-border: #f0943a;
+    }
+
+    /* ── Contenedor principal ── */
+    .cart-wrapper {
+        max-width: 1100px;
+        margin: 0 auto;
+        padding: 2rem 1rem;
+        font-family: 'Inter', system-ui, sans-serif;
+    }
+    .cart-title {
+        font-size: 1.5rem;
+        font-weight: 900;
+        color: #111827;
+        margin-bottom: 1.75rem;
+        display: flex;
+        align-items: center;
+        gap: 0.6rem;
+    }
+    .cart-title-icon {
+        width: 36px;
+        height: 36px;
+        background: var(--orange-light);
+        border-radius: 0.625rem;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-size: 1.1rem;
+    }
+
+    /* ── Spinner ── */
+    .cart-spinner-wrap {
+        display: flex;
+        justify-content: center;
+        padding: 5rem 0;
+    }
+    .cart-spinner {
+        width: 44px;
+        height: 44px;
+        border: 4px solid #e5e7eb;
+        border-top-color: var(--orange-main);
+        border-radius: 50%;
+        animation: cart-spin 0.7s linear infinite;
+    }
+    @keyframes cart-spin { to { transform: rotate(360deg); } }
+
+    /* ── Estado vacío ── */
+    .cart-empty {
+        text-align: center;
+        padding: 5rem 2rem;
+        background: #fff;
+        border-radius: 1.25rem;
+        border: 1px solid #e5e7eb;
+        box-shadow: 0 1px 4px rgba(0,0,0,0.05);
+    }
+    .cart-empty-icon { font-size: 3.5rem; margin-bottom: 1rem; }
+    .cart-empty h3 { font-size: 1.2rem; font-weight: 700; color: #374151; margin-bottom: 0.5rem; }
+    .cart-empty p { font-size: 0.875rem; color: #9ca3af; margin-bottom: 1.75rem; }
+
+    /* ── Grid ── */
+    .cart-grid {
+        display: grid;
+        grid-template-columns: 1fr;
+        gap: 1.5rem;
+    }
+    @media (min-width: 1024px) {
+        .cart-grid { grid-template-columns: 1fr 340px; }
+    }
+
+    /* ── Card base ── */
+    .cart-card {
+        background: #fff;
+        border-radius: 1.25rem;
+        border: 1px solid #e5e7eb;
+        box-shadow: 0 1px 6px rgba(0,0,0,0.06);
+        overflow: hidden;
+    }
+
+    /* ── Tabla ── */
+    .cart-table-wrap { overflow-x: auto; }
+    .cart-table {
+        width: 100%;
+        border-collapse: collapse;
+        font-size: 0.875rem;
+    }
+    .cart-table thead tr {
+        background: #111827;
+    }
+    .cart-table thead th {
+        padding: 0.85rem 1rem;
+        color: #d1d5db;
+        font-size: 0.72rem;
+        font-weight: 700;
+        text-transform: uppercase;
+        letter-spacing: 0.08em;
+    }
+    .cart-table thead th:first-child { text-align: left; border-radius: 0; }
+    .cart-table thead th:last-child { border-radius: 0; }
+    .cart-table tbody tr {
+        border-bottom: 1px solid #f3f4f6;
+        transition: background 0.15s;
+    }
+    .cart-table tbody tr:hover { background: #fafaf9; }
+    .cart-table tbody tr:last-child { border-bottom: none; }
+    .cart-table td { padding: 0.875rem 1rem; vertical-align: middle; }
+    .cart-product-cell { display: flex; align-items: center; gap: 0.875rem; }
+    .cart-product-img {
+        width: 56px;
+        height: 56px;
+        object-fit: cover;
+        border-radius: 0.75rem;
+        flex-shrink: 0;
+        border: 1px solid #e5e7eb;
+    }
+    .cart-product-name { font-weight: 700; color: #1f2937; font-size: 0.875rem; }
+    .cart-price { color: #6b7280; font-weight: 600; text-align: center; }
+    .cart-qty-input {
+        width: 68px;
+        border: 1.5px solid #d1d5db;
+        border-radius: 0.625rem;
+        padding: 0.35rem 0.5rem;
+        text-align: center;
+        font-size: 0.875rem;
+        font-weight: 600;
+        color: #111827;
+        transition: border-color 0.15s, box-shadow 0.15s;
+        outline: none;
+    }
+    .cart-qty-input:focus {
+        border-color: var(--orange-main);
+        box-shadow: 0 0 0 3px rgba(232,118,10,0.15);
+    }
+    .cart-subtotal { text-align: right; font-weight: 700; color: #111827; }
+    .cart-delete-btn {
+        background: #fef2f2;
+        color: #ef4444;
+        border: none;
+        border-radius: 0.5rem;
+        padding: 0.4rem 0.75rem;
+        font-size: 0.78rem;
+        font-weight: 700;
+        cursor: pointer;
+        transition: background 0.15s, color 0.15s;
+        white-space: nowrap;
+    }
+    .cart-delete-btn:hover { background: #fee2e2; color: #dc2626; }
+
+    /* ── Footer tabla ── */
+    .cart-table-footer {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        padding: 0.875rem 1rem;
+        border-top: 1px solid #f3f4f6;
+        background: #fafaf9;
+    }
+    .cart-clear-btn {
+        font-size: 0.82rem;
+        font-weight: 700;
+        color: #6b7280;
+        background: none;
+        border: none;
+        cursor: pointer;
+        transition: color 0.15s;
+        display: flex;
+        align-items: center;
+        gap: 0.35rem;
+    }
+    .cart-clear-btn:hover { color: #ef4444; }
+    .cart-continue-link {
+        font-size: 0.82rem;
+        font-weight: 700;
+        color: #6b7280;
+        text-decoration: none;
+        transition: color 0.15s;
+        display: flex;
+        align-items: center;
+        gap: 0.35rem;
+    }
+    .cart-continue-link:hover { color: var(--orange-main); }
+
+    /* ── Panel lateral ── */
+    .cart-sidebar { display: flex; flex-direction: column; gap: 1rem; }
+
+    /* ── Resumen ── */
+    .cart-summary { padding: 1.25rem 1.5rem; }
+    .cart-summary h3 {
+        font-size: 0.95rem;
+        font-weight: 800;
+        color: #111827;
+        margin-bottom: 1rem;
+        display: flex;
+        align-items: center;
+        gap: 0.4rem;
+    }
+    .cart-summary-row {
+        display: flex;
+        justify-content: space-between;
+        font-size: 0.875rem;
+        color: #6b7280;
+        margin-bottom: 0.5rem;
+    }
+    .cart-summary-free { color: #16a34a; font-weight: 700; }
+    .cart-summary-divider { border: none; border-top: 1px solid #f3f4f6; margin: 0.875rem 0; }
+    .cart-summary-total {
+        display: flex;
+        justify-content: space-between;
+        font-size: 1.1rem;
+        font-weight: 900;
+        color: #111827;
+    }
+    .cart-summary-total-amount { color: var(--orange-main); }
+
+    /* ── Formulario envío ── */
+    .cart-form { padding: 1.25rem 1.5rem; }
+    .cart-form h3 {
+        font-size: 0.95rem;
+        font-weight: 800;
+        color: #111827;
+        margin-bottom: 1rem;
+        display: flex;
+        align-items: center;
+        gap: 0.4rem;
+    }
+    .cart-form-group { margin-bottom: 0.875rem; }
+    .cart-form-row { display: grid; grid-template-columns: 1fr 1fr; gap: 0.625rem; margin-bottom: 0.875rem; }
+    .cart-label {
+        display: block;
+        font-size: 0.72rem;
+        font-weight: 700;
+        color: #6b7280;
+        text-transform: uppercase;
+        letter-spacing: 0.06em;
+        margin-bottom: 0.35rem;
+    }
+    .cart-input, .cart-select {
+        width: 100%;
+        border: 1.5px solid #e5e7eb;
+        border-radius: 0.75rem;
+        padding: 0.6rem 0.875rem;
+        font-size: 0.875rem;
+        color: #111827;
+        background: #fff;
+        transition: border-color 0.15s, box-shadow 0.15s;
+        outline: none;
+        box-sizing: border-box;
+    }
+    .cart-input:focus, .cart-select:focus {
+        border-color: var(--orange-main);
+        box-shadow: 0 0 0 3px rgba(232,118,10,0.15);
+    }
+    .cart-input::placeholder { color: #d1d5db; }
+
+    /* ── Botón confirmar ── */
+    .cart-submit-btn {
+        width: 100%;
+        padding: 0.9rem 1.5rem;
+        background: linear-gradient(135deg, #e8760a 0%, #c4620a 100%);
+        color: #fff;
+        font-weight: 800;
+        font-size: 0.95rem;
+        border: none;
+        border-radius: 0.875rem;
+        cursor: pointer;
+        margin-top: 1.25rem;
+        box-shadow: 0 4px 14px rgba(232,118,10,0.35);
+        transition: filter 0.15s, transform 0.15s, box-shadow 0.15s;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        gap: 0.5rem;
+        letter-spacing: 0.01em;
+    }
+    .cart-submit-btn:hover:not(:disabled) {
+        filter: brightness(1.07);
+        transform: translateY(-2px);
+        box-shadow: 0 8px 20px rgba(232,118,10,0.4);
+    }
+    .cart-submit-btn:active:not(:disabled) { transform: scale(0.97); }
+    .cart-submit-btn:disabled { opacity: 0.55; cursor: not-allowed; }
+
+    /* ── Link vaciar/tienda (empty state) ── */
+    .cart-shop-link {
+        display: inline-block;
+        background: #111827;
+        color: #f9fafb;
+        padding: 0.75rem 2rem;
+        border-radius: 0.875rem;
+        font-weight: 700;
+        font-size: 0.9rem;
+        text-decoration: none;
+        transition: background 0.15s, transform 0.15s;
+    }
+    .cart-shop-link:hover { background: var(--orange-dark); transform: translateY(-1px); }
+`;
 
 const Carrito = () => {
     const [carrito, setCarrito] = useState(null);
@@ -115,134 +416,152 @@ const Carrito = () => {
 
     return (
         <>
-            <div className="max-w-5xl mx-auto py-6">
-                <h2 className="text-2xl font-extrabold text-gray-800 mb-6">🛒 Mi Carrito</h2>
-                
+            <style>{cartStyles}</style>
+            <div className="cart-wrapper">
+                <h2 className="cart-title">
+                    <span className="cart-title-icon">🛒</span>
+                    Mi Carrito
+                </h2>
+
                 {isLoadingCart ? (
-                    <div className="flex justify-center py-16">
-                        <div className="w-10 h-10 border-4 border-gray-600 border-t-transparent rounded-full animate-spin"></div>
+                    <div className="cart-spinner-wrap">
+                        <div className="cart-spinner" />
                     </div>
                 ) : !carrito || carrito.items.length === 0 ? (
-                    <div className="text-center text-gray-400 py-16 bg-white rounded-2xl shadow-sm border border-gray-100">
-                        <p className="text-5xl mb-4">🛍️</p>
-                        <p className="text-xl font-semibold text-gray-600">Tu carrito está vacío</p>
-                        <p className="text-sm text-gray-400 mt-2 mb-6">Explora nuestros productos y agrega lo que más te guste</p>
-                        <Link to="/dashboard/productos" className="bg-gray-500 text-white px-6 py-3 rounded-xl font-bold hover:bg-gray-900 transition shadow-sm">
+                    <div className="cart-empty">
+                        <div className="cart-empty-icon">🛍️</div>
+                        <h3>Tu carrito está vacío</h3>
+                        <p>Explora nuestros productos y agrega lo que más te guste</p>
+                        <Link to="/dashboard/productos" className="cart-shop-link">
                             Ver productos
                         </Link>
                     </div>
                 ) : (
-                    <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-                        {/* Tabla de items */}
-                        <div className="lg:col-span-2">
-                            <div className="bg-white rounded-2xl shadow-sm border border-gray-100 overflow-hidden">
-                                <div className="overflow-x-auto">
-                                    <table className="w-full text-sm">
-                                        <thead className="bg-gray-800 text-gray-100 uppercase text-xs">
-                                            <tr>
-                                                <th className="px-4 py-3 text-left">Producto</th>
-                                                <th className="px-4 py-3 text-center">Precio</th>
-                                                <th className="px-4 py-3 text-center">Cantidad</th>
-                                                <th className="px-4 py-3 text-right">Subtotal</th>
-                                                <th className="px-4 py-3 text-center"></th>
-                                            </tr>
-                                        </thead>
-                                        <tbody>
-                                            {carrito.items.map((item) => (
-                                                <tr key={item.producto?._id} className="border-b border-gray-100 hover:bg-gray-50 transition">
-                                                    <td className="px-4 py-3">
-                                                        <div className="flex items-center gap-3">
-                                                            <img src={item.producto?.imagenUrl || "/images/no-image.png"} alt={item.producto?.nombre} className="w-14 h-14 object-cover rounded-xl flex-shrink-0" />
-                                                            <span className="font-semibold text-gray-700">{item.producto?.nombre}</span>
-                                                        </div>
-                                                    </td>
-                                                    <td className="px-4 py-3 text-center text-gray-600">${item.producto?.precio?.toFixed(2)}</td>
-                                                    <td className="px-4 py-3 text-center">
-                                                        <input
-                                                            type="number"
-                                                            min={1}
-                                                            value={item.cantidad}
-                                                            onChange={e => cambiarCantidad(item.producto?._id, parseInt(e.target.value))}
-                                                            className="w-16 border border-gray-300 rounded-lg px-2 py-1 text-center focus:ring-2 focus:ring-purple-700 focus:outline-none"
+                    <div className="cart-grid">
+                        {/* ── Tabla de items ── */}
+                        <div className="cart-card">
+                            <div className="cart-table-wrap">
+                                <table className="cart-table">
+                                    <thead>
+                                        <tr>
+                                            <th style={{textAlign:'left'}}>Producto</th>
+                                            <th style={{textAlign:'center'}}>Precio</th>
+                                            <th style={{textAlign:'center'}}>Cantidad</th>
+                                            <th style={{textAlign:'right'}}>Subtotal</th>
+                                            <th style={{textAlign:'center'}}></th>
+                                        </tr>
+                                    </thead>
+                                    <tbody>
+                                        {carrito.items.map((item) => (
+                                            <tr key={item.producto?._id}>
+                                                <td>
+                                                    <div className="cart-product-cell">
+                                                        <img
+                                                            src={item.producto?.imagenUrl || "/images/no-image.png"}
+                                                            alt={item.producto?.nombre}
+                                                            className="cart-product-img"
                                                         />
-                                                    </td>
-                                                    <td className="px-4 py-3 text-right font-semibold text-gray-700">${((item.producto?.precio || 0) * item.cantidad).toFixed(2)}</td>
-                                                    <td className="px-4 py-3 text-center">
-                                                        <button
-                                                            className="text-red-400 hover:text-red-600 transition font-semibold text-xs bg-red-50 hover:bg-red-100 px-3 py-1.5 rounded-lg"
-                                                            onClick={() => eliminarItem(item.producto?._id)}
-                                                        >
-                                                            Eliminar
-                                                        </button>
-                                                    </td>
-                                                </tr>
-                                            ))}
-                                        </tbody>
-                                    </table>
-                                </div>
-                                <div className="flex justify-between items-center px-4 py-3 border-t border-gray-100">
-                                    <button
-                                        className="text-sm text-gray-500 hover:text-red-500 transition font-semibold"
-                                        onClick={vaciarCarrito}
-                                    >
-                                        🗑️ Vaciar carrito
-                                    </button>
-                                    <Link to="/dashboard/productos" className="text-sm text-gray-600 hover:text-gray-900 font-semibold transition">
-                                        ← Seguir comprando
-                                    </Link>
-                                </div>
+                                                        <span className="cart-product-name">{item.producto?.nombre}</span>
+                                                    </div>
+                                                </td>
+                                                <td className="cart-price">${item.producto?.precio?.toFixed(2)}</td>
+                                                <td style={{textAlign:'center'}}>
+                                                    <input
+                                                        type="number"
+                                                        min={1}
+                                                        value={item.cantidad}
+                                                        onChange={e => cambiarCantidad(item.producto?._id, parseInt(e.target.value))}
+                                                        className="cart-qty-input"
+                                                    />
+                                                </td>
+                                                <td className="cart-subtotal">
+                                                    ${((item.producto?.precio || 0) * item.cantidad).toFixed(2)}
+                                                </td>
+                                                <td style={{textAlign:'center'}}>
+                                                    <button
+                                                        className="cart-delete-btn"
+                                                        onClick={() => eliminarItem(item.producto?._id)}
+                                                    >
+                                                        Eliminar
+                                                    </button>
+                                                </td>
+                                            </tr>
+                                        ))}
+                                    </tbody>
+                                </table>
+                            </div>
+                            <div className="cart-table-footer">
+                                <button className="cart-clear-btn" onClick={vaciarCarrito}>
+                                    🗑️ Vaciar carrito
+                                </button>
+                                <Link to="/dashboard/productos" className="cart-continue-link">
+                                    ← Seguir comprando
+                                </Link>
                             </div>
                         </div>
 
-                        {/* Panel lateral: resumen + formulario */}
-                        <div className="space-y-4">
+                        {/* ── Panel lateral ── */}
+                        <div className="cart-sidebar">
                             {/* Resumen */}
-                            <div className="bg-white rounded-2xl shadow-sm border border-gray-100 p-5">
-                                <h3 className="font-bold text-gray-800 mb-3">Resumen del pedido</h3>
-                                <div className="flex justify-between text-sm text-gray-600 mb-1">
-                                    <span>Subtotal</span><span>${subtotal.toFixed(2)}</span>
+                            <div className="cart-card cart-summary">
+                                <h3>📋 Resumen del pedido</h3>
+                                <div className="cart-summary-row">
+                                    <span>Subtotal</span>
+                                    <span>${subtotal.toFixed(2)}</span>
                                 </div>
-                                <div className="flex justify-between text-sm text-gray-600 mb-3">
-                                    <span>Envío</span><span className="text-green-600 font-semibold">Gratis</span>
+                                <div className="cart-summary-row">
+                                    <span>Envío</span>
+                                    <span className="cart-summary-free">Gratis</span>
                                 </div>
-                                <hr className="border-gray-100 mb-3" />
-                                <div className="flex justify-between font-extrabold text-gray-800 text-lg">
-                                    <span>Total</span><span className="text-gray-600">${subtotal.toFixed(2)}</span>
+                                <hr className="cart-summary-divider" />
+                                <div className="cart-summary-total">
+                                    <span>Total</span>
+                                    <span className="cart-summary-total-amount">${subtotal.toFixed(2)}</span>
                                 </div>
                             </div>
 
-                            {/* Formulario de envío */}
-                            <form onSubmit={handleCrearOrden} className="bg-white rounded-2xl shadow-sm border border-gray-100 p-5">
-                                <h3 className="font-bold text-gray-800 mb-4">Datos de envío</h3>
-                                
-                                <div className="space-y-3">
-                                    <div>
-                                        <label className="block mb-1 text-xs font-semibold text-gray-600">Dirección</label>
-                                        <input type="text" className="w-full border border-gray-300 rounded-xl px-3 py-2 text-sm focus:ring-2 focus:ring-purple-700 focus:border-purple-700 focus:outline-none transition" placeholder="Calle Principal 123" value={direccion} onChange={e => setDireccion(e.target.value)} required />
+                            {/* Formulario envío */}
+                            <div className="cart-card">
+                                <form onSubmit={handleCrearOrden} className="cart-form">
+                                    <h3>📦 Datos de envío</h3>
+
+                                    <div className="cart-form-group">
+                                        <label className="cart-label">Dirección</label>
+                                        <input
+                                            type="text"
+                                            className="cart-input"
+                                            placeholder="Calle Principal 123"
+                                            value={direccion}
+                                            onChange={e => setDireccion(e.target.value)}
+                                            required
+                                        />
                                     </div>
-                                    <div className="grid grid-cols-2 gap-2">
+
+                                    <div className="cart-form-row">
                                         <div>
-                                            <label className="block mb-1 text-xs font-semibold text-gray-600">Ciudad</label>
-                                            <input type="text" className="w-full border border-gray-300 rounded-xl px-3 py-2 text-sm focus:ring-2 focus:ring-purple-700 focus:border-purple-700 focus:outline-none transition" placeholder="Guayaquil" value={ciudad} onChange={e => setCiudad(e.target.value)} required />
+                                            <label className="cart-label">Ciudad</label>
+                                            <input type="text" className="cart-input" placeholder="Guayaquil" value={ciudad} onChange={e => setCiudad(e.target.value)} required />
                                         </div>
                                         <div>
-                                            <label className="block mb-1 text-xs font-semibold text-gray-600">Provincia</label>
-                                            <input type="text" className="w-full border border-gray-300 rounded-xl px-3 py-2 text-sm focus:ring-2 focus:ring-purple-700 focus:border-purple-700 focus:outline-none transition" placeholder="Guayas" value={provincia} onChange={e => setProvincia(e.target.value)} required />
-                                        </div>
-                                    </div>
-                                    <div className="grid grid-cols-2 gap-2">
-                                        <div>
-                                            <label className="block mb-1 text-xs font-semibold text-gray-600">Cód. Postal</label>
-                                            <input type="text" className="w-full border border-gray-300 rounded-xl px-3 py-2 text-sm focus:ring-2 focus:ring-purple-700 focus:border-purple-700 focus:outline-none transition" placeholder="090101" value={codigoPostal} onChange={e => setCodigoPostal(e.target.value)} required />
-                                        </div>
-                                        <div>
-                                            <label className="block mb-1 text-xs font-semibold text-gray-600">País</label>
-                                            <input type="text" className="w-full border border-gray-300 rounded-xl px-3 py-2 text-sm focus:ring-2 focus:ring-purple-700 focus:border-purple-700 focus:outline-none transition bg-gray-50" value={pais} onChange={e => setPais(e.target.value)} required />
+                                            <label className="cart-label">Provincia</label>
+                                            <input type="text" className="cart-input" placeholder="Guayas" value={provincia} onChange={e => setProvincia(e.target.value)} required />
                                         </div>
                                     </div>
-                                    <div>
-                                        <label className="block mb-1 text-xs font-semibold text-gray-600">Método de pago</label>
-                                        <select className="w-full border border-gray-300 rounded-xl px-3 py-2 text-sm focus:ring-2 focus:ring-purple-700 focus:border-purple-700 focus:outline-none transition" value={metodoPago} onChange={e => setMetodoPago(e.target.value)} required>
+
+                                    <div className="cart-form-row">
+                                        <div>
+                                            <label className="cart-label">Cód. Postal</label>
+                                            <input type="text" className="cart-input" placeholder="090101" value={codigoPostal} onChange={e => setCodigoPostal(e.target.value)} required />
+                                        </div>
+                                        <div>
+                                            <label className="cart-label">País</label>
+                                            <input type="text" className="cart-input" value={pais} onChange={e => setPais(e.target.value)} required />
+                                        </div>
+                                    </div>
+
+                                    <div className="cart-form-group">
+                                        <label className="cart-label">Método de pago</label>
+                                        <select className="cart-select" value={metodoPago} onChange={e => setMetodoPago(e.target.value)} required>
                                             <option value="Transferencia Bancaria">Transferencia Bancaria</option>
                                             <option value="Contra Entrega">Contra Entrega</option>
                                             <option value="Tarjeta de Crédito">Tarjeta de Crédito</option>
@@ -251,26 +570,26 @@ const Carrito = () => {
                                             <option value="Stripe">Stripe</option>
                                         </select>
                                     </div>
-                                </div>
 
-                                <button
-                                    type="submit"
-                                    className="mt-5 w-full bg-gray-500 text-white py-3 rounded-xl font-bold hover:bg-gray-900 transition shadow-sm hover:shadow-md disabled:opacity-60 disabled:cursor-not-allowed"
-                                    disabled={isCreatingOrder}
-                                >
-                                    {isCreatingOrder ? "Procesando..." : "Confirmar pedido"}
-                                </button>
-                            </form>
+                                    <button type="submit" className="cart-submit-btn" disabled={isCreatingOrder}>
+                                        {isCreatingOrder ? (
+                                            <>
+                                                <span style={{width:'16px',height:'16px',border:'2px solid rgba(255,255,255,0.4)',borderTopColor:'#fff',borderRadius:'50%',display:'inline-block',animation:'cart-spin 0.7s linear infinite'}} />
+                                                Procesando...
+                                            </>
+                                        ) : (
+                                            <>✅ Confirmar pedido</>
+                                        )}
+                                    </button>
+                                </form>
+                            </div>
                         </div>
                     </div>
                 )}
             </div>
 
             {showModalPago && ordenCreada && (
-                <ModalPago 
-                    orden={ordenCreada} 
-                    closeModal={closeModalPago}
-                />
+                <ModalPago orden={ordenCreada} closeModal={closeModalPago} />
             )}
         </>
     );
