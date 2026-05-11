@@ -345,11 +345,13 @@ const Chat = () => {
     const { token } = storeAuth();
 
     const [socket, setSocket] = useState(null);
-    const [usuarios, setUsuarios] = useState([]);           // todos los usuarios verificados
+    const [usuarios, setUsuarios] = useState([]);           // todos los usuarios verificados (para staff)
+    const [vendedores, setVendedores] = useState([]);        // vendedores activos (para clientes)
     const [onlineIds, setOnlineIds] = useState(new Set());  // IDs conectados al socket
-    const [clienteActivo, setClienteActivo] = useState(null);
-    const [conversaciones, setConversaciones] = useState({});
-    const [msgsCliente, setMsgsCliente] = useState([]);
+    const [clienteActivo, setClienteActivo] = useState(null);  // contacto activo para staff
+    const [contactoActivo, setContactoActivo] = useState(null); // contacto activo para cliente (null = soporte)
+    const [conversaciones, setConversaciones] = useState({});        // mensajes staff: { userId: [] }
+    const [conversacionesCliente, setConversacionesCliente] = useState({}); // mensajes cliente: { contactId: [] }
     const [showConversacion, setShowConversacion] = useState(false);
 
     const { register, handleSubmit, reset, watch } = useForm();
@@ -367,15 +369,25 @@ const Chat = () => {
     // Scroll al último mensaje
     useEffect(() => {
         messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
-    }, [conversaciones, msgsCliente, clienteActivo]);
+    }, [conversaciones, conversacionesCliente, clienteActivo, contactoActivo]);
 
-    // Cargar usuarios verificados via HTTP al montar
+    // Cargar usuarios verificados via HTTP al montar (staff)
     useEffect(() => {
         if (!token || !isStaff) return;
         const headers = { Authorization: `Bearer ${token}` };
         fetch(`${import.meta.env.VITE_BACKEND_URL}/admin/usuarios-chat`, { headers })
             .then(r => r.json())
             .then(data => { if (Array.isArray(data)) setUsuarios(data); })
+            .catch(() => {});
+    }, [token, isStaff]);
+
+    // Cargar vendedores activos via HTTP al montar (cliente)
+    useEffect(() => {
+        if (!token || isStaff) return;
+        const headers = { Authorization: `Bearer ${token}` };
+        fetch(`${import.meta.env.VITE_BACKEND_URL}/vendedores/publicos`, { headers })
+            .then(r => r.json())
+            .then(data => { if (Array.isArray(data)) setVendedores(data); })
             .catch(() => {});
     }, [token, isStaff]);
 
@@ -404,9 +416,13 @@ const Chat = () => {
             setConversaciones(prev => ({ ...prev, [clienteId]: historial }));
         });
 
-        // Cliente: recibir respuesta de soporte
+        // Cliente: recibir respuesta de soporte o vendedor
         sock.on('mensaje_de_staff', (msg) => {
-            setMsgsCliente(prev => [...prev, msg]);
+            const contactId = msg.de?.id || 'soporte';
+            setConversacionesCliente(prev => ({
+                ...prev,
+                [contactId]: [...(prev[contactId] || []), msg]
+            }));
         });
 
         return () => sock.disconnect();
@@ -427,15 +443,18 @@ const Chat = () => {
         if (isStaff) {
             if (!clienteActivo) return;
             socket.emit('mensaje_staff', { para: clienteActivo.id, texto: mensaje.trim() });
-            // El servidor hace echo del mensaje — no agregar localmente para evitar duplicados
         } else {
-            socket.emit('mensaje_cliente', { texto: mensaje.trim() });
+            const contactId = contactoActivo?.id || 'soporte';
+            socket.emit('mensaje_cliente', { texto: mensaje.trim(), para: contactoActivo?.id || undefined });
             const msg = {
                 de: { id: miId, nombre: miNombre, rol: 'cliente' },
                 texto: mensaje.trim(),
                 timestamp: new Date(),
             };
-            setMsgsCliente(prev => [...prev, msg]);
+            setConversacionesCliente(prev => ({
+                ...prev,
+                [contactId]: [...(prev[contactId] || []), msg]
+            }));
         }
     };
 
@@ -457,7 +476,7 @@ const Chat = () => {
     // Mensajes activos según rol
     const mensajesActivos = isStaff
         ? (clienteActivo ? (conversaciones[clienteActivo.id] || []) : [])
-        : msgsCliente;
+        : (conversacionesCliente[contactoActivo?.id || 'soporte'] || []);
 
     return (
         <>
@@ -497,8 +516,10 @@ const Chat = () => {
                                             <div className="ch-contact-info">
                                                 <p className="ch-contact-name">{u.nombre}</p>
                                                 <p className="ch-contact-role">
-                                                    {u.rol === 'vendedor' ? '🏪 Vendedor' : '👤 Cliente'}
-                                                    {u.online ? <span style={{color:'#22c55e',marginLeft:'0.3rem'}}>● en línea</span> : null}
+                                                    {u.rol === 'vendedor' ? '🏪 Vendedor' : '👤 Cliente'}{' '}
+                                                    <span style={{ color: u.online ? '#22c55e' : '#ef4444', fontWeight: 700 }}>
+                                                        {u.online ? '● en línea' : '● desconectado'}
+                                                    </span>
                                                 </p>
                                             </div>
                                         </button>
@@ -523,17 +544,49 @@ const Chat = () => {
                                 })()
                             )
                         ) : (
-                            /* Vista cliente: solo un contacto — Soporte */
-                            <button className="ch-contact active">
-                                <div className="ch-contact-avatar staff-avatar">
-                                    <span>🛡️</span>
-                                    <span className="ch-contact-online online" />
-                                </div>
-                                <div className="ch-contact-info">
-                                    <p className="ch-contact-name">Soporte Intex</p>
-                                    <p className="ch-contact-role">En línea</p>
-                                </div>
-                            </button>
+                            /* Vista cliente: Soporte + Vendedores */
+                            <>
+                                <p className="ch-group-label">🛡️ Soporte</p>
+                                <button
+                                    className={`ch-contact${!contactoActivo ? ' active' : ''}`}
+                                    onClick={() => setContactoActivo(null)}
+                                >
+                                    <div className="ch-contact-avatar staff-avatar">
+                                        <span>🛡️</span>
+                                    </div>
+                                    <div className="ch-contact-info">
+                                        <p className="ch-contact-name">Soporte Intex</p>
+                                        <p className="ch-contact-role">Administración</p>
+                                    </div>
+                                </button>
+                                {vendedores.length > 0 && (
+                                    <>
+                                        <p className="ch-group-label">🏪 Vendedores ({vendedores.length})</p>
+                                        {vendedores.map(v => (
+                                            <button
+                                                key={v.id}
+                                                className={`ch-contact${contactoActivo?.id === v.id ? ' active' : ''}`}
+                                                onClick={() => setContactoActivo(v)}
+                                                style={{ opacity: onlineIds.has(v.id) ? 1 : 0.65 }}
+                                            >
+                                                <div className="ch-contact-avatar">
+                                                    {initial(v.nombre)}
+                                                    <span className={`ch-contact-online ${onlineIds.has(v.id) ? 'online' : 'offline'}`} />
+                                                </div>
+                                                <div className="ch-contact-info">
+                                                    <p className="ch-contact-name">{v.nombre}</p>
+                                                    <p className="ch-contact-role">
+                                                        🏪 Vendedor{' '}
+                                                        <span style={{ color: onlineIds.has(v.id) ? '#22c55e' : '#ef4444', fontWeight: 700 }}>
+                                                            {onlineIds.has(v.id) ? '● en línea' : '● desconectado'}
+                                                        </span>
+                                                    </p>
+                                                </div>
+                                            </button>
+                                        ))}
+                                    </>
+                                )}
+                            </>
                         )}
                     </div>
                 </aside>
@@ -559,14 +612,24 @@ const Chat = () => {
                                         ←
                                     </button>
                                 )}
-                                <div className={`ch-conv-avatar${isStaff ? '' : ' staff-avatar'}`}>
-                                    {isStaff ? initial(clienteActivo?.nombre) : '🛡️'}
+                                <div className={`ch-conv-avatar${isStaff ? '' : (contactoActivo ? '' : ' staff-avatar')}`}>
+                                    {isStaff
+                                        ? initial(clienteActivo?.nombre)
+                                        : (contactoActivo ? initial(contactoActivo.nombre) : '🛡️')}
                                 </div>
                                 <div>
                                     <p className="ch-conv-name">
-                                        {isStaff ? clienteActivo?.nombre : 'Soporte Intex'}
+                                        {isStaff ? clienteActivo?.nombre : (contactoActivo ? contactoActivo.nombre : 'Soporte Intex')}
                                     </p>
-                                    <p className="ch-conv-status">● En línea</p>
+                                    <p className="ch-conv-status" style={{
+                                        color: isStaff
+                                            ? (clienteActivo && onlineIds.has(clienteActivo.id) ? '#22c55e' : '#ef4444')
+                                            : (contactoActivo ? (onlineIds.has(contactoActivo.id) ? '#22c55e' : '#ef4444') : '#22c55e')
+                                    }}>
+                                        {isStaff
+                                            ? (clienteActivo && onlineIds.has(clienteActivo.id) ? '● En línea' : '● Desconectado')
+                                            : (contactoActivo ? (onlineIds.has(contactoActivo.id) ? '● En línea' : '● Desconectado') : '● En línea')}
+                                    </p>
                                 </div>
                             </div>
 

@@ -107,6 +107,15 @@ const crearNuevoPassword = async (req, res) => {
 // ==      SECCIÓN DE GESTIÓN DE VENDEDORES (CRUD - Solo para ADMINS)      ==
 // ============================================================================
 
+const obtenerVendedoresPublicos = async (req, res) => {
+    try {
+        const vendedores = await Vendedor.find({ status: 'activo' }).select('_id nombre').lean();
+        res.status(200).json(vendedores.map(v => ({ id: String(v._id), nombre: v.nombre, rol: 'vendedor' })));
+    } catch (error) {
+        res.status(500).json({ msg: "Error al obtener vendedores." });
+    }
+};
+
 const crearVendedor = async (req, res) => {
     const { email, nombre, apellido, telefono, direccion, rol } = req.body;
     if (!email || !nombre || !apellido || !telefono || !direccion) return res.status(400).json({ msg: "Nombre, apellido, email, teléfono y dirección son obligatorios." });
@@ -227,5 +236,7 @@ export {
     obtenerVendedorPorId,
     actualizarVendedor,
     eliminarVendedor,
-    configurarCuentaYPassword
+    configurarCuentaYPassword,
+    // Para clientes
+    obtenerVendedoresPublicos
 };

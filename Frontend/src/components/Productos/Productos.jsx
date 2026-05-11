@@ -161,7 +161,7 @@ const Productos = () => {
         fetchProductos();
     }, []);
 
-    const agregarAlCarrito = async (productoId) => {
+    const agregarAlCarrito = async (productoId, nombreProducto) => {
         if (!token) { toast.info("Inicia sesión para agregar productos."); return; }
         if (!productoId) { toast.error("ID de producto inválido."); return; }
         setAgregando(productoId);
@@ -175,8 +175,16 @@ const Productos = () => {
                 const data = await res.json().catch(() => ({}));
                 throw new Error(data.msg || "Error al agregar al carrito");
             }
-            const data = await res.json();
-            toast.success(data.msg || "Producto agregado.");
+            toast.success(
+                <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+                    <span style={{ fontSize: '1.3rem' }}>🛒</span>
+                    <div>
+                        <div style={{ fontWeight: 700, fontSize: '0.9rem' }}>¡Producto añadido!</div>
+                        <div style={{ fontSize: '0.78rem', opacity: 0.85 }}>{nombreProducto || 'Artículo'} agregado al carrito</div>
+                    </div>
+                </div>,
+                { autoClose: 2500, icon: false }
+            );
         } catch (error) {
             toast.error(error.message);
         } finally {
@@ -240,7 +248,7 @@ const Productos = () => {
                                     </div>
                                     <button
                                         className="btn-dash-add"
-                                        onClick={() => agregarAlCarrito(producto._id)}
+                                        onClick={() => agregarAlCarrito(producto._id, producto.nombre)}
                                         disabled={agregando === producto._id || producto.stock < 1}
                                     >
                                         {producto.stock < 1

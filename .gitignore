@@ -13,6 +13,19 @@ dist/
 build/
 docs/
 
+# Tests
+**/tests/
+**/*.test.js
+**/*.test.jsx
+**/*.test.ts
+**/*.test.tsx
+**/*.spec.js
+**/*.spec.jsx
+vitest.config.js
+vitest.config.ts
+coverage/
+html/
+
 # OS
 .DS_Store
 Thumbs.db
@@ -22,3 +35,6 @@ Thumbs.db
 .idea/
 *.swp
 *.swo
+
+
+Sprint 1.md

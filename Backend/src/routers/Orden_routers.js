@@ -6,6 +6,7 @@ import {
   actualizarEstadoOrden,
   eliminarOrden,
   procesarPagoOrden,
+  reporteVentas,
   solicitarCancelacion,
   aprobarCancelacion,
   rechazarCancelacion
@@ -18,9 +19,13 @@ const router = Router();
 // Todas las rutas requieren autenticación
 router.use(verificarTokenJWT);
 
+// --- REPORTES (solo admin) ---
+// GET /api/ordenes/reporte
+router.get('/reporte', esAdmin, reporteVentas);
+
 // --- RUTA DE PAGO ---
 // POST /api/ordenes/pagar
-router.post('/pagar', procesarPagoOrden); // <-- ¡LA RUTA ESTÁ DEFINIDA!
+router.post('/pagar', procesarPagoOrden);
 
 // --- RUTAS CRUD DE ÓRDENES Y CANCELACIÓN ---
 router.post('/', registrarOrden);

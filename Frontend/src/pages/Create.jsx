@@ -1,4 +1,5 @@
 import FormCliente from '../components/create/FormCliente';
+import storeProfile from '../context/storeProfile';
 
 const styles = `
     .create-page {
@@ -40,13 +41,19 @@ const styles = `
 `;
 
 const Create = () => {
+    const { user } = storeProfile();
+    const soloClientes = user?.rol === 'vendedor';
     return (
         <>
             <style>{styles}</style>
             <div className="create-page">
                 <div className="create-page-header">
                     <h1 className="create-page-title">Crear usuario</h1>
-                    <p className="create-page-sub">Invita un nuevo cliente o vendedor al sistema.</p>
+                    <p className="create-page-sub">
+                        {soloClientes
+                            ? 'Invita un nuevo cliente al sistema.'
+                            : 'Invita un nuevo cliente o vendedor al sistema.'}
+                    </p>
                 </div>
                 <hr className="create-page-divider" />
                 <FormCliente />

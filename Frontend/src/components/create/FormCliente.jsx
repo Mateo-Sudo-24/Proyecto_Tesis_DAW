@@ -3,6 +3,7 @@ import useFetch from "../../hooks/useFetch";
 import { useNavigate } from "react-router-dom";
 import { useForm } from "react-hook-form";
 import { toast, ToastContainer } from "react-toastify";
+import storeProfile from "../../context/storeProfile";
 
 const styles = `
     :root {
@@ -162,7 +163,12 @@ export const FormCliente = ({ clienteToUpdate }) => {
     const { register, handleSubmit, formState: { errors }, reset } = useForm();
     const { fetchDataBackend } = useFetch();
     const [isSubmitting, setIsSubmitting] = useState(false);
-    const [tipoUsuario, setTipoUsuario] = useState(clienteToUpdate?.rol || "cliente");
+    const { user } = storeProfile();
+    const soloClientes = user?.rol === 'vendedor';
+    // Si es vendedor, siempre forzamos 'cliente' sin importar clienteToUpdate
+    const [tipoUsuario, setTipoUsuario] = useState(
+        soloClientes ? 'cliente' : (clienteToUpdate?.rol || 'cliente')
+    );
 
     useEffect(() => {
         if (clienteToUpdate) {
@@ -179,7 +185,9 @@ export const FormCliente = ({ clienteToUpdate }) => {
 
     const onSubmit = async (data) => {
         setIsSubmitting(true);
-        let baseUrl = tipoUsuario === "cliente" ? "/clientes" : "/vendedores";
+        // Si el usuario es vendedor, forzamos siempre el endpoint de clientes
+        const tipo = soloClientes ? 'cliente' : tipoUsuario;
+        let baseUrl = tipo === "cliente" ? "/clientes" : "/vendedores";
         let url = `${import.meta.env.VITE_BACKEND_URL}${baseUrl}`;
         let method = "POST";
         if (clienteToUpdate?._id) {
@@ -189,7 +197,7 @@ export const FormCliente = ({ clienteToUpdate }) => {
         try {
             const response = await fetchDataBackend(url, data, method);
             if (response) {
-                const tipoNombre = tipoUsuario === "cliente" ? "Cliente" : "Vendedor";
+                const tipoNombre = tipo === "cliente" ? "Cliente" : "Vendedor";
                 toast.success(clienteToUpdate ? `${tipoNombre} actualizado correctamente` : `Invitación enviada a ${data.email}`);
                 setTimeout(() => navigate("/dashboard/listar"), 1500);
             }
@@ -201,7 +209,8 @@ export const FormCliente = ({ clienteToUpdate }) => {
     };
 
     const isEditing = !!clienteToUpdate;
-    const tipoLabel = tipoUsuario === "cliente" ? "Cliente" : "Vendedor";
+    const tipoEfectivo = soloClientes ? 'cliente' : tipoUsuario;
+    const tipoLabel = tipoEfectivo === "cliente" ? "Cliente" : "Vendedor";
 
     return (
         <>
@@ -229,13 +238,15 @@ export const FormCliente = ({ clienteToUpdate }) => {
                             >
                                 👤 Cliente
                             </button>
-                            <button
-                                type="button"
-                                className={`ux-type-btn${tipoUsuario === "vendedor" ? " active" : ""}`}
-                                onClick={() => setTipoUsuario("vendedor")}
-                            >
-                                🏪 Vendedor
-                            </button>
+                            {!soloClientes && (
+                                <button
+                                    type="button"
+                                    className={`ux-type-btn${tipoUsuario === "vendedor" ? " active" : ""}`}
+                                    onClick={() => setTipoUsuario("vendedor")}
+                                >
+                                    🏪 Vendedor
+                                </button>
+                            )}
                         </div>
                     )}
 

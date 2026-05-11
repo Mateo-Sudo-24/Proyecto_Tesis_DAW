@@ -1,3 +1,19 @@
 node_modules
 .env
 docs
+
+# Tests
+src/tests/
+**/tests/
+**/*.test.js
+**/*.test.ts
+**/*.spec.js
+**/*.spec.ts
+
+# Vitest config y reportes
+vitest.config.js
+vitest.config.ts
+coverage/
+html/
+
+vite.config.js

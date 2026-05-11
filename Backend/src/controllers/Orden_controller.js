@@ -2,8 +2,29 @@ import Orden from "../models/Orden.js";
 import Cliente from "../models/Cliente.js";
 import Carrito from '../models/Carrito.js';
 import Producto from '../models/Producto.js';
+import Notificacion from '../models/Notificacion.js';
+import Administrador from '../models/Administrador.js';
 import mongoose from "mongoose";
 import stripe from '../config/stripe.js';
+
+// ─── Helper: crear notificación de pago para todos los admins ───────────────
+const crearNotificacionPago = async (orden) => {
+    try {
+        const admins = await Administrador.find().select('_id');
+        await Promise.all(admins.map(admin =>
+            Notificacion.crearConCifrado({
+                administrador: admin._id,
+                tipo: 'pago_completado',
+                mensaje: `💳 Nueva compra recibida: Orden #${orden.codigoOrden} por $${orden.precioTotal.toFixed(2)} — Método: ${orden.metodoPago}`,
+                leida: false,
+                estadoGestion: 'pendiente',
+                metadatos: { timestamp: new Date() }
+            })
+        ));
+    } catch (err) {
+        console.error('❌ Error al crear notificación de pago:', err.message);
+    }
+};
 
 // POST /api/ordenes
 // Crear una nueva orden
@@ -336,27 +357,48 @@ const procesarPagoOrden = async (req, res) => {
     const { ordenId, paymentMethodId } = req.body;
     const clienteId = req.usuario._id;
 
-    if (!ordenId || !paymentMethodId) {
+    if (!ordenId) {
         return res.status(400).json({ msg: "Se requiere el ID de la orden" });
-    }
-
-    // Validar que Stripe está configurado
-    if (!stripe) {
-        return res.status(503).json({ msg: "Servicio de pagos no disponible. STRIPE_PRIVATE_KEY no está configurada." });
     }
 
     try {
         const orden = await Orden.findById(ordenId).populate('cliente');
         if (!orden) return res.status(404).json({ msg: "Orden no encontrada." });
-        if (orden.cliente._id.toString() !== clienteId.toString()) return res.status(403).json({ msg: "No tienes permiso para pagar esta orden." });
-        if (orden.estadoPago) return res.status(400).json({ msg: "Esta orden ya ha sido pagada." });
+        if (orden.cliente._id.toString() !== clienteId.toString()) {
+            return res.status(403).json({ msg: "No tienes permiso para pagar esta orden." });
+        }
+        if (orden.estadoPago) {
+            return res.status(400).json({ msg: "Esta orden ya ha sido pagada." });
+        }
+
+        // ─── Métodos que no requieren pasarela externa ───────────────────────
+        const metodosInmediatos = ['Transferencia Bancaria', 'Efectivo', 'Contra Entrega', 'PayPal'];
+        if (metodosInmediatos.includes(orden.metodoPago)) {
+            orden.estadoPago = true;
+            orden.estadoOrden = 'pagado';
+            orden.fechaPago = new Date();
+            await orden.save();
+            await crearNotificacionPago(orden);
+            return res.status(200).json({ msg: "Pago registrado exitosamente.", estadoPago: true, estadoOrden: 'pagado' });
+        }
+
+        // ─── Pago con Stripe (Tarjeta de Crédito / Stripe) ──────────────────
+        if (!paymentMethodId) {
+            return res.status(400).json({ msg: "Se requiere el ID del método de pago de Stripe." });
+        }
+        if (!stripe) {
+            return res.status(503).json({ msg: "Servicio de pagos no disponible. STRIPE_PRIVATE_KEY no está configurada." });
+        }
 
         let clienteStripe;
         const clientesStripe = await stripe.customers.list({ email: orden.cliente.email, limit: 1 });
         if (clientesStripe.data.length > 0) {
             clienteStripe = clientesStripe.data[0];
         } else {
-            clienteStripe = await stripe.customers.create({ name: `${orden.cliente.nombre} ${orden.cliente.apellido}`, email: orden.cliente.email });
+            clienteStripe = await stripe.customers.create({
+                name: `${orden.cliente.nombre} ${orden.cliente.apellido}`,
+                email: orden.cliente.email
+            });
         }
 
         const paymentIntent = await stripe.paymentIntents.create({
@@ -375,13 +417,71 @@ const procesarPagoOrden = async (req, res) => {
             orden.fechaPago = new Date();
             orden.pagoStripeId = paymentIntent.id;
             await orden.save();
-            return res.status(200).json({ msg: "El pago se realizó exitosamente." });
+            await crearNotificacionPago(orden);
+            return res.status(200).json({ msg: "El pago se realizó exitosamente.", estadoPago: true, estadoOrden: 'pagado' });
         } else {
             return res.status(400).json({ msg: "El pago no pudo ser procesado por Stripe." });
         }
     } catch (error) {
         console.error("Error al procesar el pago:", error);
         return res.status(500).json({ msg: "Error en el servidor al procesar el pago.", error: error.message });
+    }
+};
+
+// GET /api/ordenes/reporte
+// Reporte consolidado de ventas para el administrador (con filtros de fecha, estado y método de pago)
+const reporteVentas = async (req, res) => {
+    if (req.usuario.rol !== 'administrador') {
+        return res.status(403).json({ msg: "Acceso exclusivo para administradores." });
+    }
+
+    const { desde, hasta, estadoOrden, metodoPago, estadoPago } = req.query;
+
+    try {
+        let filtro = {};
+        if (desde || hasta) {
+            filtro.createdAt = {};
+            if (desde) filtro.createdAt.$gte = new Date(desde);
+            if (hasta) filtro.createdAt.$lte = new Date(hasta);
+        }
+        if (estadoOrden) filtro.estadoOrden = estadoOrden;
+        if (metodoPago)  filtro.metodoPago  = metodoPago;
+        if (estadoPago !== undefined) filtro.estadoPago = estadoPago === 'true';
+
+        const ordenes = await Orden.find(filtro)
+            .populate('cliente', 'nombre apellido email')
+            .sort({ createdAt: -1 });
+
+        // Estadísticas agregadas
+        const totalVentas    = ordenes.length;
+        const ingresoTotal   = ordenes.reduce((acc, o) => acc + (o.estadoPago ? o.precioTotal : 0), 0);
+        const ordenesPagadas = ordenes.filter(o => o.estadoPago).length;
+        const ordenesPendientes = ordenes.filter(o => !o.estadoPago).length;
+
+        const ventasPorMetodo = ordenes.reduce((acc, o) => {
+            acc[o.metodoPago] = (acc[o.metodoPago] || 0) + 1;
+            return acc;
+        }, {});
+
+        const ventasPorEstado = ordenes.reduce((acc, o) => {
+            acc[o.estadoOrden] = (acc[o.estadoOrden] || 0) + 1;
+            return acc;
+        }, {});
+
+        res.status(200).json({
+            resumen: {
+                totalVentas,
+                ingresoTotal: parseFloat(ingresoTotal.toFixed(2)),
+                ordenesPagadas,
+                ordenesPendientes,
+                ventasPorMetodo,
+                ventasPorEstado,
+            },
+            ordenes,
+        });
+    } catch (error) {
+        console.error("Error al generar reporte:", error);
+        res.status(500).json({ msg: "Error en el servidor al generar el reporte." });
     }
 };
 
@@ -392,6 +492,7 @@ export {
   actualizarEstadoOrden,
   eliminarOrden,
   procesarPagoOrden,
+  reporteVentas,
   solicitarCancelacion,
   aprobarCancelacion,
   rechazarCancelacion

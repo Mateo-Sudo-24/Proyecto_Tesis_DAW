@@ -406,6 +406,18 @@ const Dashboard = () => {
                             </>
                         )}
 
+                        {/* Vendedor — productos + pedidos */}
+                        {isVendedor && (
+                            <>
+                                <Link to="/dashboard/productos-admin" className={lc('/dashboard/productos-admin')} onClick={closeSidebar}>
+                                    <span className="dsb-icon">🧵</span> Productos
+                                </Link>
+                                <Link to="/dashboard/mis-pedidos" className={lc('/dashboard/mis-pedidos')} onClick={closeSidebar}>
+                                    <span className="dsb-icon">📦</span> Pedidos en curso
+                                </Link>
+                            </>
+                        )}
+
                         {/* Cliente específico */}
                         {isCliente && (
                             <>
@@ -415,6 +427,9 @@ const Dashboard = () => {
                                 </Link>
                                 <Link to="/dashboard/carrito" className={lc('/dashboard/carrito')} onClick={closeSidebar}>
                                     <span className="dsb-icon">🛒</span> Carrito
+                                </Link>
+                                <Link to="/dashboard/mis-pedidos" className={lc('/dashboard/mis-pedidos')} onClick={closeSidebar}>
+                                    <span className="dsb-icon">📦</span> Mis pedidos
                                 </Link>
                             </>
                         )}

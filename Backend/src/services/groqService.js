@@ -10,13 +10,7 @@ export const consultarGroq = async (mensaje, imagenBase64 = null, historial = []
     try {
         const content = [];
         
-        // Agregar texto
-        content.push({
-            type: "text",
-            text: mensaje
-        });
-
-        // Agregar imagen si existe
+        // Agregar imagen primero si existe (la API procesa mejor imagen→texto)
         if (imagenBase64) {
             content.push({
                 type: "image_url",
@@ -26,8 +20,28 @@ export const consultarGroq = async (mensaje, imagenBase64 = null, historial = []
             });
         }
 
+        // Agregar texto
+        content.push({
+            type: "text",
+            text: mensaje
+        });
+
+        // Mensaje de sistema con contexto del asistente
+        const systemMessage = {
+            role: "system",
+            content: `Eres Intex IA, el asistente virtual experto en telas y textiles de la empresa Intex Textiles. 
+Cuando el usuario te salude o te pregunte quién eres, preséntate con tu nombre y explica que puedes:
+- Analizar imágenes de telas y textiles con detalle (tipo de fibra, textura, usos recomendados, cuidados)
+- Recomendar telas según el uso (ropa, tapicería, industria, etc.)
+- Resolver dudas sobre materiales, composición y propiedades de los tejidos
+- Ayudar con el catálogo y productos de Intex Textiles
+Cuando recibas una imagen, analízala en detalle: identifica el tipo de tela, fibra probable, textura, usos recomendados y cuidados.
+Responde siempre en español, con un tono profesional pero cercano.`
+        };
+
         // Construir historial
         const messages = [
+            systemMessage,
             ...historial.map(m => ({
                 role: m.role,
                 content: m.content

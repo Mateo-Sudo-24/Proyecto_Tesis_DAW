@@ -1,4 +1,4 @@
-import { MdDeleteForever, MdInfo, MdPublishedWithChanges } from "react-icons/md";
+﻿import { MdDeleteForever, MdInfo, MdPublishedWithChanges, MdVerified } from "react-icons/md";
 import useFetch from "../../hooks/useFetch";
 import { useEffect, useState } from "react";
 import { toast } from "react-toastify";
@@ -12,127 +12,89 @@ const tableStyles = `
         --orange-dark: #c4620a;
         --orange-light: #fde8ce;
     }
-    .tbl-wrap {
-        background: #fff;
-        border-radius: 1rem;
-        box-shadow: 0 4px 20px rgba(0,0,0,0.07);
-        overflow: hidden;
-    }
-    .tbl-empty {
-        padding: 3rem 2rem;
-        text-align: center;
-        color: #9ca3af;
-        font-size: 0.9rem;
-        background: #fff;
-        border-radius: 1rem;
-        border: 2px dashed #e5e7eb;
-    }
-    .tbl-empty-icon { font-size: 2.5rem; margin-bottom: 0.5rem; }
-    .tbl-scroll { overflow-x: auto; -webkit-overflow-scrolling: touch; }
-    .tbl {
-        width: 100%;
-        border-collapse: collapse;
-        font-size: 0.875rem;
-        min-width: 520px;
-    }
-    .tbl thead {
-        background: #1f2937;
-        color: #9ca3af;
-        text-align: left;
-    }
-    .tbl thead th {
-        padding: 0.85rem 1.1rem;
-        font-size: 0.72rem;
-        font-weight: 700;
-        text-transform: uppercase;
-        letter-spacing: 0.07em;
-        white-space: nowrap;
-    }
-    .tbl thead th:last-child { text-align: center; }
-    .tbl tbody tr {
-        border-bottom: 1px solid #f3f4f6;
-        transition: background 0.12s;
-    }
-    .tbl tbody tr:last-child { border-bottom: none; }
-    .tbl tbody tr:hover { background: #fdf6ef; }
-    .tbl td {
-        padding: 0.8rem 1.1rem;
-        color: #374151;
-        vertical-align: middle;
-    }
-    .tbl-num {
-        font-weight: 700;
-        color: var(--orange-main);
-        font-size: 0.8rem;
-    }
-    .tbl-name { font-weight: 600; color: #111827; }
-    .tbl-email { color: #6b7280; }
-    .tbl-phone { color: #6b7280; }
-    .tbl-actions { text-align: center; white-space: nowrap; }
-    .tbl-badge {
-        display: inline-block;
-        padding: 0.25rem 0.7rem;
-        border-radius: 999px;
-        font-size: 0.72rem;
-        font-weight: 700;
-        text-transform: capitalize;
-    }
-    .tbl-badge.activo    { background: #d1fae5; color: #065f46; }
-    .tbl-badge.inactivo  { background: #fee2e2; color: #991b1b; }
-    .tbl-badge.pendiente { background: #fef3c7; color: #92400e; }
-    .tbl-badge.rol-cliente  { background: #dbeafe; color: #1e40af; }
-    .tbl-badge.rol-vendedor { background: var(--orange-light, #fde8ce); color: #92400e; }
-    .tbl-icon-btn {
-        background: none;
-        border: none;
-        cursor: pointer;
-        padding: 0.3rem;
-        border-radius: 0.375rem;
-        transition: background 0.12s;
-        display: inline-flex;
-        align-items: center;
-        justify-content: center;
-    }
-    .tbl-icon-btn.blue { color: #3b82f6; }
-    .tbl-icon-btn.blue:hover { background: #eff6ff; color: #1d4ed8; }
-    .tbl-icon-btn.gray { color: #6b7280; }
-    .tbl-icon-btn.gray:hover { background: #f3f4f6; color: #111827; }
-    .tbl-icon-btn.red { color: #f87171; }
-    .tbl-icon-btn.red:hover { background: #fef2f2; color: #dc2626; }
-
-    /* ── Mobile cards ── */
-    .tbl-cards { display: none; }
-    .tbl-card {
-        background: #fff;
-        border: 1px solid #e5e7eb;
-        border-radius: 0.875rem;
-        padding: 1rem 1.1rem;
-        margin-bottom: 0.75rem;
-        box-shadow: 0 1px 4px rgba(0,0,0,0.05);
-    }
-    .tbl-card-row {
-        display: flex;
-        justify-content: space-between;
-        align-items: center;
-        padding: 0.3rem 0;
-        font-size: 0.82rem;
-        border-bottom: 1px solid #f3f4f6;
-    }
-    .tbl-card-row:last-child { border-bottom: none; padding-bottom: 0; }
-    .tbl-card-label { color: #9ca3af; font-weight: 600; font-size: 0.72rem; text-transform: uppercase; letter-spacing: 0.05em; }
-    .tbl-card-value { color: #111827; font-weight: 600; text-align: right; }
-    .tbl-card-actions { display: flex; justify-content: flex-end; gap: 0.5rem; margin-top: 0.75rem; padding-top: 0.75rem; border-top: 1px solid #f3f4f6; }
-    .tbl-card-num { font-size: 0.72rem; font-weight: 800; color: var(--orange-main); margin-bottom: 0.5rem; }
-
-    @media (max-width: 640px) {
-        .tbl-scroll { display: none; }
-        .tbl-cards  { display: block; }
-    }
+    .tbl-wrap { background:#fff; border-radius:1rem; box-shadow:0 4px 20px rgba(0,0,0,0.07); overflow:hidden; }
+    .tbl-empty { padding:3rem 2rem; text-align:center; color:#9ca3af; font-size:0.9rem; background:#fff; border-radius:1rem; border:2px dashed #e5e7eb; }
+    .tbl-empty-icon { font-size:2.5rem; margin-bottom:0.5rem; }
+    .tbl-scroll { overflow-x:auto; -webkit-overflow-scrolling:touch; }
+    .tbl { width:100%; border-collapse:collapse; font-size:0.875rem; min-width:700px; }
+    .tbl thead { background:#1f2937; color:#9ca3af; text-align:left; }
+    .tbl thead th { padding:0.85rem 1.1rem; font-size:0.72rem; font-weight:700; text-transform:uppercase; letter-spacing:0.07em; white-space:nowrap; }
+    .tbl thead th:last-child { text-align:center; }
+    .tbl tbody tr { border-bottom:1px solid #f3f4f6; transition:background 0.12s; }
+    .tbl tbody tr:last-child { border-bottom:none; }
+    .tbl tbody tr:hover { background:#fdf6ef; }
+    .tbl td { padding:0.8rem 1.1rem; color:#374151; vertical-align:middle; }
+    .tbl-num { font-weight:700; color:var(--orange-main); font-size:0.8rem; }
+    .tbl-email { color:#6b7280; font-size:0.82rem; }
+    .tbl-phone { color:#6b7280; }
+    .tbl-actions { text-align:center; white-space:nowrap; }
+    .tbl-badge { display:inline-flex; align-items:center; gap:0.3rem; padding:0.25rem 0.7rem; border-radius:999px; font-size:0.72rem; font-weight:700; text-transform:capitalize; white-space:nowrap; }
+    .tbl-badge.activo    { background:#d1fae5; color:#065f46; }
+    .tbl-badge.inactivo  { background:#fee2e2; color:#991b1b; }
+    .tbl-badge.pendiente { background:#fef3c7; color:#92400e; }
+    .tbl-badge.rol-cliente  { background:#dbeafe; color:#1e40af; }
+    .tbl-badge.rol-vendedor { background:var(--orange-light,#fde8ce); color:#92400e; }
+    .tbl-badge.verificado   { background:#d1fae5; color:#065f46; }
+    .tbl-badge.no-verificado{ background:#f3f4f6; color:#9ca3af; }
+    .tbl-cell-main { font-weight:600; color:#111827; line-height:1.3; }
+    .tbl-cell-sub  { font-size:0.72rem; color:#9ca3af; margin-top:0.15rem; }
+    .tbl-icon-btn { background:none; border:none; cursor:pointer; padding:0.3rem; border-radius:0.375rem; transition:background 0.12s; display:inline-flex; align-items:center; justify-content:center; }
+    .tbl-icon-btn.blue { color:#3b82f6; }
+    .tbl-icon-btn.blue:hover { background:#eff6ff; color:#1d4ed8; }
+    .tbl-icon-btn.gray { color:#6b7280; }
+    .tbl-icon-btn.gray:hover { background:#f3f4f6; color:#111827; }
+    .tbl-icon-btn.red { color:#f87171; }
+    .tbl-icon-btn.red:hover { background:#fef2f2; color:#dc2626; }
+    /* Modal confirmacion */
+    .confirm-overlay { position:fixed; inset:0; background:rgba(0,0,0,0.55); display:flex; align-items:center; justify-content:center; z-index:1000; animation:cfade 0.18s ease; }
+    @keyframes cfade { from{opacity:0} to{opacity:1} }
+    .confirm-box { background:#fff; border-radius:1rem; padding:2rem; width:90%; max-width:400px; box-shadow:0 20px 60px rgba(0,0,0,0.22); animation:cslide 0.2s cubic-bezier(.4,0,.2,1); text-align:center; }
+    @keyframes cslide { from{transform:translateY(-14px) scale(0.96);opacity:0} to{transform:translateY(0) scale(1);opacity:1} }
+    .confirm-icon { font-size:3rem; margin-bottom:0.75rem; line-height:1; }
+    .confirm-title { font-size:1.1rem; font-weight:800; color:#111827; margin:0 0 0.4rem; }
+    .confirm-text  { font-size:0.875rem; color:#6b7280; margin:0 0 1.5rem; line-height:1.5; }
+    .confirm-name  { font-weight:700; color:#dc2626; }
+    .confirm-actions { display:flex; gap:0.75rem; justify-content:center; }
+    .confirm-btn { flex:1; max-width:160px; padding:0.65rem 1rem; border-radius:0.625rem; font-size:0.875rem; font-weight:700; border:none; cursor:pointer; transition:background 0.15s,transform 0.1s; }
+    .confirm-btn:active { transform:scale(0.97); }
+    .confirm-btn.cancel { background:#f3f4f6; color:#374151; }
+    .confirm-btn.cancel:hover { background:#e5e7eb; }
+    .confirm-btn.danger { background:#dc2626; color:#fff; }
+    .confirm-btn.danger:hover { background:#b91c1c; }
+    /* Mobile cards */
+    .tbl-cards { display:none; }
+    .tbl-card { background:#fff; border:1px solid #e5e7eb; border-radius:0.875rem; padding:1rem 1.1rem; margin-bottom:0.75rem; box-shadow:0 1px 4px rgba(0,0,0,0.05); }
+    .tbl-card-row { display:flex; justify-content:space-between; align-items:center; padding:0.3rem 0; font-size:0.82rem; border-bottom:1px solid #f3f4f6; }
+    .tbl-card-row:last-child { border-bottom:none; padding-bottom:0; }
+    .tbl-card-label { color:#9ca3af; font-weight:600; font-size:0.72rem; text-transform:uppercase; letter-spacing:0.05em; }
+    .tbl-card-value { color:#111827; font-weight:600; text-align:right; }
+    .tbl-card-actions { display:flex; justify-content:flex-end; gap:0.5rem; margin-top:0.75rem; padding-top:0.75rem; border-top:1px solid #f3f4f6; }
+    .tbl-card-num { font-size:0.72rem; font-weight:800; color:var(--orange-main); margin-bottom:0.5rem; }
+    @media (max-width:640px) { .tbl-scroll{display:none} .tbl-cards{display:block} }
 `;
+
+const ConfirmModal = ({ nombre, esCliente, onConfirm, onCancel }) => (
+    <div className="confirm-overlay" onClick={onCancel}>
+        <div className="confirm-box" onClick={e => e.stopPropagation()}>
+            <div className="confirm-icon">⚠️</div>
+            <p className="confirm-title">¿Estás seguro?</p>
+            <p className="confirm-text">
+                Vas a eliminar {esCliente ? 'al cliente' : 'al vendedor'}{' '}
+                <span className="confirm-name">{nombre}</span>{' '}
+                de forma permanente. Esta acción no se puede deshacer.
+            </p>
+            <div className="confirm-actions">
+                <button className="confirm-btn cancel" onClick={onCancel}>Cancelar</button>
+                <button className="confirm-btn danger" onClick={onConfirm}>Sí, eliminar</button>
+            </div>
+        </div>
+    </div>
+);
 
 const Table = ({ tipo = 'clientes' }) => {
     const { fetchDataBackend } = useFetch();
-    const [data, setData] = useState([]);
+    const [data, setData]                   = useState([]);
+    const [confirmTarget, setConfirmTarget] = useState(null);
     const navigate = useNavigate();
     const { user } = storeProfile();
 
@@ -142,27 +104,47 @@ const Table = ({ tipo = 'clientes' }) => {
     const listData = async () => {
         try {
             const storedUser = JSON.parse(localStorage.getItem("auth-token"));
-            if (!storedUser?.state?.token) {
-                toast.error("No estás autenticado.");
-                return;
-            }
+            if (!storedUser?.state?.token) { toast.error("No estás autenticado."); return; }
             const url = `${import.meta.env.VITE_BACKEND_URL}/${tipo}`;
             const response = await fetchDataBackend(url, null, "GET");
-            if (response && Array.isArray(response)) {
-                setData(response);
-            } else {
-                setData([]);
-            }
-        } catch (error) {
-            toast.error("No se pudo cargar la lista.");
-        }
+            setData(Array.isArray(response) ? response : []);
+        } catch { toast.error("No se pudo cargar la lista."); }
     };
 
-    useEffect(() => {
-        setData([]);
-        listData();
-        // eslint-disable-next-line
-    }, [tipo]);
+    useEffect(() => { setData([]); listData(); }, [tipo]); // eslint-disable-line
+
+    const getNombre = (item) =>
+        esClientes
+            ? `${item.nombre || ''} ${item.apellido || ''}`.trim()
+            : item.nombrePropietario || item.nombre || '—';
+
+    const getEstadoBadge = (item) => {
+        const s = item.status;
+        const cls = s === true || s === 'activo' ? 'activo' : s === 'pendiente' ? 'pendiente' : 'inactivo';
+        const label = typeof s === 'boolean' ? (s ? 'Activo' : 'Inactivo') : s ? s.charAt(0).toUpperCase() + s.slice(1) : 'N/A';
+        return <span className={`tbl-badge ${cls}`}>{label}</span>;
+    };
+
+    const getVerificadoBadge = (item) => {
+        const ok = item.confirmado === true || item.emailConfirmado === true || item.verificado === true;
+        return ok
+            ? <span className="tbl-badge verificado"><MdVerified size={11} /> Verificado</span>
+            : <span className="tbl-badge no-verificado">Sin verificar</span>;
+    };
+
+    const pedirConfirmacion = (item) => setConfirmTarget({ id: item._id, nombre: getNombre(item) });
+
+    const confirmarEliminacion = async () => {
+        if (!confirmTarget) return;
+        const { id } = confirmTarget;
+        setConfirmTarget(null);
+        try {
+            const url = `${import.meta.env.VITE_BACKEND_URL}/${tipo}/${id}`;
+            await fetchDataBackend(url, null, "DELETE");
+            setData(prev => prev.filter(item => item._id !== id));
+            toast.success(`${esClientes ? 'Cliente' : 'Vendedor'} eliminado correctamente.`);
+        } catch { toast.error("Error al eliminar."); }
+    };
 
     if (data.length === 0) {
         return (
@@ -176,57 +158,40 @@ const Table = ({ tipo = 'clientes' }) => {
         );
     }
 
-    const deleteItem = async (id) => {
-        const confirmDelete = window.confirm(
-            esClientes
-                ? "Vas a eliminar este cliente de forma permanente. ¿Estás seguro?"
-                : "Vas a eliminar este vendedor de forma permanente. ¿Estás seguro?"
-        );
-        if (confirmDelete) {
-            try {
-                const url = `${import.meta.env.VITE_BACKEND_URL}/${tipo}/${id}`;
-                const response = await fetchDataBackend(url, null, "DELETE");
-
-                if (response?.msg) {
-                    setData((prev) => prev.filter(item => item._id !== id));
-                } else {
-                    toast.error(response?.msg || "No se pudo eliminar.");
-                }
-            } catch (error) {
-                toast.error("Error al eliminar.");
-            }
-        }
-    };
-
-    const getNombre = (item) => {
-        if (esClientes) return `${item.nombre || ''} ${item.apellido || ''}`.trim();
-        return item.nombrePropietario || item.nombre || '—';
-    };
-
-    const getEstadoBadge = (item) => {
-        const s = item.status;
-        const cls = s === true || s === 'activo' ? 'activo' : s === 'pendiente' ? 'pendiente' : 'inactivo';
-        const label = typeof s === 'boolean' ? (s ? 'Activo' : 'Inactivo') : s ? s.charAt(0).toUpperCase() + s.slice(1) : 'N/A';
-        return <span className={`tbl-badge ${cls}`}>{label}</span>;
-    };
-
     return (
         <>
             <style>{tableStyles}</style>
             <ToastContainer />
-            <div className="tbl-wrap">
 
-                {/* ── Vista tabla (desktop) ── */}
+            {confirmTarget && (
+                <ConfirmModal
+                    nombre={confirmTarget.nombre}
+                    esCliente={esClientes}
+                    onConfirm={confirmarEliminacion}
+                    onCancel={() => setConfirmTarget(null)}
+                />
+            )}
+
+            <div className="tbl-wrap">
                 <div className="tbl-scroll">
                     <table className="tbl">
                         <thead>
                             <tr>
                                 <th>N°</th>
-                                <th>Nombre completo</th>
+                                <th>{esClientes ? 'Nombre / Apellido' : 'Propietario'}</th>
                                 <th>Email</th>
                                 <th>Teléfono</th>
-                                <th>Rol</th>
-                                {esClientes && <th>Estado</th>}
+                                {esClientes ? (
+                                    <>
+                                        <th>Ciudad</th>
+                                        <th>Estado</th>
+                                    </>
+                                ) : (
+                                    <>
+                                        <th>Email verificado</th>
+                                        <th>Estado</th>
+                                    </>
+                                )}
                                 <th>Acciones</th>
                             </tr>
                         </thead>
@@ -234,15 +199,27 @@ const Table = ({ tipo = 'clientes' }) => {
                             {data.map((item, index) => (
                                 <tr key={item._id}>
                                     <td className="tbl-num">{index + 1}</td>
-                                    <td className="tbl-name">{getNombre(item)}</td>
-                                    <td className="tbl-email">{item.email}</td>
-                                    <td className="tbl-phone">{item.telefono || "—"}</td>
                                     <td>
-                                        <span className={`tbl-badge ${item.rol === 'vendedor' ? 'rol-vendedor' : 'rol-cliente'}`}>
-                                            {item.rol === 'vendedor' ? '🏪 Vendedor' : '👤 Cliente'}
-                                        </span>
+                                        <div className="tbl-cell-main">{getNombre(item)}</div>
+                                        {esClientes && item.empresa && <div className="tbl-cell-sub">🏢 {item.empresa}</div>}
+                                        {!esClientes && item.nombreTienda && <div className="tbl-cell-sub">🏪 {item.nombreTienda}</div>}
                                     </td>
-                                    {esClientes && <td>{getEstadoBadge(item)}</td>}
+                                    <td className="tbl-email">{item.email}</td>
+                                    <td className="tbl-phone">{item.telefono || '—'}</td>
+                                    {esClientes ? (
+                                        <>
+                                            <td style={{fontSize:'0.82rem',color:'#6b7280'}}>
+                                                {item.ciudad ? `📍 ${item.ciudad}` : '—'}
+                                                {item.direccion && <div style={{fontSize:'0.72rem'}}>{item.direccion}</div>}
+                                            </td>
+                                            <td>{getEstadoBadge(item)}</td>
+                                        </>
+                                    ) : (
+                                        <>
+                                            <td>{getVerificadoBadge(item)}</td>
+                                            <td>{getEstadoBadge(item)}</td>
+                                        </>
+                                    )}
                                     <td className="tbl-actions">
                                         {!isVendedor && (
                                             <button title="Actualizar" className="tbl-icon-btn gray" onClick={() => navigate(`/dashboard/actualizar/${item._id}`)}>
@@ -252,7 +229,7 @@ const Table = ({ tipo = 'clientes' }) => {
                                         <button title="Más información" className="tbl-icon-btn blue" onClick={() => navigate(`/dashboard/visualizar/${item._id}`)}>
                                             <MdInfo size={20} />
                                         </button>
-                                        <button title="Eliminar" className="tbl-icon-btn red" onClick={() => deleteItem(item._id)}>
+                                        <button title="Eliminar" className="tbl-icon-btn red" onClick={() => pedirConfirmacion(item)}>
                                             <MdDeleteForever size={20} />
                                         </button>
                                     </td>
@@ -262,8 +239,7 @@ const Table = ({ tipo = 'clientes' }) => {
                     </table>
                 </div>
 
-                {/* ── Vista cards (móvil) ── */}
-                <div className="tbl-cards" style={{padding:'0.75rem'}}>
+                <div className="tbl-cards" style={{ padding: '0.75rem' }}>
                     {data.map((item, index) => (
                         <div key={item._id} className="tbl-card">
                             <div className="tbl-card-num">#{index + 1}</div>
@@ -273,23 +249,36 @@ const Table = ({ tipo = 'clientes' }) => {
                             </div>
                             <div className="tbl-card-row">
                                 <span className="tbl-card-label">Email</span>
-                                <span className="tbl-card-value" style={{fontSize:'0.78rem'}}>{item.email}</span>
+                                <span className="tbl-card-value" style={{ fontSize: '0.78rem' }}>{item.email}</span>
                             </div>
                             <div className="tbl-card-row">
                                 <span className="tbl-card-label">Teléfono</span>
                                 <span className="tbl-card-value">{item.telefono || '—'}</span>
                             </div>
-                            <div className="tbl-card-row">
-                                <span className="tbl-card-label">Rol</span>
-                                <span className={`tbl-badge ${item.rol === 'vendedor' ? 'rol-vendedor' : 'rol-cliente'}`}>
-                                    {item.rol === 'vendedor' ? '🏪 Vendedor' : '👤 Cliente'}
-                                </span>
-                            </div>
-                            {esClientes && (
-                                <div className="tbl-card-row">
-                                    <span className="tbl-card-label">Estado</span>
-                                    {getEstadoBadge(item)}
-                                </div>
+                            {esClientes ? (
+                                <>
+                                    {item.ciudad && (
+                                        <div className="tbl-card-row">
+                                            <span className="tbl-card-label">Ciudad</span>
+                                            <span className="tbl-card-value">📍 {item.ciudad}</span>
+                                        </div>
+                                    )}
+                                    <div className="tbl-card-row">
+                                        <span className="tbl-card-label">Estado</span>
+                                        {getEstadoBadge(item)}
+                                    </div>
+                                </>
+                            ) : (
+                                <>
+                                    <div className="tbl-card-row">
+                                        <span className="tbl-card-label">Verificación</span>
+                                        {getVerificadoBadge(item)}
+                                    </div>
+                                    <div className="tbl-card-row">
+                                        <span className="tbl-card-label">Estado</span>
+                                        {getEstadoBadge(item)}
+                                    </div>
+                                </>
                             )}
                             <div className="tbl-card-actions">
                                 {!isVendedor && (
@@ -300,14 +289,13 @@ const Table = ({ tipo = 'clientes' }) => {
                                 <button title="Ver" className="tbl-icon-btn blue" onClick={() => navigate(`/dashboard/visualizar/${item._id}`)}>
                                     <MdInfo size={22} />
                                 </button>
-                                <button title="Eliminar" className="tbl-icon-btn red" onClick={() => deleteItem(item._id)}>
+                                <button title="Eliminar" className="tbl-icon-btn red" onClick={() => pedirConfirmacion(item)}>
                                     <MdDeleteForever size={22} />
                                 </button>
                             </div>
                         </div>
                     ))}
                 </div>
-
             </div>
         </>
     );

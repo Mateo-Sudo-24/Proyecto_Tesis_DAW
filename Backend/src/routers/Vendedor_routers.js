@@ -9,7 +9,7 @@ import {
     validatePasswordChange,
     validateMongoId
 } from '../middlewares/validators.js'; // <-- Importar validadores
-import { 
+import {
     login,
     recuperarPassword, 
     comprobarTokenPassword, 
@@ -22,7 +22,8 @@ import {
     obtenerVendedores,
     obtenerVendedorPorId,
     actualizarVendedor,
-    eliminarVendedor
+    eliminarVendedor,
+    obtenerVendedoresPublicos
 } from '../controllers/Vendedor_controller.js';
 import { verificarTokenJWT } from '../middlewares/JWT.js';
 import { esAdmin } from '../middlewares/AuthMiddleware.js';
@@ -40,6 +41,9 @@ router.post('/setup-account/:token', validateAccountSetup, configurarCuentaYPass
 router.get('/perfil', verificarTokenJWT, perfil);
 router.put('/perfil', verificarTokenJWT, validateProfileUpdate, actualizarPerfil);
 router.put('/perfil/password', verificarTokenJWT, validatePasswordChange, actualizarPassword);
+
+// --- RUTA PÚBLICA PARA CLIENTES (lista de vendedores activos para el chat) ---
+router.get('/publicos', verificarTokenJWT, obtenerVendedoresPublicos);
 
 // --- RUTAS DE GESTIÓN (SÓLO ADMINS, con validación) ---
 router.get('/', verificarTokenJWT, esAdmin, obtenerVendedores);

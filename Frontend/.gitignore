@@ -1,2 +1,18 @@
 node_modules/
 .env
+
+# Tests
+src/tests/
+**/tests/
+**/*.test.js
+**/*.test.jsx
+**/*.test.ts
+**/*.test.tsx
+**/*.spec.js
+**/*.spec.jsx
+
+# Vitest config y reportes
+vitest.config.js
+vitest.config.ts
+coverage/
+html/

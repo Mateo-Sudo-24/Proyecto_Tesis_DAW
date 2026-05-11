@@ -97,6 +97,7 @@ io.on('connection', async (socket) => {
         socket.join(socket.usuario.id);
     } else {
         socket.join('staff_room');
+        socket.join(socket.usuario.id); // sala propia para recibir mensajes directos
     }
 
     // Notificar a todo el staff la lista actualizada (incluyendo al recién conectado)
@@ -110,18 +111,24 @@ io.on('connection', async (socket) => {
         } catch (e) { /* ignorar */ }
     }
 
-    // ── Cliente envía mensaje a soporte ──
-    socket.on('mensaje_cliente', ({ texto }) => {
+    // ── Cliente envía mensaje a soporte o a vendedor específico ──
+    socket.on('mensaje_cliente', ({ texto, para }) => {
         if (!texto?.trim()) return;
         const msg = {
             de: { id: socket.usuario.id, nombre: socket.usuario.nombre, rol: 'cliente' },
             texto: texto.trim(),
             timestamp: new Date(),
         };
-        if (!historialChats.has(socket.usuario.id)) historialChats.set(socket.usuario.id, []);
-        historialChats.get(socket.usuario.id).push(msg);
-        // Enviar a todos en staff_room
-        io.to('staff_room').emit('mensaje_de_cliente', { clienteId: socket.usuario.id, msg });
+        const clave = para || socket.usuario.id;
+        if (!historialChats.has(clave)) historialChats.set(clave, []);
+        historialChats.get(clave).push(msg);
+        if (para) {
+            // Dirigido a un vendedor específico
+            io.to(para).emit('mensaje_de_cliente', { clienteId: socket.usuario.id, msg });
+        } else {
+            // Broadcast a todo el staff (soporte general)
+            io.to('staff_room').emit('mensaje_de_cliente', { clienteId: socket.usuario.id, msg });
+        }
     });
 
     // ── Staff envía mensaje a un cliente o vendedor específico ──
