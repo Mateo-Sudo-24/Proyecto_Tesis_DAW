@@ -2,6 +2,7 @@ import Administrador from "../models/Administrador.js";
 import Vendedor from "../models/Vendedor.js";
 import Cliente from "../models/Cliente.js";
 import { crearTokenJWT } from "../middlewares/JWT.js";
+import { sendMailToRecoveryPassword } from "../config/nodemailer.js";
 
 // ✅ LOGIN UNIFICADO - Intenta con todos los tipos de usuario
 const loginUnificado = async (req, res) => {
@@ -55,5 +56,32 @@ const loginUnificado = async (req, res) => {
 };
 
 export {
-    loginUnificado
+    loginUnificado,
+    recuperarPasswordUnificado
 };
+
+// ✅ RECUPERAR PASSWORD UNIFICADO - Busca el email en todos los modelos
+async function recuperarPasswordUnificado(req, res) {
+    const { email } = req.body;
+    if (!email) return res.status(400).json({ msg: "El correo electrónico es obligatorio." });
+
+    try {
+        let usuario =
+            await Administrador.findOne({ email, proveedor: 'local' }) ||
+            await Vendedor.findOne({ email, proveedor: 'local' }) ||
+            await Cliente.findOne({ email, proveedor: 'local' });
+
+        if (!usuario) {
+            return res.status(404).json({ msg: "No existe una cuenta registrada con ese correo." });
+        }
+
+        const token = usuario.crearToken();
+        await sendMailToRecoveryPassword(email, token);
+        await usuario.save();
+
+        res.status(200).json({ msg: "Se ha enviado un correo con las instrucciones para recuperar tu contraseña." });
+    } catch (error) {
+        console.error("❌ Error en recuperarPasswordUnificado:", error);
+        res.status(500).json({ msg: "Error en el servidor durante la recuperación." });
+    }
+}
