@@ -5,12 +5,23 @@ dotenv.config();
 // Puerto como número (las variables de entorno siempre llegan como string)
 const smtpPort = Number(process.env.PORT_MAILTRAP) || 587;
 
+// Si se usa Gmail, forzar el host IPv4 exclusivo para evitar ENETUNREACH en Render
+const smtpHost = (() => {
+    const h = process.env.HOST_MAILTRAP || '';
+    if (h === 'smtp.gmail.com') return 'smtp4.gmail.com';
+    return h;
+})();
+
+// Para Gmail en Render forzar siempre 465 (SSL/IPv4), ignora PORT_MAILTRAP si el host es Gmail
+const isGmail = smtpHost === 'smtp4.gmail.com';
+const smtpPortFinal = isGmail ? 465 : smtpPort;
+
 // Configuración limpia: sólo host/port/secure (sin "service" que entra en conflicto)
 const transporter = nodemailer.createTransport({
-    host: process.env.HOST_MAILTRAP,
-    port: smtpPort,
-    secure: smtpPort === 465,   // true → SSL (465)  |  false → STARTTLS (587)
-    family: 4,                  // Forzar IPv4 (Render no soporta IPv6 en plan gratuito)
+    host: smtpHost,
+    port: smtpPortFinal,
+    secure: smtpPortFinal === 465,  // true → SSL (465)  |  false → STARTTLS (587)
+    family: 4,                      // Forzar IPv4 (Render no soporta IPv6 en plan gratuito)
     auth: {
         user: process.env.USER_MAILTRAP,
         pass: process.env.PASS_MAILTRAP,
@@ -21,9 +32,9 @@ const transporter = nodemailer.createTransport({
 transporter.verify((error, success) => {
     if (error) {
         console.error("❌ Error de conexión SMTP:", error.message);
-        console.error("   Host:", process.env.HOST_MAILTRAP, "| Puerto:", smtpPort, "| Usuario:", process.env.USER_MAILTRAP);
+        console.error("   Host:", smtpHost, "| Puerto:", smtpPortFinal, "| Usuario:", process.env.USER_MAILTRAP);
     } else {
-        console.log("✅ Servidor SMTP conectado correctamente.");
+        console.log("✅ Servidor SMTP conectado correctamente. Host:", smtpHost, "| Puerto:", smtpPortFinal);
     }
 });
 
