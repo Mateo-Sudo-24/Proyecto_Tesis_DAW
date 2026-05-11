@@ -387,16 +387,7 @@ const Chat = () => {
         if (isStaff) {
             if (!clienteActivo) return;
             socket.emit('mensaje_staff', { para: clienteActivo.id, texto: mensaje.trim() });
-            // Agregarlo localmente como mensaje propio del staff
-            const msg = {
-                de: { id: miId, nombre: miNombre, rol: miRol },
-                texto: mensaje.trim(),
-                timestamp: new Date(),
-            };
-            setConversaciones(prev => ({
-                ...prev,
-                [clienteActivo.id]: [...(prev[clienteActivo.id] || []), msg],
-            }));
+            // El servidor hace echo del mensaje — no agregar localmente para evitar duplicados
         } else {
             socket.emit('mensaje_cliente', { texto: mensaje.trim() });
             const msg = {
