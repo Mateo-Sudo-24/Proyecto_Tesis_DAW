@@ -2,15 +2,18 @@ import nodemailer from "nodemailer";
 import dotenv from 'dotenv';
 dotenv.config();
 
-// Configuración del transportador de correo (usando tus credenciales de Gmail)
-let transporter = nodemailer.createTransport({
-    service: 'gmail',
+// Puerto como número (las variables de entorno siempre llegan como string)
+const smtpPort = Number(process.env.PORT_MAILTRAP) || 587;
+
+// Configuración limpia: sólo host/port/secure (sin "service" que entra en conflicto)
+const transporter = nodemailer.createTransport({
     host: process.env.HOST_MAILTRAP,
-    port: process.env.PORT_MAILTRAP,
+    port: smtpPort,
+    secure: smtpPort === 465,   // true → SSL (465)  |  false → STARTTLS (587)
     auth: {
         user: process.env.USER_MAILTRAP,
         pass: process.env.PASS_MAILTRAP,
-    }
+    },
 });
 
 // Paleta de colores y estilos base para todos los correos
@@ -59,12 +62,8 @@ const sendMailToRegister = async (userMail, token) => {
                 <footer>© ${new Date().getFullYear()} Unitex. Todos los derechos reservados.</footer>
             </div></body></html>`
     };
-    try {
-        await transporter.sendMail(mailOptions);
-        console.log("Correo de confirmación enviado a:", userMail);
-    } catch (error) {
-        console.error("Error al enviar correo de confirmación:", error);
-    }
+    await transporter.sendMail(mailOptions);
+    console.log("Correo de confirmación enviado a:", userMail);
 };
 
 /**
@@ -91,12 +90,8 @@ const sendMailToRecoveryPassword = async (userMail, token) => {
                 <footer>© ${new Date().getFullYear()} Unitex. Todos los derechos reservados.</footer>
             </div></body></html>`
     };
-    try {
-        await transporter.sendMail(mailOptions);
-        console.log("Correo de recuperación enviado a:", userMail);
-    } catch (error) {
-        console.error("Error al enviar correo de recuperación:", error);
-    }
+    await transporter.sendMail(mailOptions);
+    console.log("Correo de recuperación enviado a:", userMail);
 };
 
 /**
@@ -123,16 +118,41 @@ const sendMailToInviteUser = async (userMail, token) => {
                 <footer>© ${new Date().getFullYear()} Unitex. Todos los derechos reservados.</footer>
             </div></body></html>`
     };
-    try {
-        await transporter.sendMail(mailOptions);
-        console.log("Correo de invitación enviado a:", userMail);
-    } catch (error) {
-        console.error("Error al enviar correo de invitación:", error);
-    }
+    await transporter.sendMail(mailOptions);
+    console.log("Correo de invitación enviado a:", userMail);
+};
+
+/**
+ * Correo para invitar a un nuevo Cliente (creado por admin) a activar su cuenta.
+ * @param {string} userMail - El email del destinatario.
+ * @param {string} token - El token de activación.
+ */
+const sendMailToInviteCliente = async (userMail, token) => {
+    const inviteLink = `${process.env.URL_FRONTEND}/clientes/setup-account/${token}`;
+    const mailOptions = {
+        from: `"Soporte Unitex" <${process.env.USER_MAILTRAP}>`,
+        to: userMail,
+        subject: "Unitex - ¡Tu cuenta ha sido creada!",
+        html: `
+            <!DOCTYPE html><html lang="es"><head><meta charset="UTF-8">${baseStyle}</head><body>
+            <div class="container">
+                <h2>¡Bienvenido a Unitex!</h2>
+                <p>Un administrador ha creado una cuenta para ti en la plataforma de Unitex. Para activar tu cuenta y establecer tu contraseña personal, haz clic en el botón de abajo:</p>
+                <div class="button-container">
+                    <a href="${inviteLink}" class="button">Activar Mi Cuenta</a>
+                </div>
+                <p>Este enlace es de un solo uso y expirará por seguridad. Si no esperabas esta invitación, puedes ignorar este correo.</p>
+                <hr>
+                <footer>© ${new Date().getFullYear()} Unitex. Todos los derechos reservados.</footer>
+            </div></body></html>`
+    };
+    await transporter.sendMail(mailOptions);
+    console.log("Correo de invitación a cliente enviado a:", userMail);
 };
 
 export { 
     sendMailToRegister, 
     sendMailToRecoveryPassword, 
-    sendMailToInviteUser 
+    sendMailToInviteUser,
+    sendMailToInviteCliente
 };

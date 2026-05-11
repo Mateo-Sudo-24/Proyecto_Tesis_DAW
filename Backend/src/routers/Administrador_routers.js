@@ -10,13 +10,14 @@ import {
 import {
     login,
     crearAdministrador,
-    perfil, // <-- Importar nueva función
-    obtenerAdministradores, // <-- Importar nueva función
+    perfil,
+    obtenerAdministradores,
     actualizar,
     cambiarPassword,
     recuperarPassword,
     comprobarTokenPassword,
-    crearNuevoPassword
+    crearNuevoPassword,
+    obtenerUsuariosChat,
 } from '../controllers/Administrador_controller.js';
 import { verificarTokenJWT } from '../middlewares/JWT.js';
 import { esAdmin } from '../middlewares/AuthMiddleware.js';
@@ -49,6 +50,9 @@ router.put('/perfil', verificarTokenJWT, esAdmin, validateProfileUpdate, actuali
 
 // PUT /api/admin/perfil/password -> Cambiar la contraseña del admin autenticado
 router.put('/perfil/password', verificarTokenJWT, esAdmin, validatePasswordChange, cambiarPassword);
+
+// GET /api/admin/usuarios-chat -> Todos los usuarios verificados para el chat
+router.get('/usuarios-chat', verificarTokenJWT, esAdmin, obtenerUsuariosChat);
 
 
 export default router;

@@ -1,4 +1,3 @@
-import logoConfirm from '../assets/imagen-check.webp';
 import { Link, useParams, useLocation } from 'react-router-dom';
 import { useEffect, useState } from 'react';
 import { ToastContainer, toast } from 'react-toastify';
@@ -7,20 +6,18 @@ import 'react-toastify/dist/ReactToastify.css';
 export const Confirm = () => {
     const { token } = useParams();
     const location = useLocation();
-    const [status, setStatus] = useState('verifying'); // 'verifying', 'success', 'error'
+    const [status, setStatus] = useState('verifying');
     const [message, setMessage] = useState('Verificando tu cuenta...');
 
-    // Determina el endpoint y método según el rol
     const getVerificationDetails = () => {
         const path = location.pathname;
         if (path.includes('/vendedores/setup-account/')) {
             return {
                 url: `${import.meta.env.VITE_BACKEND_URL}/vendedores/setup-account/${token}`,
-                method: 'POST', // Para vendedores normalmente se requiere POST con password, pero aquí solo mostramos error
+                method: 'POST',
                 role: 'vendedor'
             };
         }
-        // Por defecto, cliente
         return {
             url: `${import.meta.env.VITE_BACKEND_URL}/clientes/confirmar/${token}`,
             method: 'GET',
@@ -47,13 +44,11 @@ export const Confirm = () => {
                     }
                     respuesta = await response.json();
                 } else if (method === 'POST') {
-                    // Para vendedores, normalmente se requiere un formulario de password.
-                    // Aquí solo mostramos un mensaje informativo.
                     throw new Error("La activación de cuenta de vendedor requiere establecer una contraseña.");
                 }
                 setMessage(respuesta.msg || '¡Cuenta confirmada exitosamente!');
                 setStatus('success');
-                toast.success(respuesta.msg || '¡Cuenta confirmada!');
+                toast.success(respuesta.msg || 'Cuenta confirmada!');
             } catch (error) {
                 const errorMsg = error.message || 'Hubo un error al confirmar la cuenta.';
                 setMessage(errorMsg);
@@ -65,36 +60,37 @@ export const Confirm = () => {
     }, [token, location.pathname]);
 
     return (
-        <div className="flex flex-col items-center justify-center h-screen bg-gray-50 text-center">
+        <div className="flex flex-col items-center justify-center h-screen bg-white">
             <ToastContainer />
-            <img className="object-cover h-60 w-60 rounded-full shadow-lg mb-8" src={logoConfirm} alt="Estado de Confirmación" />
 
-            {status === 'success' && (
-                <>
-                    <h1 className="text-3xl font-bold text-green-600">¡Verificación Exitosa!</h1>
-                    <p className="text-gray-600 mt-2">{message}</p>
-                    <Link to="/login" className="mt-8 p-3 w-48 bg-gray-800 text-white rounded-xl hover:scale-105 duration-300">
-                        Ir a Iniciar Sesión
-                    </Link>
-                </>
-            )}
+            <div className="w-40 h-40 bg-amber-100 rounded-full flex items-center justify-center border-4 border-amber-300 mb-8">
+                <span className="text-amber-800 font-bold text-4xl">IN</span>
+            </div>
 
-            {status === 'error' && (
-                <>
-                    <h1 className="text-3xl font-bold text-red-600">Error de Verificación</h1>
-                    <p className="text-gray-600 mt-2">{message}</p>
-                    <Link to="/register" className="mt-8 p-3 w-48 bg-orange-800 text-white rounded-xl hover:scale-105 duration-300">
-                        Volver a Registrarse
-                    </Link>
-                </>
-            )}
+            <div className="flex flex-col items-center justify-center text-center px-4">
+                {status === 'success' && (
+                    <>
+                        <p className="text-3xl md:text-4xl lg:text-5xl text-gray-800 mt-4">Verificacion Exitosa!</p>
+                        <p className="md:text-lg lg:text-xl text-gray-600 mt-8">{message}</p>
+                        <Link to="/login" className="p-3 m-5 w-full text-center bg-gray-600 text-slate-300 border rounded-xl hover:scale-110 duration-300 hover:bg-gray-900 hover:text-white">Iniciar sesion</Link>
+                    </>
+                )}
 
-            {status === 'verifying' && (
-                <>
-                    <h1 className="text-3xl font-bold text-blue-600">Verificando...</h1>
-                    <p className="text-gray-600 mt-2">{message}</p>
-                </>
-            )}
+                {status === 'error' && (
+                    <>
+                        <p className="text-3xl md:text-4xl lg:text-5xl text-gray-800 mt-4">Error de Verificacion</p>
+                        <p className="md:text-lg lg:text-xl text-gray-600 mt-8">{message}</p>
+                        <Link to="/register" className="p-3 m-5 w-full text-center bg-gray-600 text-slate-300 border rounded-xl hover:scale-110 duration-300 hover:bg-gray-900 hover:text-white">Volver a Registrarse</Link>
+                    </>
+                )}
+
+                {status === 'verifying' && (
+                    <>
+                        <p className="text-3xl md:text-4xl lg:text-5xl text-gray-800 mt-4">Verificando...</p>
+                        <p className="md:text-lg lg:text-xl text-gray-600 mt-8">{message}</p>
+                    </>
+                )}
+            </div>
         </div>
     );
-};
+}

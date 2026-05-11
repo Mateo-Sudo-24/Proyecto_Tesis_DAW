@@ -165,6 +165,29 @@ const crearNuevoPassword = async (req, res) => {
     }
 };
 
+// Devuelve todos los clientes y vendedores verificados/activos para el chat
+const obtenerUsuariosChat = async (req, res) => {
+    try {
+        const Cliente  = (await import('../models/Cliente.js')).default;
+        const Vendedor = (await import('../models/Vendedor.js')).default;
+
+        const [clientes, vendedores] = await Promise.all([
+            Cliente.find({ status: true, confirmEmail: true }).select('_id nombre apellido email').lean(),
+            Vendedor.find({ status: 'activo' }).select('_id nombre apellido email').lean(),
+        ]);
+
+        const lista = [
+            ...clientes.map(u  => ({ id: String(u._id), nombre: `${u.nombre} ${u.apellido || ''}`.trim(), email: u.email, rol: 'cliente' })),
+            ...vendedores.map(u => ({ id: String(u._id), nombre: `${u.nombre} ${u.apellido || ''}`.trim(), email: u.email, rol: 'vendedor' })),
+        ];
+
+        res.status(200).json(lista);
+    } catch (error) {
+        console.error('Error al obtener usuarios chat:', error);
+        res.status(500).json({ msg: 'Error al obtener usuarios.' });
+    }
+};
+
 export {
     crearAdministrador,
     login,
@@ -175,4 +198,5 @@ export {
     recuperarPassword,
     comprobarTokenPassword,
     crearNuevoPassword,
+    obtenerUsuariosChat,
 };

@@ -1,35 +1,116 @@
 import storeProfile from "../../context/storeProfile"
 
+const styles = `
+    :root {
+        --orange-main:   #e8760a;
+        --orange-dark:   #c4620a;
+        --orange-light:  #fde8ce;
+        --orange-border: #f0943a;
+    }
+    .cp-card {
+        background: #fff;
+        border-radius: 1.25rem;
+        box-shadow: 0 4px 24px rgba(0,0,0,0.09);
+        overflow: hidden;
+    }
+    .cp-header {
+        background: #1f2937;
+        padding: 1.5rem;
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        gap: 0.75rem;
+    }
+    .cp-avatar {
+        width: 72px;
+        height: 72px;
+        border-radius: 50%;
+        background: var(--orange-main);
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-size: 2rem;
+        font-weight: 800;
+        color: #fff;
+        border: 3px solid var(--orange-border);
+        flex-shrink: 0;
+    }
+    .cp-header-name {
+        color: #fff;
+        font-size: 1.1rem;
+        font-weight: 800;
+        margin: 0;
+        text-align: center;
+    }
+    .cp-header-email {
+        color: #9ca3af;
+        font-size: 0.8rem;
+        margin: 0;
+        text-align: center;
+    }
+    .cp-body {
+        padding: 1.25rem 1.5rem;
+        display: flex;
+        flex-direction: column;
+        gap: 0;
+    }
+    .cp-row {
+        display: flex;
+        align-items: baseline;
+        padding: 0.6rem 0;
+        border-bottom: 1px solid #f3f4f6;
+    }
+    .cp-row:last-child { border-bottom: none; }
+    .cp-row-label {
+        font-size: 0.75rem;
+        font-weight: 700;
+        text-transform: uppercase;
+        letter-spacing: 0.05em;
+        color: #6b7280;
+        width: 90px;
+        flex-shrink: 0;
+    }
+    .cp-row-value {
+        font-size: 0.9rem;
+        color: #111827;
+        font-weight: 500;
+        margin: 0;
+    }
+    .cp-empty {
+        font-size: 0.85rem;
+        color: #d1d5db;
+        font-style: italic;
+    }
+`;
 
 export const CardProfile = () => {
-
-    const {user} = storeProfile()  
+    const { user } = storeProfile()
+    const initial = user?.nombre ? user.nombre.charAt(0).toUpperCase() : 'U'
 
     return (
-        <div className="bg-white border border-slate-200 h-auto p-4 
-                        flex flex-col items-center justify-between shadow-xl rounded-lg">
-            <div className="relative">
-                <img src="https://cdn-icons-png.flaticon.com/512/4715/4715329.png" alt="img-client" className="m-auto rounded-full border-2 border-gray-300" width={120} height={120} />
-                <label className="absolute bottom-0 right-0 bg-blue-400  text-white rounded-full p-2 cursor-pointer hover:bg-emerald-400">📷
-                    <input type="file" accept="image/*" className="hidden" />
-                </label>
+        <>
+            <style>{styles}</style>
+            <div className="cp-card">
+                <div className="cp-header">
+                    <div className="cp-avatar">{initial}</div>
+                    <p className="cp-header-name">{user?.nombre} {user?.apellido}</p>
+                    <p className="cp-header-email">{user?.email}</p>
+                </div>
+                <div className="cp-body">
+                    <div className="cp-row">
+                        <span className="cp-row-label">Dirección</span>
+                        <p className="cp-row-value">{user?.direccion || <span className="cp-empty">Sin datos</span>}</p>
+                    </div>
+                    <div className="cp-row">
+                        <span className="cp-row-label">Teléfono</span>
+                        <p className="cp-row-value">{user?.celular || user?.telefono || <span className="cp-empty">Sin datos</span>}</p>
+                    </div>
+                    <div className="cp-row">
+                        <span className="cp-row-label">Correo</span>
+                        <p className="cp-row-value">{user?.email}</p>
+                    </div>
+                </div>
             </div>
-
-            <div className="self-start">
-                <b>Nombre:</b><p className="inline-block ml-3">{user?.nombre}</p>
-            </div>
-            <div className="self-start">
-                <b>Apellido:</b><p className="inline-block ml-3">{user?.apellido}</p>
-            </div >
-            <div className="self-start">
-                <b>Dirección:</b><p className="inline-block ml-3">{user?.direccion}</p>
-            </div>
-            <div className="self-start">
-                <b>Teléfono:</b><p className="inline-block ml-3">{user?.celular}</p>
-            </div>
-            <div className="self-start">
-                <b>Correo:</b><p className="inline-block ml-3">{user?.email}</p>
-            </div>
-        </div>
+        </>
     )
 }

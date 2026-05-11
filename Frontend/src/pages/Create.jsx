@@ -1,66 +1,57 @@
-import { useState } from 'react';
-import { Form } from '../components/create/Form';
-import storeProfile from '../context/storeProfile';
+import FormCliente from '../components/create/FormCliente';
+
+const styles = `
+    .create-page {
+        max-width: 700px;
+        margin: 0 auto;
+    }
+    .create-page-header {
+        margin-bottom: 0.25rem;
+    }
+    .create-page-title {
+        font-size: 1.5rem;
+        font-weight: 900;
+        color: #111827;
+        margin: 0 0 0.25rem;
+        display: flex;
+        align-items: center;
+        gap: 0.6rem;
+    }
+    .create-page-title::before {
+        content: '';
+        display: inline-block;
+        width: 4px;
+        height: 1.4rem;
+        background: #e8760a;
+        border-radius: 2px;
+        flex-shrink: 0;
+    }
+    .create-page-sub {
+        font-size: 0.875rem;
+        color: #6b7280;
+        margin: 0;
+    }
+    .create-page-divider {
+        height: 1px;
+        background: linear-gradient(90deg, #e8760a 0%, #f3f4f6 60%);
+        margin: 1rem 0 0;
+        border: none;
+    }
+`;
 
 const Create = () => {
-    const [tipoCreacion, setTipoCreacion] = useState(null);
-    const { user } = storeProfile();
-
-    // ✅ VALIDAR PERMISOS SEGÚN ROL
-    const puedeCrearProducto = user?.rol === 'vendedor' || user?.rol === 'administrador';
-    const puedeCrearUsuario = user?.rol === 'administrador';
-
-    // Si ya seleccionó tipo, mostrar formulario
-    if (tipoCreacion) {
-        return (
-            <div>
-                <button
-                    onClick={() => setTipoCreacion(null)}
-                    className="mb-4 px-4 py-2 bg-gray-400 text-white rounded-lg hover:bg-gray-500 transition"
-                >
-                    ← Volver a seleccionar
-                </button>
-                <Form tipoCreacion={tipoCreacion} />
-            </div>
-        );
-    }
-
-    // Mostrar opciones de creación
     return (
-        <div>
-            <h1 className='font-black text-4xl text-gray-500'>Agregar</h1>
-            <hr className='my-4 border-t-2 border-gray-300' />
-            <p className='mb-8'>Selecciona qué deseas crear</p>
-
-            {/* ✅ OPCIONES DE CREACIÓN */}
-            <div className='grid grid-cols-1 md:grid-cols-2 gap-6 max-w-2xl'>
-                {puedeCrearProducto && (
-                    <button
-                        onClick={() => setTipoCreacion('producto')}
-                        className='p-8 border-2 border-amber-900 rounded-xl hover:bg-amber-50 transition text-center'
-                    >
-                        <h2 className='text-2xl font-bold text-amber-900 mb-2'>📦 Crear Producto</h2>
-                        <p className='text-gray-600'>Sube un nuevo producto con imagen y detalles</p>
-                    </button>
-                )}
-
-                {puedeCrearUsuario && (
-                    <button
-                        onClick={() => setTipoCreacion('usuario')}
-                        className='p-8 border-2 border-blue-900 rounded-xl hover:bg-blue-50 transition text-center'
-                    >
-                        <h2 className='text-2xl font-bold text-blue-900 mb-2'>👤 Crear Usuario</h2>
-                        <p className='text-gray-600'>Registra un nuevo vendedor o cliente</p>
-                    </button>
-                )}
-
-                {!puedeCrearProducto && !puedeCrearUsuario && (
-                    <div className='col-span-2 p-8 bg-red-50 border-2 border-red-300 rounded-xl text-center'>
-                        <p className='text-red-600 font-semibold'>Sin permisos para crear</p>
-                    </div>
-                )}
+        <>
+            <style>{styles}</style>
+            <div className="create-page">
+                <div className="create-page-header">
+                    <h1 className="create-page-title">Crear usuario</h1>
+                    <p className="create-page-sub">Invita un nuevo cliente o vendedor al sistema.</p>
+                </div>
+                <hr className="create-page-divider" />
+                <FormCliente />
             </div>
-        </div>
+        </>
     );
 }
 

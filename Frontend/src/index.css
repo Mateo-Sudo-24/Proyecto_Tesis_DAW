@@ -1,8 +1,13 @@
+/* 1. PRIMERO: Las importaciones de Google Fonts */
 @import url('https://fonts.googleapis.com/css2?family=Lato:wght@400;900&family=Roboto:wght@400;700;900&display=swap');
+
+/* 2. SEGUNDO: Tailwind CSS */
 @import "tailwindcss";
 
+/* 3. TERCERO: Configuraciones adicionales de Tailwind */
+@custom-variant dark (&:where(.dark, .dark *));
 
-
+/* 4. CUARTO: Tus estilos personalizados */
 body {
     font-family: 'Roboto', sans-serif;
 }

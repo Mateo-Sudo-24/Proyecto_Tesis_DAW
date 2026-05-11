@@ -3,6 +3,9 @@ import connection from './database.js';
 import http from 'http';
 import { Server } from 'socket.io';
 import jwt from 'jsonwebtoken';
+import Administrador from './models/Administrador.js';
+import Cliente from './models/Cliente.js';
+import Vendedor from './models/Vendedor.js';
 
 // 1. Crear un servidor HTTP a partir de nuestra aplicación de Express
 const server = http.createServer(app);
@@ -20,6 +23,33 @@ const io = new Server(server, {
 // ==                LÓGICA DEL CHAT EN TIEMPO REAL                     ==
 // =======================================================================
 
+// Mapa de usuarios conectados: userId → { id, rol, nombre, socketId }
+const usuariosConectados = new Map();
+
+// Historial en memoria por cliente: clienteId → mensaje[]
+const historialChats = new Map();
+
+// Devuelve todos los clientes y vendedores ACTIVOS de la BD con su estado online
+const getListaCompletaUsuarios = async () => {
+    const [clientes, vendedores] = await Promise.all([
+        Cliente.find({ status: true }).select('_id nombre email').lean(),
+        Vendedor.find({ status: true }).select('_id nombre email').lean(),
+    ]);
+    const todos = [
+        ...clientes.map(u => ({ id: String(u._id), nombre: u.nombre, email: u.email, rol: 'cliente' })),
+        ...vendedores.map(u => ({ id: String(u._id), nombre: u.nombre, email: u.email, rol: 'vendedor' })),
+    ];
+    return todos.map(u => ({ ...u, online: usuariosConectados.has(u.id) }));
+};
+
+// Emite la lista completa actualizada a todo el staff
+const emitirListaStaff = async () => {
+    try {
+        const lista = await getListaCompletaUsuarios();
+        io.to('staff_room').emit('lista_usuarios', lista);
+    } catch (e) { console.error('Error emitiendo lista usuarios:', e); }
+};
+
 // 3. Middleware de autenticación para cada nueva conexión de socket
 io.use((socket, next) => {
     const token = socket.handshake.auth.token;
@@ -31,62 +61,98 @@ io.use((socket, next) => {
         if (err) {
             return next(new Error("Autenticación fallida: el token es inválido o ha expirado."));
         }
-        // Adjuntamos los datos del usuario (id, rol) al objeto 'socket'
         socket.usuario = decoded; 
         next();
     });
 });
 
-// 4. Lógica principal que se ejecuta cuando un usuario se conecta exitosamente
-io.on('connection', (socket) => {
-    console.log(`✅ Usuario conectado al chat: ${socket.id} | Rol: ${socket.usuario.rol}`);
+// 4. Lógica principal cuando un usuario se conecta
+io.on('connection', async (socket) => {
+    // Buscar nombre del usuario en la BD
+    let nombre = 'Usuario';
+    try {
+        let doc;
+        if (socket.usuario.rol === 'administrador') {
+            doc = await Administrador.findById(socket.usuario.id).select('nombre').lean();
+        } else if (socket.usuario.rol === 'cliente') {
+            doc = await Cliente.findById(socket.usuario.id).select('nombre').lean();
+        } else if (socket.usuario.rol === 'vendedor') {
+            doc = await Vendedor.findById(socket.usuario.id).select('nombre').lean();
+        }
+        if (doc?.nombre) nombre = doc.nombre;
+    } catch (e) { /* usar nombre por defecto */ }
 
-    // --- Organización en Salas (Rooms) ---
+    socket.usuario.nombre = nombre;
+    console.log(`✅ Chat: ${nombre} (${socket.usuario.rol}) conectado — ${socket.id}`);
+
+    // Registrar en el mapa
+    usuariosConectados.set(socket.usuario.id, {
+        id: socket.usuario.id,
+        rol: socket.usuario.rol,
+        nombre,
+        socketId: socket.id,
+    });
+
     if (socket.usuario.rol === 'cliente') {
-        // El cliente se une a su propia sala privada para recibir respuestas directas
         socket.join(socket.usuario.id);
-        // Notificar al personal que un cliente está en línea
-        io.to('staff_room').emit('nuevo_chat_cliente', { 
-            clienteId: socket.usuario.id,
-            mensaje: `Un cliente se ha conectado y necesita ayuda.`
-        });
-    } else if (socket.usuario.rol === 'vendedor' || socket.usuario.rol === 'administrador') {
-        // El personal se une a una sala común para recibir todas las consultas de clientes
+    } else {
         socket.join('staff_room');
     }
 
-    // --- Manejo de Eventos (Mensajes) ---
+    // Notificar a todo el staff la lista actualizada (incluyendo al recién conectado)
+    await emitirListaStaff();
 
-    // Escuchar cuando un cliente envía un mensaje
-    socket.on('mensaje_desde_cliente', (payload) => {
-        // Reenviar el mensaje a todos en la sala de personal
-        io.to('staff_room').emit('mensaje_recibido_de_cliente', {
-            de: socket.usuario.id,
-            texto: payload.texto,
-            timestamp: new Date()
-        });
+    // Si el recién conectado es staff, enviarle la lista al instante
+    if (socket.usuario.rol !== 'cliente') {
+        try {
+            const lista = await getListaCompletaUsuarios();
+            socket.emit('lista_usuarios', lista);
+        } catch (e) { /* ignorar */ }
+    }
+
+    // ── Cliente envía mensaje a soporte ──
+    socket.on('mensaje_cliente', ({ texto }) => {
+        if (!texto?.trim()) return;
+        const msg = {
+            de: { id: socket.usuario.id, nombre: socket.usuario.nombre, rol: 'cliente' },
+            texto: texto.trim(),
+            timestamp: new Date(),
+        };
+        if (!historialChats.has(socket.usuario.id)) historialChats.set(socket.usuario.id, []);
+        historialChats.get(socket.usuario.id).push(msg);
+        // Enviar a todos en staff_room
+        io.to('staff_room').emit('mensaje_de_cliente', { clienteId: socket.usuario.id, msg });
     });
 
-    // Escuchar cuando un miembro del personal envía una respuesta
-    socket.on('mensaje_desde_staff', (payload) => {
-        // El payload debe contener el ID del cliente al que se responde: { para: '...', texto: '...' }
-        if (payload.para) {
-            // Enviar el mensaje únicamente a la sala privada de ese cliente
-            io.to(payload.para).emit('respuesta_recibida_de_staff', {
-                de: 'Soporte Unitex',
-                texto: payload.texto,
-                timestamp: new Date()
-            });
-        }
+    // ── Staff envía mensaje a un cliente o vendedor específico ──
+    socket.on('mensaje_staff', ({ para, texto }) => {
+        if (!texto?.trim() || !para) return;
+        const msg = {
+            de: { id: socket.usuario.id, nombre: socket.usuario.nombre, rol: socket.usuario.rol },
+            texto: texto.trim(),
+            timestamp: new Date(),
+        };
+        if (!historialChats.has(para)) historialChats.set(para, []);
+        historialChats.get(para).push(msg);
+        // Enviar al destinatario si está conectado
+        io.to(para).emit('mensaje_de_staff', msg);
+        // Reenviar a todo el staff para sincronización
+        io.to('staff_room').emit('mensaje_de_cliente', { clienteId: para, msg });
     });
 
-    // Manejar la desconexión
+    // ── Staff solicita historial de un cliente ──
+    socket.on('solicitar_historial', ({ clienteId }) => {
+        const historial = historialChats.get(clienteId) || [];
+        socket.emit('historial_chat', { clienteId, historial });
+    });
+
+    // ── Desconexión ──
     socket.on('disconnect', () => {
-        console.log(`❌ Usuario desconectado del chat: ${socket.id}`);
-        if (socket.usuario.rol === 'cliente') {
-            // Opcional: notificar al personal que un cliente se fue
-            io.to('staff_room').emit('cliente_desconectado', { clienteId: socket.usuario.id });
-        }
+        const { id, rol, nombre: n } = socket.usuario;
+        console.log(`❌ Chat: ${n} (${rol}) desconectado`);
+        usuariosConectados.delete(id);
+        // Actualizar lista para todo el staff
+        emitirListaStaff();
     });
 });
 

@@ -49,4 +49,5 @@ export const validateAccountSetup = [validatePassword, param('token').notEmpty()
 
 // Cliente
 export const validateClienteRegistro = [validateNombre, validateApellido, validateEmail, validatePassword, handleValidationErrors];
-export const validateAdminClienteCreation = [validateNombre, validateEmail, validatePassword, handleValidationErrors];
+// La creación de cliente por admin usa flujo de invitación (sin password inicial)
+export const validateAdminClienteCreation = [validateNombre, validateEmail, handleValidationErrors];

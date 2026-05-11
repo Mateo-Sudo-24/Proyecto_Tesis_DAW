@@ -148,7 +148,7 @@ const FabricAnalyzer = ({ onClose }) => {
                                 className="w-full rounded-lg border"
                                 videoConstraints={{ facingMode: "environment" }}
                             />
-                            <button onClick={capture} className="mt-4 w-full bg-orange-400 text-white py-3 rounded-lg font-semibold flex items-center justify-center gap-2 hover:bg-orange-500 transition">
+                            <button onClick={capture} className="mt-4 w-full bg-gray-600 text-white py-3 rounded-lg font-semibold flex items-center justify-center gap-2 hover:bg-gray-500 transition">
                                 <MdCamera size={20} /> Capturar Foto
                             </button>
                             <div className="my-4 text-gray-500">o</div>
@@ -168,7 +168,7 @@ const FabricAnalyzer = ({ onClose }) => {
                                     {isLoading ? 'Analizando...' : 'Analizar'}
                                 </button>
                             </div>
-                            {isLoading && <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-orange-400 mx-auto mt-4"></div>}
+                            {isLoading && <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-gray-600 mx-auto mt-4"></div>}
                             {analysis && (
                                 <div className="bg-amber-50 p-4 rounded-lg mt-4 border border-amber-200">
                                     <h3 className="font-bold text-amber-900 mb-2">Resultados del Análisis:</h3>

@@ -1,31 +1,313 @@
 import { useEffect, useState } from "react";
 import { Link } from "react-router-dom";
-import { FaSearch, FaFilter } from "react-icons/fa";
+import { FaSearch, FaFilter, FaTimes } from "react-icons/fa";
+
+/* ── CSS interno (mismo sistema que Home, Nosotros y Contact) ── */
+const styles = `
+    :root {
+        --orange-main:   #e8760a;
+        --orange-dark:   #c4620a;
+        --orange-light:  #fde8ce;
+        --orange-border: #f0943a;
+    }
+
+    /* ── HEADER ── */
+    .prod-header {
+        width: 100%;
+        background: #fff;
+        border-bottom: 1px solid #e5e7eb;
+        box-shadow: 0 1px 6px rgba(0,0,0,0.07);
+        position: sticky;
+        top: 0;
+        z-index: 50;
+    }
+    .prod-header-inner {
+        max-width: 1280px;
+        margin: 0 auto;
+        padding: 1rem 3rem;
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        gap: 2rem;
+    }
+    .prod-logo {
+        font-size: 2rem;
+        font-weight: 900;
+        color: var(--orange-main);
+        letter-spacing: -1px;
+        flex-shrink: 0;
+        text-decoration: none;
+    }
+    .prod-logo span { color: #111827; }
+
+    .prod-nav {
+        display: flex;
+        gap: 2rem;
+        list-style: none;
+        margin: 0; padding: 0;
+    }
+    .prod-nav a {
+        font-weight: 600;
+        font-size: 0.95rem;
+        color: #4b5563;
+        text-decoration: none;
+        transition: color 0.18s;
+    }
+    .prod-nav a:hover  { color: var(--orange-main); text-decoration: underline; }
+    .prod-nav a.activo { color: var(--orange-main); text-decoration: underline; }
+
+    .prod-header-btns { display: flex; gap: 0.75rem; flex-shrink: 0; }
+    .btn-header-login {
+        padding: 0.5rem 1.25rem;
+        background: var(--orange-main);
+        color: #fff; font-weight: 700; font-size: 0.875rem;
+        border-radius: 0.5rem; text-decoration: none;
+        border: 2px solid var(--orange-main);
+        transition: background 0.18s, transform 0.15s;
+    }
+    .btn-header-login:hover { background: var(--orange-dark); border-color: var(--orange-dark); transform: translateY(-1px); }
+    .btn-header-register {
+        padding: 0.5rem 1.25rem;
+        background: #fff;
+        color: var(--orange-main); font-weight: 700; font-size: 0.875rem;
+        border-radius: 0.5rem; text-decoration: none;
+        border: 2px solid var(--orange-main);
+        transition: background 0.18s, color 0.18s, transform 0.15s;
+    }
+    .btn-header-register:hover { background: var(--orange-light); transform: translateY(-1px); }
+
+    /* ── HERO CATÁLOGO ── */
+    .prod-hero {
+        background: #1f2937;
+        padding: 3.5rem 3rem;
+        color: #fff;
+    }
+    .prod-hero-inner {
+        max-width: 1280px; margin: 0 auto;
+        display: flex; align-items: center;
+        justify-content: space-between; gap: 2rem;
+        flex-wrap: wrap;
+    }
+    .prod-hero h1 {
+        font-size: clamp(1.75rem, 3vw, 2.5rem);
+        font-weight: 900; margin: 0 0 0.4rem;
+    }
+    .prod-hero h1 span { color: var(--orange-border); }
+    .prod-hero p { color: #9ca3af; font-size: 0.95rem; margin: 0; }
+
+    /* ── BODY WRAPPER ── */
+    .prod-body {
+        max-width: 1280px; margin: 0 auto;
+        padding: 2.5rem 3rem;
+    }
+
+    /* ── BARRA BÚSQUEDA + FILTRO ── */
+    .prod-search-row {
+        display: flex; gap: 1rem; align-items: stretch;
+        margin-bottom: 1.25rem; flex-wrap: wrap;
+    }
+    .prod-search-wrap { position: relative; flex: 1; min-width: 220px; }
+    .prod-search-icon {
+        position: absolute; left: 1rem; top: 50%;
+        transform: translateY(-50%);
+        color: #9ca3af; pointer-events: none;
+    }
+    .prod-search-input {
+        width: 100%;
+        padding: 0.75rem 1rem 0.75rem 2.75rem;
+        border: 1.5px solid #e5e7eb;
+        border-radius: 0.75rem;
+        font-size: 0.9rem; color: #374151;
+        outline: none; background: #fff;
+        box-shadow: 0 1px 4px rgba(0,0,0,0.05);
+        transition: border-color 0.18s, box-shadow 0.18s;
+        box-sizing: border-box;
+    }
+    .prod-search-input:focus { border-color: var(--orange-main); box-shadow: 0 0 0 3px rgba(232,118,10,0.1); }
+
+    .btn-filter {
+        display: flex; align-items: center; gap: 0.5rem;
+        padding: 0.75rem 1.5rem;
+        border-radius: 0.75rem;
+        font-weight: 700; font-size: 0.875rem;
+        border: 1.5px solid #e5e7eb;
+        background: #fff; color: #374151;
+        cursor: pointer; transition: all 0.18s;
+        box-shadow: 0 1px 4px rgba(0,0,0,0.05);
+    }
+    .btn-filter:hover  { border-color: var(--orange-main); color: var(--orange-main); }
+    .btn-filter.open   { background: #1f2937; color: #f59e0b; border-color: #1f2937; }
+
+    /* ── PANEL DE FILTROS ── */
+    .prod-filter-panel {
+        background: #fff;
+        border: 1.5px solid #e5e7eb;
+        border-radius: 1rem;
+        padding: 1.5rem;
+        margin-bottom: 1.25rem;
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+        gap: 1.5rem;
+        box-shadow: 0 2px 10px rgba(0,0,0,0.06);
+    }
+    .prod-filter-label {
+        font-size: 0.75rem; font-weight: 800;
+        text-transform: uppercase; letter-spacing: 0.07em;
+        color: #6b7280; margin-bottom: 0.6rem; display: block;
+    }
+    .prod-price-row { display: flex; align-items: center; gap: 0.75rem; }
+    .prod-price-badge {
+        font-size: 0.75rem; font-weight: 700;
+        background: var(--orange-light); color: var(--orange-dark);
+        padding: 0.2rem 0.5rem; border-radius: 0.4rem;
+        flex-shrink: 0;
+    }
+    input[type="range"].prod-range { flex: 1; accent-color: var(--orange-main); }
+    .prod-select {
+        width: 100%;
+        padding: 0.6rem 0.9rem;
+        border: 1.5px solid #e5e7eb;
+        border-radius: 0.625rem;
+        font-size: 0.875rem; color: #374151;
+        outline: none; background: #fff;
+        transition: border-color 0.18s;
+        cursor: pointer;
+    }
+    .prod-select:focus { border-color: var(--orange-main); box-shadow: 0 0 0 2px rgba(232,118,10,0.1); }
+    .btn-clear-filters {
+        width: 100%; padding: 0.65rem 1rem;
+        background: #f3f4f6; color: #374151;
+        border: 1.5px solid #e5e7eb;
+        border-radius: 0.625rem;
+        font-weight: 700; font-size: 0.875rem;
+        cursor: pointer; transition: background 0.18s;
+        align-self: flex-end;
+    }
+    .btn-clear-filters:hover { background: #e5e7eb; }
+
+    /* ── CONTADOR ── */
+    .prod-count { font-size: 0.85rem; color: #9ca3af; font-weight: 500; margin-bottom: 1.25rem; }
+
+    /* ── GRID DE PRODUCTOS ── */
+    .prod-grid {
+        display: grid;
+        grid-template-columns: repeat(1, 1fr);
+        gap: 1.5rem;
+    }
+    @media (min-width: 640px)  { .prod-grid { grid-template-columns: repeat(2, 1fr); } }
+    @media (min-width: 1024px) { .prod-grid { grid-template-columns: repeat(4, 1fr); } }
+
+    /* Skeleton */
+    .prod-skeleton {
+        background: #fff; border-radius: 1rem;
+        height: 320px; overflow: hidden;
+        box-shadow: 0 2px 8px rgba(0,0,0,0.06);
+    }
+    .skeleton-img { background: #e5e7eb; height: 190px; animation: shimmer 1.4s ease-in-out infinite; }
+    .skeleton-body { padding: 1rem; display: flex; flex-direction: column; gap: 0.5rem; }
+    .skeleton-line { background: #e5e7eb; border-radius: 0.4rem; animation: shimmer 1.4s ease-in-out infinite; }
+    @keyframes shimmer { 0%,100%{opacity:1} 50%{opacity:0.45} }
+
+    /* Tarjeta producto */
+    .prod-card {
+        background: #fff;
+        border-radius: 1rem;
+        overflow: hidden;
+        box-shadow: 0 2px 10px rgba(0,0,0,0.07);
+        transition: box-shadow 0.22s, transform 0.22s;
+        display: flex; flex-direction: column;
+    }
+    .prod-card:hover { box-shadow: 0 8px 28px rgba(232,118,10,0.15); transform: translateY(-4px); }
+
+    .prod-card-img {
+        position: relative; height: 200px;
+        background: #f3f4f6; overflow: hidden;
+    }
+    .prod-card-img img {
+        width: 100%; height: 100%; object-fit: cover;
+        transition: transform 0.3s ease;
+    }
+    .prod-card:hover .prod-card-img img { transform: scale(1.06); }
+
+    .badge-descuento {
+        position: absolute; top: 0.75rem; left: 0.75rem;
+        background: #ef4444; color: #fff;
+        font-size: 0.7rem; font-weight: 800;
+        padding: 0.2rem 0.55rem; border-radius: 0.4rem;
+    }
+    .badge-stock {
+        position: absolute; top: 0.75rem; right: 0.75rem;
+        background: #fbbf24; color: #78350f;
+        font-size: 0.7rem; font-weight: 800;
+        padding: 0.2rem 0.55rem; border-radius: 0.4rem;
+    }
+
+    .prod-card-body { padding: 1rem; flex: 1; display: flex; flex-direction: column; }
+    .prod-card-name { font-size: 0.95rem; font-weight: 800; color: #111827; margin-bottom: 0.3rem; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+    .prod-card-desc { font-size: 0.78rem; color: #9ca3af; margin-bottom: 0.5rem; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; }
+    .prod-card-color { font-size: 0.75rem; color: #6b7280; margin-bottom: 0.75rem; }
+    .prod-card-color span { font-weight: 700; color: #374151; }
+
+    .prod-card-footer { display: flex; align-items: center; justify-content: space-between; margin-bottom: 0.875rem; }
+    .prod-price { font-size: 1.2rem; font-weight: 900; color: var(--orange-dark); }
+    .prod-stock-badge {
+        font-size: 0.7rem; font-weight: 700;
+        padding: 0.2rem 0.55rem; border-radius: 9999px;
+    }
+    .prod-stock-badge.in  { background: #d1fae5; color: #065f46; }
+    .prod-stock-badge.out { background: #fee2e2; color: #991b1b; }
+
+    .btn-ver-detalles {
+        display: block; width: 100%; text-align: center;
+        padding: 0.65rem 1rem;
+        background: var(--orange-main);
+        color: #fff; font-weight: 700; font-size: 0.875rem;
+        border-radius: 0.625rem; text-decoration: none;
+        transition: background 0.18s, transform 0.15s;
+        margin-top: auto;
+        box-shadow: 0 3px 10px rgba(232,118,10,0.25);
+    }
+    .btn-ver-detalles:hover { background: var(--orange-dark); transform: translateY(-1px); }
+
+    /* ── ESTADO VACÍO ── */
+    .prod-empty {
+        text-align: center; padding: 5rem 2rem;
+        background: #fff; border-radius: 1rem;
+        border: 1.5px solid #e5e7eb;
+    }
+    .prod-empty .icon { font-size: 4rem; margin-bottom: 1rem; }
+    .prod-empty h3 { font-size: 1.25rem; font-weight: 800; color: #374151; margin-bottom: 0.5rem; }
+    .prod-empty p  { color: #9ca3af; }
+
+    @media (max-width: 768px) {
+        .prod-header-inner { padding: 0.75rem 1.5rem; }
+        .prod-nav { display: none; }
+        .prod-hero { padding: 2.5rem 1.5rem; }
+        .prod-body { padding: 1.5rem 1.5rem; }
+    }
+`;
 
 const Products = () => {
-    const [allProductos, setAllProductos] = useState([]);
+    const [allProductos, setAllProductos]         = useState([]);
     const [filteredProductos, setFilteredProductos] = useState([]);
-    const [loading, setLoading] = useState(true);
-    const [searchTerm, setSearchTerm] = useState("");
-    const [priceRange, setPriceRange] = useState([0, 10000]);
-    const [selectedColor, setSelectedColor] = useState("");
-    const [showFilters, setShowFilters] = useState(false);
-    const [colors, setColors] = useState([]);
+    const [loading, setLoading]                   = useState(true);
+    const [searchTerm, setSearchTerm]             = useState("");
+    const [priceRange, setPriceRange]             = useState([0, 10000]);
+    const [selectedColor, setSelectedColor]       = useState("");
+    const [showFilters, setShowFilters]           = useState(false);
+    const [colors, setColors]                     = useState([]);
 
     useEffect(() => {
         const fetchProductos = async () => {
             try {
-                const res = await fetch(`${import.meta.env.VITE_BACKEND_URL}/productos`);
+                const res  = await fetch(`${import.meta.env.VITE_BACKEND_URL}/productos`);
                 const data = await res.json();
                 const productos = data.productos || data;
                 setAllProductos(productos);
-                
-                // Extraer colores únicos
                 const uniqueColors = [...new Set(productos.map(p => p.color).filter(Boolean))];
                 setColors(uniqueColors);
-                
                 setFilteredProductos(productos);
-            } catch (error) {
+            } catch {
                 setAllProductos([]);
                 setFilteredProductos([]);
             } finally {
@@ -37,175 +319,173 @@ const Products = () => {
 
     useEffect(() => {
         let result = allProductos;
-
-        // Filtro por búsqueda
         if (searchTerm) {
-            result = result.filter(p => 
+            result = result.filter(p =>
                 p.nombre.toLowerCase().includes(searchTerm.toLowerCase()) ||
                 p.descripcion.toLowerCase().includes(searchTerm.toLowerCase())
             );
         }
-
-        // Filtro por precio
         result = result.filter(p => p.precio >= priceRange[0] && p.precio <= priceRange[1]);
-
-        // Filtro por color
-        if (selectedColor) {
-            result = result.filter(p => p.color === selectedColor);
-        }
-
-        // Filtro por estado activo
+        if (selectedColor) result = result.filter(p => p.color === selectedColor);
         result = result.filter(p => p.estado === 'activo');
-
         setFilteredProductos(result);
     }, [searchTerm, priceRange, selectedColor, allProductos]);
 
-    const handlePriceChange = (e) => {
-        const value = parseInt(e.target.value);
-        setPriceRange([priceRange[0], value]);
-    };
+    const handlePriceChange = (e) => setPriceRange([priceRange[0], parseInt(e.target.value)]);
 
     return (
         <>
-            <header className="container mx-auto h-40 text-center py-4 md:flex justify-between items-center px-4 md:h-15">
-                <h1 className='font-bold text-2xl my-2 text-orange-300'>IN<span className='text-stone-900'>TEX</span></h1>
-                <ul className='flex gap-5 justify-center my-4 flex-wrap'>
-                    <li><Link to="/home" className='font-bold hover:text-orange-300 hover:underline'>Inicio</Link></li>
-                    <li><Link to="/nosotros" className='font-bold hover:text-orange-300 hover:underline'>Nosotros</Link></li>
-                    <li><Link to="/products" className='font-bold hover:text-orange-300 hover:underline'>Productos</Link></li>
-                    <li><Link to="/contacto" className='font-bold hover:text-orange-300 hover:underline'>Contacto</Link></li>
-                </ul>
-                <ul className='flex justify-center items-center gap-5 my-4'>
-                </ul>
-            </header>
+            <style>{styles}</style>
 
-            <div className="container mx-auto px-4 py-10">
-                <div className="flex flex-col md:flex-row md:justify-between items-center mb-8">
-                    <h1 className="font-black text-4xl text-gray-500 mb-4 md:mb-0">Catálogo de Productos</h1>
-                    <div className="flex gap-4">
-                        <Link to="/register" className="bg-orange-300 text-white px-6 py-2 rounded-md font-bold hover:bg-orange-400 transition">Registrar</Link>
-                        <Link to="/login" className="bg-gray-800 text-white px-6 py-2 rounded-md font-bold hover:bg-gray-900 transition">Iniciar sesión</Link>
+            {/* ── HEADER ───────────────────────────────────────────── */}
+            <header className="prod-header">
+                <div className="prod-header-inner">
+                    <a href="/home" className="prod-logo">IN<span>TEX</span></a>
+                    <ul className="prod-nav">
+                        <li><Link to="/home">Inicio</Link></li>
+                        <li><Link to="/nosotros">Nosotros</Link></li>
+                        <li><Link to="/products" className="activo">Productos</Link></li>
+                        <li><Link to="/contacto">Contacto</Link></li>
+                    </ul>
+                    <div className="prod-header-btns">
+                        <Link to="/login"    className="btn-header-login">Iniciar sesión</Link>
+                        <Link to="/register" className="btn-header-register">Registrarse</Link>
                     </div>
                 </div>
+            </header>
 
-                {/* Barra de búsqueda */}
-                <div className="mb-6 flex flex-col md:flex-row gap-4 items-center">
-                    <div className="relative w-full md:flex-1">
-                        <FaSearch className="absolute left-3 top-3 text-gray-400" />
+            {/* ── HERO ─────────────────────────────────────────────── */}
+            <section className="prod-hero">
+                <div className="prod-hero-inner">
+                    <div>
+                        <h1>Catálogo de <span>Productos</span></h1>
+                        <p>Encuentra el textil perfecto para tu proyecto</p>
+                    </div>
+                </div>
+            </section>
+
+            {/* ── BODY ─────────────────────────────────────────────── */}
+            <div className="prod-body">
+
+                {/* Búsqueda + botón filtro */}
+                <div className="prod-search-row">
+                    <div className="prod-search-wrap">
+                        <FaSearch className="prod-search-icon" />
                         <input
                             type="text"
-                            placeholder="Buscar productos..."
+                            placeholder="Buscar por nombre o descripción..."
                             value={searchTerm}
                             onChange={(e) => setSearchTerm(e.target.value)}
-                            className="w-full pl-10 pr-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-orange-300"
+                            className="prod-search-input"
                         />
                     </div>
                     <button
                         onClick={() => setShowFilters(!showFilters)}
-                        className="flex items-center gap-2 bg-gray-800 text-white px-6 py-2 rounded-lg hover:bg-gray-900 transition"
+                        className={`btn-filter${showFilters ? ' open' : ''}`}
                     >
-                        <FaFilter /> Filtros
+                        {showFilters ? <FaTimes /> : <FaFilter />}
+                        {showFilters ? 'Cerrar filtros' : 'Filtros'}
                     </button>
                 </div>
 
                 {/* Panel de filtros */}
                 {showFilters && (
-                    <div className="bg-gray-50 p-6 rounded-lg mb-6 grid grid-cols-1 md:grid-cols-3 gap-6">
-                        {/* Filtro de precio */}
+                    <div className="prod-filter-panel">
                         <div>
-                            <label className="block font-bold text-gray-700 mb-2">Rango de Precio</label>
-                            <div className="flex gap-2 items-center">
-                                <span className="text-sm text-gray-600">${priceRange[0]}</span>
+                            <label className="prod-filter-label">Rango de precio</label>
+                            <div className="prod-price-row">
+                                <span className="prod-price-badge">${priceRange[0]}</span>
                                 <input
-                                    type="range"
-                                    min="0"
-                                    max="10000"
-                                    step="100"
+                                    type="range" min="0" max="10000" step="100"
                                     value={priceRange[1]}
                                     onChange={handlePriceChange}
-                                    className="w-full"
+                                    className="prod-range"
                                 />
-                                <span className="text-sm text-gray-600">${priceRange[1]}</span>
+                                <span className="prod-price-badge">${priceRange[1]}</span>
                             </div>
                         </div>
 
-                        {/* Filtro de color */}
                         {colors.length > 0 && (
                             <div>
-                                <label className="block font-bold text-gray-700 mb-2">Color</label>
+                                <label className="prod-filter-label">Color</label>
                                 <select
                                     value={selectedColor}
                                     onChange={(e) => setSelectedColor(e.target.value)}
-                                    className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-orange-300"
+                                    className="prod-select"
                                 >
                                     <option value="">Todos los colores</option>
-                                    {colors.map(color => (
-                                        <option key={color} value={color}>{color}</option>
+                                    {colors.map(c => (
+                                        <option key={c} value={c}>{c}</option>
                                     ))}
                                 </select>
                             </div>
                         )}
 
-                        {/* Botón de limpiar filtros */}
-                        <div className="flex items-end">
+                        <div style={{ display: 'flex', alignItems: 'flex-end' }}>
                             <button
-                                onClick={() => {
-                                    setSearchTerm("");
-                                    setPriceRange([0, 10000]);
-                                    setSelectedColor("");
-                                }}
-                                className="w-full bg-orange-300 text-white px-4 py-2 rounded-lg hover:bg-orange-400 transition font-bold"
+                                className="btn-clear-filters"
+                                onClick={() => { setSearchTerm(""); setPriceRange([0, 10000]); setSelectedColor(""); }}
                             >
-                                Limpiar Filtros
+                                Limpiar filtros
                             </button>
                         </div>
                     </div>
                 )}
 
-                <div className="text-sm text-gray-600 mb-4">
-                    Mostrando {filteredProductos.length} producto(s)
-                </div>
-                <hr className="my-4 border-t-2 border-gray-300" />
+                {/* Contador */}
+                <p className="prod-count">
+                    {loading ? 'Cargando productos…' : `${filteredProductos.length} producto(s) encontrado(s)`}
+                </p>
 
+                {/* Grid */}
                 {loading ? (
-                    <p className="text-center text-gray-400 py-10">Cargando productos...</p>
+                    <div className="prod-grid">
+                        {[...Array(8)].map((_, i) => (
+                            <div key={i} className="prod-skeleton">
+                                <div className="skeleton-img" />
+                                <div className="skeleton-body">
+                                    <div className="skeleton-line" style={{ height: '14px', width: '75%' }} />
+                                    <div className="skeleton-line" style={{ height: '11px', width: '50%' }} />
+                                    <div className="skeleton-line" style={{ height: '36px', width: '100%', marginTop: '0.5rem' }} />
+                                </div>
+                            </div>
+                        ))}
+                    </div>
                 ) : filteredProductos.length === 0 ? (
-                    <p className="text-center text-gray-400 py-10">No hay productos que coincidan con tus filtros.</p>
+                    <div className="prod-empty">
+                        <div className="icon">🔍</div>
+                        <h3>Sin resultados</h3>
+                        <p>No encontramos productos que coincidan con tu búsqueda.</p>
+                    </div>
                 ) : (
-                    <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6 mt-8">
+                    <div className="prod-grid">
                         {filteredProductos.map(producto => (
-                            <div key={producto._id} className="bg-white rounded-lg shadow-md overflow-hidden hover:shadow-xl transition transform hover:scale-105">
-                                <div className="relative h-48 bg-gray-100">
+                            <div key={producto._id} className="prod-card">
+                                <div className="prod-card-img">
                                     <img
                                         src={producto.imagenUrl || "/images/no-image.png"}
                                         alt={producto.nombre}
-                                        className="w-full h-full object-cover"
                                     />
                                     {producto.descuento > 0 && (
-                                        <div className="absolute top-2 right-2 bg-red-500 text-white px-2 py-1 rounded-md text-sm font-bold">
-                                            -{producto.descuento}%
-                                        </div>
+                                        <span className="badge-descuento">-{producto.descuento}%</span>
+                                    )}
+                                    {producto.stock < 5 && producto.stock > 0 && (
+                                        <span className="badge-stock">¡Últimas unidades!</span>
                                     )}
                                 </div>
-                                <div className="p-4">
-                                    <h3 className="font-bold text-lg text-gray-800 mb-2 line-clamp-2">{producto.nombre}</h3>
-                                    <p className="text-gray-600 text-sm mb-3 line-clamp-2">{producto.descripcion}</p>
-                                    
+                                <div className="prod-card-body">
+                                    <h3 className="prod-card-name">{producto.nombre}</h3>
+                                    <p className="prod-card-desc">{producto.descripcion}</p>
                                     {producto.color && (
-                                        <p className="text-xs text-gray-500 mb-2">Color: {producto.color}</p>
+                                        <p className="prod-card-color">Color: <span>{producto.color}</span></p>
                                     )}
-                                    
-                                    <div className="flex justify-between items-center mb-3">
-                                        <span className="text-xl font-bold text-orange-300">${producto.precio.toLocaleString()}</span>
-                                        <span className="text-xs bg-gray-200 text-gray-700 px-2 py-1 rounded">
-                                            Stock: {producto.stock}
+                                    <div className="prod-card-footer">
+                                        <span className="prod-price">${producto.precio.toLocaleString()}</span>
+                                        <span className={`prod-stock-badge ${producto.stock > 0 ? 'in' : 'out'}`}>
+                                            {producto.stock > 0 ? `${producto.stock} en stock` : 'Agotado'}
                                         </span>
                                     </div>
-                                    
-                                    <Link 
-                                        to={`/products/${producto._id}`}
-                                        className="w-full bg-orange-300 text-white px-3 py-2 rounded-lg hover:bg-orange-400 transition font-bold text-center block"
-                                    >
+                                    <Link to={`/products/${producto._id}`} className="btn-ver-detalles">
                                         Ver Detalles
                                     </Link>
                                 </div>

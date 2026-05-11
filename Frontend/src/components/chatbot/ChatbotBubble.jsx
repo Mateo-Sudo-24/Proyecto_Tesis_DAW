@@ -21,11 +21,11 @@ const ChatbotBubble = () => {
                 onClick={() => setIsModalOpen(true)}
                 aria-label="Abrir asistente de Intex"
                 className="
-                    fixed bottom-5 right-5 w-16 h-16 bg-orange-400 text-white
+                    fixed bottom-5 right-5 w-16 h-16 bg-gray-500 text-white
                     rounded-full flex items-center justify-center shadow-lg
                     cursor-pointer z-50 transform transition-all duration-300
-                    hover:bg-orange-500 hover:scale-110
-                    focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-orange-400
+                    hover:bg-gray-900 hover:scale-110
+                    focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-purple-700
                 "
                 title="Asesor de Intex - Análisis de Telas con IA"
             >

@@ -3,9 +3,132 @@ import { useNavigate } from 'react-router-dom';
 import { useForm } from 'react-hook-form';
 import { toast, ToastContainer } from 'react-toastify';
 
-export const FormProducto = ({ productoToUpdate }) => {
+const fpStyles = `
+    :root {
+        --orange-main: #e8760a;
+        --orange-dark: #c4620a;
+        --orange-light: #fde8ce;
+        --orange-border: #f0943a;
+    }
+    .fp-form { width: 100%; }
+    .fp-grid-2 {
+        display: grid;
+        grid-template-columns: 1fr 1fr;
+        gap: 1rem;
+        margin-bottom: 1rem;
+    }
+    @media (max-width: 480px) { .fp-grid-2 { grid-template-columns: 1fr; } }
+    .fp-field { display: flex; flex-direction: column; gap: 0.3rem; margin-bottom: 1rem; }
+    .fp-label {
+        font-size: 0.72rem;
+        font-weight: 700;
+        text-transform: uppercase;
+        letter-spacing: 0.06em;
+        color: #6b7280;
+    }
+    .fp-input, .fp-select, .fp-textarea {
+        padding: 0.6rem 0.875rem;
+        border: 1.5px solid #e5e7eb;
+        border-radius: 0.5rem;
+        font-size: 0.875rem;
+        color: #374151;
+        background: #f9fafb;
+        outline: none;
+        transition: border-color 0.15s, box-shadow 0.15s, background 0.15s;
+        width: 100%;
+        box-sizing: border-box;
+    }
+    .fp-input:focus, .fp-select:focus, .fp-textarea:focus {
+        border-color: var(--orange-main);
+        box-shadow: 0 0 0 3px rgba(232,118,10,0.1);
+        background: #fff;
+    }
+    .fp-input::placeholder { color: #c0c0c0; }
+    .fp-textarea { resize: vertical; }
+    .fp-error { font-size: 0.72rem; color: #ef4444; margin-top: 0.15rem; }
+    .fp-divider { height: 1px; background: #f3f4f6; margin: 1rem 0; }
+    .fp-img-section {
+        background: #f9fafb;
+        border: 1.5px solid #e5e7eb;
+        border-radius: 0.5rem;
+        padding: 1rem;
+    }
+    .fp-img-toggle {
+        display: flex;
+        gap: 1.25rem;
+        margin-bottom: 0.75rem;
+    }
+    .fp-img-option {
+        display: flex;
+        align-items: center;
+        gap: 0.4rem;
+        font-size: 0.82rem;
+        color: #374151;
+        cursor: pointer;
+        font-weight: 600;
+    }
+    .fp-img-option input[type=radio] { accent-color: var(--orange-main); }
+    .fp-preview {
+        margin-top: 0.75rem;
+        border-radius: 0.5rem;
+        overflow: hidden;
+        border: 1px solid #e5e7eb;
+        background: #fff;
+    }
+    .fp-preview img {
+        width: 100%;
+        max-height: 160px;
+        object-fit: cover;
+        display: block;
+    }
+    .fp-img-hint { font-size: 0.72rem; color: #9ca3af; margin-top: 0.3rem; }
+    .fp-actions {
+        display: flex;
+        gap: 0.75rem;
+        padding-top: 1rem;
+        border-top: 1px solid #f3f4f6;
+        margin-top: 0.5rem;
+    }
+    .btn-fp-submit {
+        flex: 1;
+        padding: 0.7rem 1rem;
+        background: var(--orange-main);
+        color: #fff;
+        border: none;
+        border-radius: 0.5rem;
+        font-size: 0.875rem;
+        font-weight: 800;
+        cursor: pointer;
+        transition: background 0.15s, transform 0.12s;
+        box-shadow: 0 3px 10px rgba(232,118,10,0.25);
+    }
+    .btn-fp-submit:hover { background: var(--orange-dark); transform: translateY(-1px); }
+    .btn-fp-submit:disabled { opacity: 0.6; cursor: not-allowed; transform: none; }
+    .btn-fp-cancel {
+        flex: 1;
+        padding: 0.7rem 1rem;
+        border: 1.5px solid #e5e7eb;
+        background: #fff;
+        color: #374151;
+        border-radius: 0.5rem;
+        font-size: 0.875rem;
+        font-weight: 700;
+        cursor: pointer;
+        transition: background 0.12s;
+    }
+    .btn-fp-cancel:hover { background: #f9fafb; }
+`;
+
+const defaultCategorias = [
+    { _id: '1', nombre: 'Telas Premium' },
+    { _id: '2', nombre: 'Telas Básicas' },
+    { _id: '3', nombre: 'Accesorios' },
+    { _id: '4', nombre: 'Especiales' }
+];
+
+export const FormProducto = ({ productoToUpdate, onSuccess, onCancel }) => {
     const navigate = useNavigate();
-    const { register, handleSubmit, formState: { errors }, reset, setValue } = useForm();
+    const { register, handleSubmit, formState: { errors }, reset } = useForm();
     const [isSubmitting, setIsSubmitting] = useState(false);
     const [imagen, setImagen] = useState(null);
     const [imagenUrl, setImagenUrl] = useState('');
@@ -16,96 +139,57 @@ export const FormProducto = ({ productoToUpdate }) => {
 
     const token = JSON.parse(localStorage.getItem('auth-token'))?.state?.token;
 
-    // Cargar categorías
     useEffect(() => {
         const fetchCategorias = async () => {
             try {
-                // ✅ URL CORRECTA CON VITE_BACKEND_URL COMPLETO
-                const backendUrl = import.meta.env.VITE_BACKEND_URL;
-                const url = `${backendUrl}/productos/categorias` || `${backendUrl}/categorias`;
-                
-                console.log('🔍 Buscando categorías en:', url);
-                
-                const res = await fetch(url, {
+                const res = await fetch(`${import.meta.env.VITE_BACKEND_URL}/productos/categorias`, {
                     headers: { Authorization: `Bearer ${token}` }
                 });
-                
-                if (!res.ok) {
-                    throw new Error(`HTTP ${res.status}`);
-                }
-                
+                if (!res.ok) throw new Error();
                 const data = await res.json();
-                console.log('✅ Categorías cargadas:', data);
-                
-                // ✅ CATEGORÍAS POR DEFECTO si no hay respuesta
-                const categorias = Array.isArray(data) 
-                    ? data 
-                    : data?.categorias || data?.data || [
-                        { _id: '1', nombre: 'Telas Premium' },
-                        { _id: '2', nombre: 'Telas Básicas' },
-                        { _id: '3', nombre: 'Accesorios' },
-                        { _id: '4', nombre: 'Especiales' }
-                    ];
-                
-                setCategoriasOptions(categorias);
-            } catch (error) {
-                console.error('❌ Error cargando categorías:', error);
-                
-                // ✅ FALLBACK: Usar categorías por defecto si hay error
-                setCategoriasOptions([
-                    { _id: '1', nombre: 'Telas Premium' },
-                    { _id: '2', nombre: 'Telas Básicas' },
-                    { _id: '3', nombre: 'Accesorios' },
-                    { _id: '4', nombre: 'Especiales' }
-                ]);
-                
-                console.warn('⚠️ Usando categorías por defecto');
+                const cats = Array.isArray(data) ? data : data?.categorias || data?.data || defaultCategorias;
+                setCategoriasOptions(cats);
+            } catch {
+                setCategoriasOptions(defaultCategorias);
             }
         };
         fetchCategorias();
     }, [token]);
 
-    // Cargar datos del producto si está en modo actualización
     useEffect(() => {
         if (productoToUpdate) {
             reset({
-                nombre: productoToUpdate?.nombre || '',
-                descripcion: productoToUpdate?.descripcion || '',
-                precio: productoToUpdate?.precio || '',
-                stock: productoToUpdate?.stock || '',
-                descuento: productoToUpdate?.descuento || 0,
-                color: productoToUpdate?.color || '',
-                estado: productoToUpdate?.estado || 'activo',
-                etiquetas: productoToUpdate?.etiquetas?.join(', ') || ''
+                nombre: productoToUpdate.nombre || '',
+                descripcion: productoToUpdate.descripcion || '',
+                precio: productoToUpdate.precio || '',
+                stock: productoToUpdate.stock || '',
+                descuento: productoToUpdate.descuento || 0,
+                color: productoToUpdate.color || '',
+                estado: productoToUpdate.estado || 'activo',
+                etiquetas: productoToUpdate.etiquetas?.join(', ') || ''
             });
-            setSelectedCategoria(productoToUpdate?.categoria || '');
-            if (productoToUpdate?.imagenUrl) {
-                setPreviewImagen(productoToUpdate.imagenUrl);
-            }
+            setSelectedCategoria(productoToUpdate.categoria || '');
+            if (productoToUpdate.imagenUrl) setPreviewImagen(productoToUpdate.imagenUrl);
         }
     }, [productoToUpdate, reset]);
 
     const onSubmit = async (data) => {
         setIsSubmitting(true);
-
         if (!selectedCategoria) {
             toast.error('Debes seleccionar una categoría');
             setIsSubmitting(false);
             return;
         }
-
         if (!productoToUpdate && metodoImagen === 'archivo' && !imagen) {
             toast.error('Debes cargar una imagen o proporcionar URL');
             setIsSubmitting(false);
             return;
         }
-
         if (!productoToUpdate && metodoImagen === 'url' && !imagenUrl) {
-            toast.error('Debes ingresar una URL de imagen válida');
+            toast.error('Debes ingresar una URL de imagen');
             setIsSubmitting(false);
             return;
         }
-
         try {
             const formData = new FormData();
             formData.append('nombre', data.nombre);
@@ -116,48 +200,35 @@ export const FormProducto = ({ productoToUpdate }) => {
             formData.append('descuento', data.descuento || 0);
             formData.append('color', data.color || '');
             formData.append('estado', data.estado);
-            
-            const etiquetas = data.etiquetas ? data.etiquetas.split(',').map(e => e.trim()).filter(e => e) : [];
+            const etiquetas = data.etiquetas ? data.etiquetas.split(',').map(e => e.trim()).filter(Boolean) : [];
             formData.append('etiquetas', JSON.stringify(etiquetas));
+            if (metodoImagen === 'archivo' && imagen) formData.append('imagen', imagen);
+            else if (metodoImagen === 'url' && imagenUrl) formData.append('imagenUrl', imagenUrl);
 
-            if (metodoImagen === 'archivo' && imagen) {
-                formData.append('imagen', imagen);
-            } else if (metodoImagen === 'url' && imagenUrl) {
-                formData.append('imagenUrl', imagenUrl);
-            }
+            const isEdit = Boolean(productoToUpdate?._id);
+            const url = isEdit
+                ? `${import.meta.env.VITE_BACKEND_URL}/productos/${productoToUpdate._id}`
+                : `${import.meta.env.VITE_BACKEND_URL}/productos`;
+            const method = isEdit ? 'PUT' : 'POST';
 
-            let url = `${import.meta.env.VITE_BACKEND_URL}/productos`;
-            let method = 'POST';
-
-            if (productoToUpdate?._id) {
-                url = `${import.meta.env.VITE_BACKEND_URL}/productos/${productoToUpdate._id}`;
-                method = 'PUT';
-            }
-
-            const token = JSON.parse(localStorage.getItem('auth-token'))?.state?.token;
             const res = await fetch(url, {
                 method,
                 headers: { Authorization: `Bearer ${token}` },
                 body: formData
             });
-
             if (!res.ok) {
-                const error = await res.json();
-                throw new Error(error.msg || `Error ${res.status}`);
+                const err = await res.json();
+                throw new Error(err.msg || `Error ${res.status}`);
             }
-
             const response = await res.json();
-            toast.success(
-                productoToUpdate
-                    ? 'Producto actualizado correctamente'
-                    : 'Producto creado correctamente'
-            );
-            setTimeout(() => {
-                navigate('/dashboard/productos-admin');
-            }, 1500);
+            if (onSuccess) {
+                onSuccess(response.producto || response);
+            } else {
+                toast.success(isEdit ? 'Producto actualizado' : 'Producto creado');
+                setTimeout(() => navigate('/dashboard/productos-admin'), 1500);
+            }
         } catch (error) {
-            console.error('Error:', error);
-            toast.error(error.message || 'Ocurrió un error al guardar el producto');
+            toast.error(error.message || 'Error al guardar el producto');
         } finally {
             setIsSubmitting(false);
         }
@@ -168,236 +239,196 @@ export const FormProducto = ({ productoToUpdate }) => {
         if (file) {
             setImagen(file);
             const reader = new FileReader();
-            reader.onload = (e) => setPreviewImagen(e.target.result);
+            reader.onload = (ev) => setPreviewImagen(ev.target.result);
             reader.readAsDataURL(file);
         }
     };
 
-    const inputStyle = 'block w-full rounded-lg border border-gray-300 py-2 px-3 text-gray-700 focus:outline-none focus:ring-2 focus:ring-amber-900 shadow-sm transition-all';
-    const labelStyle = 'mb-1 block text-sm font-semibold text-gray-700';
-    const errorStyle = 'text-sm text-red-600 mt-1';
+    const handleCancel = () => {
+        if (onCancel) onCancel();
+        else navigate('/dashboard/crear');
+    };
 
     return (
-        <form onSubmit={handleSubmit(onSubmit)} className="max-w-2xl mx-auto bg-white p-6 rounded-xl shadow-md">
-            <ToastContainer />
-            <fieldset className="border border-gray-300 p-5 rounded-lg">
-                <legend className="text-lg font-bold text-gray-800 px-2">
-                    {productoToUpdate ? 'Editar Producto' : 'Crear Nuevo Producto'}
-                </legend>
-
+        <>
+            <style>{fpStyles}</style>
+            {!onCancel && <ToastContainer />}
+            <form onSubmit={handleSubmit(onSubmit)} className="fp-form" noValidate>
                 {/* Nombre */}
-                <div className="mb-5">
-                    <label className={labelStyle}>Nombre del Producto *</label>
+                <div className="fp-field">
+                    <label className="fp-label">Nombre del producto *</label>
                     <input
                         type="text"
-                        placeholder="Nombre"
+                        placeholder="Ej: Tela Oxford Premium"
+                        className="fp-input"
                         {...register('nombre', { required: 'El nombre es obligatorio' })}
-                        className={inputStyle}
                     />
-                    {errors.nombre && <span className={errorStyle}>{errors.nombre.message}</span>}
+                    {errors.nombre && <p className="fp-error">⚠ {errors.nombre.message}</p>}
                 </div>
 
                 {/* Descripción */}
-                <div className="mb-5">
-                    <label className={labelStyle}>Descripción *</label>
+                <div className="fp-field">
+                    <label className="fp-label">Descripción *</label>
                     <textarea
-                        placeholder="Descripción"
-                        rows="4"
+                        placeholder="Descripción del producto..."
+                        rows={3}
+                        className="fp-textarea"
                         {...register('descripcion', { required: 'La descripción es obligatoria' })}
-                        className={inputStyle}
                     />
-                    {errors.descripcion && <span className={errorStyle}>{errors.descripcion.message}</span>}
+                    {errors.descripcion && <p className="fp-error">⚠ {errors.descripcion.message}</p>}
                 </div>
 
                 {/* Categoría */}
-                <div className="mb-5">
-                    <label className={labelStyle}>Categoría *</label>
+                <div className="fp-field">
+                    <label className="fp-label">Categoría *</label>
                     <select
+                        className="fp-select"
                         value={selectedCategoria}
-                        onChange={(e) => setSelectedCategoria(e.target.value)}
-                        className={inputStyle}
+                        onChange={e => setSelectedCategoria(e.target.value)}
                     >
                         <option value="">Selecciona una categoría</option>
                         {categoriasOptions.map(cat => (
-                            <option key={cat._id} value={cat.nombre}>
-                                {cat.nombre}
-                            </option>
+                            <option key={cat._id} value={cat.nombre}>{cat.nombre}</option>
                         ))}
                     </select>
-                    {!selectedCategoria && <span className={errorStyle}>La categoría es obligatoria</span>}
                 </div>
 
+                <div className="fp-divider" />
+
                 {/* Precio y Stock */}
-                <div className="grid grid-cols-2 gap-5 mb-5">
-                    <div>
-                        <label className={labelStyle}>Precio *</label>
+                <div className="fp-grid-2">
+                    <div className="fp-field" style={{ marginBottom: 0 }}>
+                        <label className="fp-label">Precio *</label>
                         <input
                             type="number"
-                            placeholder="Precio"
+                            placeholder="0.00"
                             step="0.01"
+                            className="fp-input"
                             {...register('precio', { required: 'El precio es obligatorio' })}
-                            className={inputStyle}
                         />
-                        {errors.precio && <span className={errorStyle}>{errors.precio.message}</span>}
+                        {errors.precio && <p className="fp-error">⚠ {errors.precio.message}</p>}
                     </div>
-                    <div>
-                        <label className={labelStyle}>Stock *</label>
+                    <div className="fp-field" style={{ marginBottom: 0 }}>
+                        <label className="fp-label">Stock *</label>
                         <input
                             type="number"
-                            placeholder="Stock"
+                            placeholder="0"
+                            className="fp-input"
                             {...register('stock', { required: 'El stock es obligatorio' })}
-                            className={inputStyle}
                         />
-                        {errors.stock && <span className={errorStyle}>{errors.stock.message}</span>}
+                        {errors.stock && <p className="fp-error">⚠ {errors.stock.message}</p>}
                     </div>
                 </div>
 
                 {/* Descuento y Color */}
-                <div className="grid grid-cols-2 gap-5 mb-5">
-                    <div>
-                        <label className={labelStyle}>Descuento (%)</label>
+                <div className="fp-grid-2" style={{ marginTop: '1rem' }}>
+                    <div className="fp-field" style={{ marginBottom: 0 }}>
+                        <label className="fp-label">Descuento (%)</label>
                         <input
                             type="number"
-                            placeholder="Descuento"
+                            placeholder="0"
+                            min="0"
+                            max="100"
+                            className="fp-input"
                             {...register('descuento', { min: 0, max: 100 })}
-                            className={inputStyle}
                         />
                     </div>
-                    <div>
-                        <label className={labelStyle}>Color</label>
+                    <div className="fp-field" style={{ marginBottom: 0 }}>
+                        <label className="fp-label">Color</label>
                         <input
                             type="text"
-                            placeholder="Color"
+                            placeholder="Ej: Azul marino"
+                            className="fp-input"
                             {...register('color')}
-                            className={inputStyle}
                         />
                     </div>
                 </div>
 
-                {/* Estado */}
-                <div className="mb-5">
-                    <label className={labelStyle}>Estado</label>
-                    <select
-                        {...register('estado')}
-                        className={inputStyle}
-                    >
-                        <option value="activo">Activo</option>
-                        <option value="inactivo">Inactivo</option>
-                        <option value="agotado">Agotado</option>
-                    </select>
+                <div className="fp-divider" />
+
+                {/* Estado y Etiquetas */}
+                <div className="fp-grid-2">
+                    <div className="fp-field" style={{ marginBottom: 0 }}>
+                        <label className="fp-label">Estado</label>
+                        <select className="fp-select" {...register('estado')}>
+                            <option value="activo">Activo</option>
+                            <option value="agotado">Agotado</option>
+                            <option value="inactivo">Inactivo</option>
+                        </select>
+                    </div>
+                    <div className="fp-field" style={{ marginBottom: 0 }}>
+                        <label className="fp-label">Etiquetas</label>
+                        <input
+                            type="text"
+                            placeholder="oferta, nuevo, ..."
+                            className="fp-input"
+                            {...register('etiquetas')}
+                        />
+                    </div>
                 </div>
 
-                {/* Etiquetas */}
-                <div className="mb-5">
-                    <label className={labelStyle}>Etiquetas (separadas por comas)</label>
-                    <input
-                        type="text"
-                        placeholder="ej: oferta, nuevo, promoción"
-                        {...register('etiquetas')}
-                        className={inputStyle}
-                    />
-                </div>
+                <div className="fp-divider" />
 
                 {/* Imagen */}
-                <div className="mb-5">
-                    <label className={labelStyle}>
-                        Imagen {!productoToUpdate && '*'}
-                    </label>
-                    
-                    <div className="mb-4 p-4 bg-gray-50 rounded-lg border border-gray-200">
-                        <p className="text-sm text-gray-600 mb-3 font-semibold">Selecciona cómo agregar la imagen:</p>
-                        <div className="flex gap-4 mb-4">
-                            <label className="flex items-center cursor-pointer">
+                <div className="fp-field">
+                    <label className="fp-label">Imagen {!productoToUpdate && '*'}</label>
+                    <div className="fp-img-section">
+                        <div className="fp-img-toggle">
+                            <label className="fp-img-option">
                                 <input
                                     type="radio"
                                     value="archivo"
                                     checked={metodoImagen === 'archivo'}
-                                    onChange={(e) => {
-                                        setMetodoImagen(e.target.value);
-                                        setImagenUrl('');
-                                    }}
-                                    className="mr-2"
+                                    onChange={() => { setMetodoImagen('archivo'); setImagenUrl(''); }}
                                 />
-                                <span className="text-sm text-gray-700">📤 Subir archivo</span>
+                                📤 Subir archivo
                             </label>
-                            <label className="flex items-center cursor-pointer">
+                            <label className="fp-img-option">
                                 <input
                                     type="radio"
                                     value="url"
                                     checked={metodoImagen === 'url'}
-                                    onChange={(e) => {
-                                        setMetodoImagen(e.target.value);
-                                        setImagen(null);
-                                    }}
-                                    className="mr-2"
+                                    onChange={() => { setMetodoImagen('url'); setImagen(null); }}
                                 />
-                                <span className="text-sm text-gray-700">🔗 URL de Cloudinary</span>
+                                🔗 URL de imagen
                             </label>
                         </div>
-                    </div>
-
-                    {metodoImagen === 'archivo' && (
-                        <div>
-                            <input
-                                type="file"
-                                accept="image/*"
-                                onChange={handleArchivoChange}
-                                className={inputStyle}
-                            />
-                            <p className="text-xs text-gray-500 mt-1">Máximo 5MB: JPG, PNG, WebP</p>
-                        </div>
-                    )}
-
-                    {metodoImagen === 'url' && (
-                        <div>
-                            <input
-                                type="url"
-                                placeholder="https://res.cloudinary.com/..../image.jpg"
-                                value={imagenUrl}
-                                onChange={(e) => {
-                                    setImagenUrl(e.target.value);
-                                    setPreviewImagen(e.target.value);
-                                }}
-                                className={inputStyle}
-                            />
-                            <p className="text-xs text-gray-500 mt-1">Ingresa la URL completa de tu imagen en Cloudinary</p>
-                        </div>
-                    )}
-
-                    {previewImagen && (
-                        <div className="mt-4">
-                            <p className="text-sm text-gray-600 mb-2 font-semibold">Vista previa:</p>
-                            <div className="p-3 bg-white rounded-lg border border-gray-200">
-                                <img 
-                                    src={previewImagen} 
-                                    alt="Preview"
-                                    className="w-full max-w-xs h-64 object-cover rounded-lg shadow-sm"
-                                    onError={() => setPreviewImagen(null)}
+                        {metodoImagen === 'archivo' ? (
+                            <>
+                                <input type="file" accept="image/*" className="fp-input" onChange={handleArchivoChange} />
+                                <p className="fp-img-hint">Máximo 5MB — JPG, PNG, WebP</p>
+                            </>
+                        ) : (
+                            <>
+                                <input
+                                    type="url"
+                                    placeholder="https://res.cloudinary.com/..."
+                                    className="fp-input"
+                                    value={imagenUrl}
+                                    onChange={e => { setImagenUrl(e.target.value); setPreviewImagen(e.target.value); }}
                                 />
+                                <p className="fp-img-hint">URL completa de la imagen (Cloudinary, etc.)</p>
+                            </>
+                        )}
+                        {previewImagen && (
+                            <div className="fp-preview">
+                                <img src={previewImagen} alt="Vista previa" onError={() => setPreviewImagen(null)} />
                             </div>
-                        </div>
-                    )}
+                        )}
+                    </div>
                 </div>
 
-                {/* Botones */}
-                <div className="flex gap-4 mt-6">
-                    <button
-                        type="submit"
-                        disabled={isSubmitting}
-                        className="flex-1 bg-amber-900 text-white py-2 px-4 rounded-lg hover:bg-amber-800 transition font-semibold disabled:opacity-50"
-                    >
-                        {isSubmitting ? 'Guardando...' : (productoToUpdate ? 'Actualizar' : 'Crear')}
-                    </button>
-                    <button
-                        type="button"
-                        onClick={() => navigate('/dashboard/create')}
-                        className="flex-1 bg-gray-400 text-white py-2 px-4 rounded-lg hover:bg-gray-500 transition font-semibold"
-                    >
+                {/* Acciones */}
+                <div className="fp-actions">
+                    <button type="button" className="btn-fp-cancel" onClick={handleCancel}>
                         Cancelar
                     </button>
+                    <button type="submit" className="btn-fp-submit" disabled={isSubmitting}>
+                        {isSubmitting ? 'Guardando...' : (productoToUpdate ? 'Actualizar producto' : 'Crear producto')}
+                    </button>
                 </div>
-            </fieldset>
-        </form>
+            </form>
+        </>
     );
 };
 

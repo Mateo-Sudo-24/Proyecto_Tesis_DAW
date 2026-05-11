@@ -120,14 +120,25 @@ const crearVendedor = async (req, res) => {
             // Si está pendiente, reenviar la invitación
             const token = existeVendedor.crearToken();
             await existeVendedor.save();
-            await sendMailToInviteUser(email, token);
+            try {
+                await sendMailToInviteUser(email, token);
+            } catch (mailError) {
+                console.error('Error al reenviar correo de invitación:', mailError);
+                return res.status(500).json({ msg: `No se pudo reenviar el correo. Verifica la configuración SMTP. Error: ${mailError.message}` });
+            }
             return res.status(200).json({ msg: "La invitación fue reenviada. El vendedor debe revisar su correo para activar la cuenta." });
         }
 
         const nuevoVendedor = new Vendedor({ email, nombre, apellido, telefono, direccion, rol, status: 'pendiente' });
         const token = nuevoVendedor.crearToken();
         await nuevoVendedor.save();
-        await sendMailToInviteUser(email, token);
+        try {
+            await sendMailToInviteUser(email, token);
+        } catch (mailError) {
+            console.error('Error al enviar correo de invitación al vendedor:', mailError);
+            // El vendedor ya fue guardado, pero el correo no llegó
+            return res.status(500).json({ msg: `Vendedor registrado pero el correo no pudo enviarse. Verifica la configuración SMTP. Error: ${mailError.message}` });
+        }
         res.status(201).json({ msg: "Invitación enviada al nuevo vendedor. Debe revisar su correo para activar la cuenta." });
     } catch (error) {
         res.status(500).json({ msg: "Error en el servidor al invitar al vendedor." });

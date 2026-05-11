@@ -1,105 +1,593 @@
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { useForm } from "react-hook-form";
 import { io } from 'socket.io-client';
+import storeProfile from '../context/storeProfile';
+import storeAuth from '../context/storeAuth';
+
+const styles = `
+    :root {
+        --orange-main: #e8760a;
+        --orange-dark: #c4620a;
+        --orange-light: #fde8ce;
+        --orange-border: #f0943a;
+    }
+
+    /* ── Layout general ── */
+    .ch-wrap {
+        display: flex;
+        height: calc(100vh - 130px);
+        min-height: 480px;
+        border-radius: 16px;
+        overflow: hidden;
+        box-shadow: 0 4px 32px rgba(0,0,0,0.13);
+        background: #fff;
+        border: 1px solid #e5e7eb;
+    }
+
+    /* ── Sidebar de contactos ── */
+    .ch-sidebar {
+        width: 270px;
+        flex-shrink: 0;
+        background: #1f2937;
+        display: flex;
+        flex-direction: column;
+        border-right: 1px solid #374151;
+    }
+    .ch-sidebar-header {
+        padding: 1.1rem 1.2rem 0.9rem;
+        background: #111827;
+        border-bottom: 1px solid #374151;
+    }
+    .ch-sidebar-title {
+        font-size: 0.95rem;
+        font-weight: 800;
+        color: #f9fafb;
+        margin: 0 0 0.15rem;
+        letter-spacing: 0.01em;
+    }
+    .ch-sidebar-sub {
+        font-size: 0.72rem;
+        color: #9ca3af;
+        margin: 0;
+    }
+    .ch-contacts {
+        flex: 1;
+        overflow-y: auto;
+        padding: 0.5rem 0;
+    }
+    .ch-contacts::-webkit-scrollbar { width: 4px; }
+    .ch-contacts::-webkit-scrollbar-track { background: transparent; }
+    .ch-contacts::-webkit-scrollbar-thumb { background: #374151; border-radius: 4px; }
+
+    /* Grupos en sidebar */
+    .ch-group-label {
+        padding: 0.45rem 1rem 0.2rem;
+        font-size: 0.66rem;
+        font-weight: 800;
+        color: #6b7280;
+        text-transform: uppercase;
+        letter-spacing: 0.07em;
+    }
+
+    .ch-contact {
+        display: flex;
+        align-items: center;
+        gap: 0.75rem;
+        padding: 0.7rem 1rem;
+        cursor: pointer;
+        border: none;
+        background: transparent;
+        width: 100%;
+        text-align: left;
+        transition: background 0.15s;
+        border-left: 3px solid transparent;
+    }
+    .ch-contact:hover { background: rgba(255,255,255,0.06); }
+    .ch-contact.active {
+        background: rgba(232,118,10,0.15);
+        border-left-color: var(--orange-main);
+    }
+    .ch-contact-avatar {
+        width: 38px;
+        height: 38px;
+        border-radius: 50%;
+        background: var(--orange-main);
+        color: #fff;
+        font-weight: 800;
+        font-size: 0.95rem;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        flex-shrink: 0;
+        position: relative;
+    }
+    .ch-contact-avatar.staff-avatar { background: #374151; }
+    .ch-contact-online {
+        position: absolute;
+        bottom: 1px; right: 1px;
+        width: 9px; height: 9px;
+        border-radius: 50%;
+        border: 2px solid #1f2937;
+    }
+    .ch-contact-online.online  { background: #22c55e; }
+    .ch-contact-online.offline { background: #6b7280; }
+    .ch-contact-info { overflow: hidden; }
+    .ch-contact-name {
+        font-size: 0.82rem;
+        font-weight: 700;
+        color: #f9fafb;
+        white-space: nowrap;
+        overflow: hidden;
+        text-overflow: ellipsis;
+    }
+    .ch-contact-role {
+        font-size: 0.68rem;
+        color: #9ca3af;
+        text-transform: capitalize;
+    }
+    .ch-no-contacts {
+        padding: 2rem 1rem;
+        text-align: center;
+        color: #6b7280;
+        font-size: 0.8rem;
+    }
+
+    /* ── Panel de conversación ── */
+    .ch-conv {
+        flex: 1;
+        display: flex;
+        flex-direction: column;
+        background: #f9fafb;
+        min-width: 0;
+    }
+    .ch-conv-header {
+        padding: 0.85rem 1.25rem;
+        background: #fff;
+        border-bottom: 1px solid #e5e7eb;
+        display: flex;
+        align-items: center;
+        gap: 0.75rem;
+        box-shadow: 0 1px 4px rgba(0,0,0,0.05);
+    }
+    .ch-conv-avatar {
+        width: 36px;
+        height: 36px;
+        border-radius: 50%;
+        background: var(--orange-main);
+        color: #fff;
+        font-weight: 800;
+        font-size: 0.9rem;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+    }
+    .ch-conv-avatar.staff-avatar { background: #374151; }
+    .ch-conv-name {
+        font-size: 0.9rem;
+        font-weight: 700;
+        color: #111827;
+    }
+    .ch-conv-status {
+        font-size: 0.7rem;
+        color: #22c55e;
+        font-weight: 600;
+    }
+    .ch-conv-placeholder {
+        flex: 1;
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        justify-content: center;
+        color: #9ca3af;
+        gap: 0.75rem;
+    }
+    .ch-conv-placeholder-icon { font-size: 3rem; }
+    .ch-conv-placeholder p { font-size: 0.9rem; margin: 0; }
+
+    /* ── Mensajes ── */
+    .ch-messages {
+        flex: 1;
+        overflow-y: auto;
+        padding: 1.25rem 1.5rem;
+        display: flex;
+        flex-direction: column;
+        gap: 0.6rem;
+    }
+    .ch-messages::-webkit-scrollbar { width: 5px; }
+    .ch-messages::-webkit-scrollbar-track { background: transparent; }
+    .ch-messages::-webkit-scrollbar-thumb { background: #d1d5db; border-radius: 4px; }
+
+    .ch-msg-row {
+        display: flex;
+        align-items: flex-end;
+        gap: 0.5rem;
+    }
+    .ch-msg-row.own { flex-direction: row-reverse; }
+
+    .ch-msg-mini-avatar {
+        width: 28px;
+        height: 28px;
+        border-radius: 50%;
+        background: var(--orange-main);
+        color: #fff;
+        font-weight: 800;
+        font-size: 0.7rem;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        flex-shrink: 0;
+    }
+    .ch-msg-mini-avatar.staff-mini { background: #374151; }
+
+    .ch-msg-bubble-wrap { max-width: 65%; display: flex; flex-direction: column; }
+    .ch-msg-row.own .ch-msg-bubble-wrap { align-items: flex-end; }
+
+    .ch-msg-sender {
+        font-size: 0.68rem;
+        font-weight: 700;
+        color: #6b7280;
+        margin-bottom: 0.2rem;
+        padding: 0 0.25rem;
+    }
+    .ch-msg-bubble {
+        padding: 0.55rem 0.9rem;
+        border-radius: 16px;
+        font-size: 0.84rem;
+        line-height: 1.45;
+        word-break: break-word;
+    }
+    .ch-msg-bubble.other {
+        background: #fff;
+        color: #111827;
+        border: 1px solid #e5e7eb;
+        border-bottom-left-radius: 4px;
+    }
+    .ch-msg-bubble.own {
+        background: var(--orange-main);
+        color: #fff;
+        border-bottom-right-radius: 4px;
+    }
+    .ch-msg-time {
+        font-size: 0.62rem;
+        color: #9ca3af;
+        padding: 0 0.25rem;
+        margin-top: 0.2rem;
+    }
+
+    /* ── Input de mensaje ── */
+    .ch-input-area {
+        padding: 0.85rem 1.25rem;
+        background: #fff;
+        border-top: 1px solid #e5e7eb;
+    }
+    .ch-input-row {
+        display: flex;
+        gap: 0.6rem;
+        align-items: flex-end;
+    }
+    .ch-input {
+        flex: 1;
+        padding: 0.65rem 1rem;
+        border: 1.5px solid #e5e7eb;
+        border-radius: 24px;
+        font-size: 0.88rem;
+        color: #111827;
+        outline: none;
+        background: #f9fafb;
+        transition: border-color 0.15s;
+        resize: none;
+        min-height: 42px;
+        max-height: 100px;
+        line-height: 1.4;
+        font-family: inherit;
+    }
+    .ch-input:focus { border-color: var(--orange-main); background: #fff; }
+    .ch-send-btn {
+        width: 42px;
+        height: 42px;
+        border-radius: 50%;
+        background: var(--orange-main);
+        color: #fff;
+        border: none;
+        cursor: pointer;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-size: 1.1rem;
+        flex-shrink: 0;
+        transition: background 0.15s, transform 0.1s;
+        box-shadow: 0 2px 8px rgba(232,118,10,0.35);
+    }
+    .ch-send-btn:hover { background: var(--orange-dark); transform: scale(1.05); }
+    .ch-send-btn:disabled { background: #d1d5db; box-shadow: none; cursor: not-allowed; transform: none; }
+`;
 
 const Chat = () => {
-    const [responses, setResponses] = useState([]);
+    const { user } = storeProfile();
+    const { token } = storeAuth();
+
     const [socket, setSocket] = useState(null);
-    const [chat, setChat] = useState(true);
-    const [nameUser , setNameUser ] = useState("");
-    const [userRole, setUser,Role] = useState(""); // Estado para el rol del usuario
-    const { register, handleSubmit, formState: { errors }, reset } = useForm();
+    const [usuarios, setUsuarios] = useState([]);           // todos los usuarios verificados
+    const [onlineIds, setOnlineIds] = useState(new Set());  // IDs conectados al socket
+    const [clienteActivo, setClienteActivo] = useState(null);
+    const [conversaciones, setConversaciones] = useState({});
+    const [msgsCliente, setMsgsCliente] = useState([]);
 
-    const handleEnterChat = (data) => {
-        setNameUser (data.name);
-        setChat(false);
-    };
+    const { register, handleSubmit, reset, watch } = useForm();
+    const msgText = watch('mensaje', '');
+    const messagesEndRef = useRef(null);
 
-    const handleMessageChat = (data) => {
-        if (!socket) return console.error("No hay conexión con el servidor");
+    const miId    = user?._id || user?.id;
+    const miRol   = user?.rol;
+    const miNombre = user?.nombre || 'Yo';
+    const isStaff  = miRol === 'administrador' || miRol === 'vendedor';
 
-        const newMessage = {
-            body: data.message,
-            from: nameUser ,
-            role: userRole, // Incluir el rol en el mensaje
-        };
-        socket.emit("mensaje_desde_cliente", newMessage); // Cambiado el evento a 'mensaje_desde_cliente'
-        setResponses((prev) => [...prev, newMessage]);
-        reset({ message: "" });
-    };
+    // Fusionar usuarios con estado online del socket
+    const usuariosConEstado = usuarios.map(u => ({ ...u, online: onlineIds.has(u.id) }));
 
+    // Scroll al último mensaje
     useEffect(() => {
-        const token = localStorage.getItem("token");
+        messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
+    }, [conversaciones, msgsCliente, clienteActivo]);
+
+    // Cargar usuarios verificados via HTTP al montar
+    useEffect(() => {
+        if (!token || !isStaff) return;
+        const headers = { Authorization: `Bearer ${token}` };
+        fetch(`${import.meta.env.VITE_BACKEND_URL}/admin/usuarios-chat`, { headers })
+            .then(r => r.json())
+            .then(data => { if (Array.isArray(data)) setUsuarios(data); })
+            .catch(() => {});
+    }, [token, isStaff]);
+
+    // Conexión al socket
+    useEffect(() => {
+        if (!token) return;
         const backendUrl = import.meta.env.VITE_BACKEND_URL.replace('/api', '');
-        const newSocket = io(backendUrl, {
-            auth: {
-                token: token,
-            },
+        const sock = io(backendUrl, { auth: { token } });
+        setSocket(sock);
+
+        // Staff: recibir lista de IDs online (extraer IDs del arreglo)
+        sock.on('lista_usuarios', (lista) => {
+            setOnlineIds(new Set(lista.filter(u => u.online).map(u => u.id)));
         });
 
-        setSocket(newSocket);
-        
-        // Extraer el rol del token
-        if (token) {
-            const decodedToken = JSON.parse(atob(token.split('.')[1])); // Decodificar el token JWT
-            setUserRole(decodedToken.rol); // Asignar el rol extraído
+        // Staff: recibir mensaje de un cliente o vendedor
+        sock.on('mensaje_de_cliente', ({ clienteId, msg }) => {
+            setConversaciones(prev => ({
+                ...prev,
+                [clienteId]: [...(prev[clienteId] || []), msg],
+            }));
+        });
+
+        // Staff: recibir historial al seleccionar usuario
+        sock.on('historial_chat', ({ clienteId, historial }) => {
+            setConversaciones(prev => ({ ...prev, [clienteId]: historial }));
+        });
+
+        // Cliente: recibir respuesta de soporte
+        sock.on('mensaje_de_staff', (msg) => {
+            setMsgsCliente(prev => [...prev, msg]);
+        });
+
+        return () => sock.disconnect();
+    }, [token]);
+
+    // Cuando el staff selecciona un cliente, pedir historial
+    const seleccionarCliente = (cliente) => {
+        setClienteActivo(cliente);
+        socket?.emit('solicitar_historial', { clienteId: cliente.id });
+    };
+
+    // Enviar mensaje
+    const enviar = ({ mensaje }) => {
+        if (!mensaje?.trim() || !socket) return;
+        reset({ mensaje: '' });
+
+        if (isStaff) {
+            if (!clienteActivo) return;
+            socket.emit('mensaje_staff', { para: clienteActivo.id, texto: mensaje.trim() });
+            // Agregarlo localmente como mensaje propio del staff
+            const msg = {
+                de: { id: miId, nombre: miNombre, rol: miRol },
+                texto: mensaje.trim(),
+                timestamp: new Date(),
+            };
+            setConversaciones(prev => ({
+                ...prev,
+                [clienteActivo.id]: [...(prev[clienteActivo.id] || []), msg],
+            }));
+        } else {
+            socket.emit('mensaje_cliente', { texto: mensaje.trim() });
+            const msg = {
+                de: { id: miId, nombre: miNombre, rol: 'cliente' },
+                texto: mensaje.trim(),
+                timestamp: new Date(),
+            };
+            setMsgsCliente(prev => [...prev, msg]);
         }
+    };
 
-        newSocket.on("mensaje_recibido_de_cliente", (payload) => {
-            setResponses((prev) => [...prev, payload]);
-        });
+    const handleKey = (e) => {
+        if (e.key === 'Enter' && !e.shiftKey) {
+            e.preventDefault();
+            handleSubmit(enviar)();
+        }
+    };
 
-        return () => newSocket.disconnect();
-    }, []);
+    const formatTime = (ts) => {
+        if (!ts) return '';
+        const d = new Date(ts);
+        return d.toLocaleTimeString('es-EC', { hour: '2-digit', minute: '2-digit' });
+    };
+
+    const initial = (nombre) => (nombre || '?').charAt(0).toUpperCase();
+
+    // Mensajes activos según rol
+    const mensajesActivos = isStaff
+        ? (clienteActivo ? (conversaciones[clienteActivo.id] || []) : [])
+        : msgsCliente;
 
     return (
         <>
-            {
-                chat
-                    ? (
-                        <div>
-                            <form onSubmit={handleSubmit(handleEnterChat)} className="flex justify-center gap-5">
-                                <input
-                                    type="text"
-                                    placeholder="Ingresa tu nombre de usuario"
-                                    className="block w-1/2 rounded-md border border-gray-300 focus:border-purple-700 focus:outline-none focus:ring-1 focus:ring-purple-700 py-1 px-2 text-gray-500"
-                                    {...register("name", { required: "El nombre de usuario es obligatorio" })}
-                                />
-                                <button className="py-2 w-1/2 block text-center bg-gray-500 text-slate-300 border rounded-xl hover:scale-100 duration-300 hover:bg-gray-900 hover:text-white">Ingresar al chat</button>
-                            </form>
-                            {errors.name && <p className="text-red-800">{errors.name.message}</p>}
+            <style>{styles}</style>
+            <div className="ch-wrap">
+
+                {/* ── Sidebar ── */}
+                <aside className="ch-sidebar">
+                    <div className="ch-sidebar-header">
+                        <p className="ch-sidebar-title">💬 Chat</p>
+                        <p className="ch-sidebar-sub">
+                            {isStaff
+                                ? `${onlineIds.size} en línea · ${usuarios.length} registrados`
+                                : 'Soporte Intex'}
+                        </p>
+                    </div>
+                    <div className="ch-contacts">
+                        {isStaff ? (
+                            usuarios.length === 0 ? (
+                                <p className="ch-no-contacts">Sin usuarios registrados</p>
+                            ) : (
+                                (() => {
+                                    const vendedores = usuariosConEstado.filter(u => u.rol === 'vendedor');
+                                    const clientes   = usuariosConEstado.filter(u => u.rol === 'cliente');
+
+                                    const renderUsuario = (u) => (
+                                        <button
+                                            key={u.id}
+                                            className={`ch-contact${clienteActivo?.id === u.id ? ' active' : ''}`}
+                                            onClick={() => seleccionarCliente(u)}
+                                            style={{ opacity: u.online ? 1 : 0.65 }}
+                                        >
+                                            <div className="ch-contact-avatar">
+                                                {initial(u.nombre)}
+                                                <span className={`ch-contact-online ${u.online ? 'online' : 'offline'}`} />
+                                            </div>
+                                            <div className="ch-contact-info">
+                                                <p className="ch-contact-name">{u.nombre}</p>
+                                                <p className="ch-contact-role">
+                                                    {u.rol === 'vendedor' ? '🏪 Vendedor' : '👤 Cliente'}
+                                                    {u.online ? <span style={{color:'#22c55e',marginLeft:'0.3rem'}}>● en línea</span> : null}
+                                                </p>
+                                            </div>
+                                        </button>
+                                    );
+
+                                    return (
+                                        <>
+                                            {vendedores.length > 0 && (
+                                                <>
+                                                    <p className="ch-group-label">🏪 Vendedores ({vendedores.length})</p>
+                                                    {vendedores.map(renderUsuario)}
+                                                </>
+                                            )}
+                                            {clientes.length > 0 && (
+                                                <>
+                                                    <p className="ch-group-label">👤 Clientes ({clientes.length})</p>
+                                                    {clientes.map(renderUsuario)}
+                                                </>
+                                            )}
+                                        </>
+                                    );
+                                })()
+                            )
+                        ) : (
+                            /* Vista cliente: solo un contacto — Soporte */
+                            <button className="ch-contact active">
+                                <div className="ch-contact-avatar staff-avatar">
+                                    <span>🛡️</span>
+                                    <span className="ch-contact-online online" />
+                                </div>
+                                <div className="ch-contact-info">
+                                    <p className="ch-contact-name">Soporte Intex</p>
+                                    <p className="ch-contact-role">En línea</p>
+                                </div>
+                            </button>
+                        )}
+                    </div>
+                </aside>
+
+                {/* ── Conversación ── */}
+                <div className="ch-conv">
+                    {isStaff && !clienteActivo ? (
+                        <div className="ch-conv-placeholder">
+                            <div className="ch-conv-placeholder-icon">💬</div>
+                            <p>Selecciona un cliente para ver la conversación</p>
                         </div>
-                    )
-                    : (
-                        <div className="flex flex-col justify-center h-full ">
-                            <div className="flex flex-col space-y-4 p-3 overflow-y-auto scrollbar-thumb-blue scrollbar-thumb-rounded scrollbar-track-blue-lighter scrollbar-w-2 scrolling-touch">
-                                {
-                                    responses.map((response, index) => (
-                                        <div key={index} className={`my-2 p-4 text-sm rounded-md text-white ${response.from === nameUser  ? 'bg-slate-700' : 'bg-black ml-auto'}`}>
-                                            {response.from} - {response.body}
-                                        </div>
-                                    ))
-                                }
+                    ) : (
+                        <>
+                            {/* Header */}
+                            <div className="ch-conv-header">
+                                <div className={`ch-conv-avatar${isStaff ? '' : ' staff-avatar'}`}>
+                                    {isStaff ? initial(clienteActivo?.nombre) : '🛡️'}
+                                </div>
+                                <div>
+                                    <p className="ch-conv-name">
+                                        {isStaff ? clienteActivo?.nombre : 'Soporte Intex'}
+                                    </p>
+                                    <p className="ch-conv-status">● En línea</p>
+                                </div>
                             </div>
 
-                            <div className="border-t-2 border-gray-200 px-4 pt-4 mb-2 sm:mb-0">
-                                <form onSubmit={handleSubmit(handleMessageChat)}>
-                                    <div className="relative flex">
-                                        <input type="text" placeholder="Escribe tu mensaje!" className="w-full focus:outline-none focus:placeholder-gray-400 text-gray-600 placeholder-gray-600 pl-2 bg-gray-200 rounded-md py-3"
-                                            {...register("message", { required: "El mensaje es obligatorio" })} />
+                            {/* Mensajes */}
+                            <div className="ch-messages">
+                                {mensajesActivos.length === 0 && (
+                                    <div style={{ textAlign: 'center', color: '#9ca3af', fontSize: '0.82rem', marginTop: '2rem' }}>
+                                        Sin mensajes aún. ¡Sé el primero en escribir!
+                                    </div>
+                                )}
+                                {mensajesActivos.map((msg, i) => {
+                                    const esPropio = msg.de?.id === miId;
+                                    const esStaffMsg = msg.de?.rol !== 'cliente';
+                                    return (
+                                        <div key={i} className={`ch-msg-row${esPropio ? ' own' : ''}`}>
+                                            <div className={`ch-msg-mini-avatar${esStaffMsg ? ' staff-mini' : ''}`}>
+                                                {esStaffMsg ? '🛡️' : initial(msg.de?.nombre)}
+                                            </div>
+                                            <div className="ch-msg-bubble-wrap">
+                                                {!esPropio && (
+                                                    <p className="ch-msg-sender">{msg.de?.nombre}</p>
+                                                )}
+                                                <div className={`ch-msg-bubble${esPropio ? ' own' : ' other'}`}>
+                                                    {msg.texto}
+                                                </div>
+                                                <p className="ch-msg-time">{formatTime(msg.timestamp)}</p>
+                                            </div>
+                                        </div>
+                                    );
+                                })}
+                                <div ref={messagesEndRef} />
+                            </div>
 
-                                        <button className="inline-flex items-center justify-center rounded-lg px-4 py-3 transition duration-500 ease-in-out text-white bg-green-800 hover:bg-green-600 focus:outline-none">
-                                            <span className="font-bold">Enviar</span>
+                            {/* Input */}
+                            <div className="ch-input-area">
+                                <form onSubmit={handleSubmit(enviar)}>
+                                    <div className="ch-input-row">
+                                        <textarea
+                                            className="ch-input"
+                                            placeholder="Escribe un mensaje… (Enter para enviar)"
+                                            rows={1}
+                                            onKeyDown={handleKey}
+                                            {...register('mensaje')}
+                                        />
+                                        <button
+                                            type="submit"
+                                            className="ch-send-btn"
+                                            disabled={!msgText?.trim()}
+                                        >
+                                            ➤
                                         </button>
                                     </div>
-                                    {errors.message && <p className="text-red-800">{errors.message.message}</p>}
                                 </form>
                             </div>
-                        </div>
-                    )
-            }
+                        </>
+                    )}
+                </div>
+
+            </div>
         </>
     );
 };
 
 export default Chat;
+

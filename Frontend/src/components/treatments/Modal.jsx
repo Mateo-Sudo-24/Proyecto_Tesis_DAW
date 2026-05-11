@@ -1,8 +1,112 @@
-// /components/treatments/ModalTreatments.jsx (o donde lo tengas)
-
 import { useForm } from "react-hook-form";
-// 1. CAMBIAMOS EL STORE A USAR
-import useOrderStore from "../../stores/useOrderStore"; 
+import useOrderStore from "../../stores/useOrderStore";
+
+const ModalTreatments = ({ clientID }) => {
+
+    const { register, handleSubmit, formState: { errors } } = useForm();
+    const { createCustomOrder, toggleModal, loading } = useOrderStore();
+
+    const handleCreateOrder = (data) => {
+        const orderData = { ...data, cliente: clientID };
+        createCustomOrder(orderData);
+    };
+
+    return (
+        <div className="fixed inset-0 bg-black bg-opacity-60 flex items-center justify-center z-50 p-4">
+            <div className="relative w-full max-w-lg bg-white rounded-lg shadow-2xl">
+
+                <div className="flex justify-between items-center p-4 border-b">
+                    <h3 className="text-xl font-semibold text-gray-800">
+                        Registrar Nueva Orden
+                    </h3>
+                    <button
+                        type="button"
+                        className="text-gray-400 bg-transparent hover:bg-gray-200 hover:text-gray-900 rounded-lg text-sm p-1.5 ml-auto inline-flex items-center"
+                        onClick={toggleModal}
+                        disabled={loading}
+                    >
+                        <svg className="w-5 h-5" fill="currentColor" viewBox="0 0 20 20"><path fillRule="evenodd" d="M4.293 4.293a1 1 0 011.414 0L10 8.586l4.293-4.293a1 1 0 111.414 1.414L11.414 10l4.293 4.293a1 1 0 01-1.414 1.414L10 11.414l-4.293 4.293a1 1 0 01-1.414-1.414L8.586 10 4.293 5.707a1 1 0 010-1.414z" clipRule="evenodd"></path></svg>
+                    </button>
+                </div>
+
+                <form className="p-6 space-y-4" onSubmit={handleSubmit(handleCreateOrder)}>
+                    <div>
+                        <label htmlFor="concepto" className="block mb-2 text-sm font-medium text-gray-700">Concepto de la Orden</label>
+                        <input
+                            type="text"
+                            id="concepto"
+                            placeholder="Ej: Servicio de mantenimiento, Producto X"
+                            className="bg-gray-50 border border-gray-300 text-gray-900 text-sm rounded-lg focus:ring-purple-700 focus:border-purple-700 block w-full p-2.5"
+                            {...register("concepto", { required: "El concepto es obligatorio" })}
+                        />
+                        {errors.concepto && <p className="mt-1 text-xs text-red-600">{errors.concepto.message}</p>}
+                    </div>
+                    <div>
+                        <label htmlFor="descripcion" className="block mb-2 text-sm font-medium text-gray-700">Descripción</label>
+                        <textarea
+                            id="descripcion"
+                            rows="3"
+                            placeholder="Detalles del servicio, productos personalizados, etc."
+                            className="bg-gray-50 border border-gray-300 text-gray-900 text-sm rounded-lg focus:ring-purple-700 focus:border-purple-700 block w-full p-2.5"
+                            {...register("descripcion")}
+                        />
+                    </div>
+                    <div>
+                        <label htmlFor="total" className="block mb-2 text-sm font-medium text-gray-700">Monto Total ($)</label>
+                        <input
+                            type="number"
+                            id="total"
+                            step="0.01"
+                            placeholder="Ej: 150.50"
+                            className="bg-gray-50 border border-gray-300 text-gray-900 text-sm rounded-lg focus:ring-purple-700 focus:border-purple-700 block w-full p-2.5"
+                            {...register("total", {
+                                required: "El monto total es obligatorio",
+                                valueAsNumber: true,
+                                min: { value: 0.01, message: "El monto debe ser positivo" }
+                            })}
+                        />
+                        {errors.total && <p className="mt-1 text-xs text-red-600">{errors.total.message}</p>}
+                    </div>
+                    <div>
+                        <label htmlFor="metodoPago" className="block mb-2 text-sm font-medium text-gray-700">Método de Pago</label>
+                        <select
+                            id="metodoPago"
+                            className="bg-gray-50 border border-gray-300 text-gray-900 text-sm rounded-lg focus:ring-purple-700 focus:border-purple-700 block w-full p-2.5"
+                            {...register("metodoPago", { required: "Debes seleccionar un método de pago" })}
+                        >
+                            <option value="">--- Seleccionar ---</option>
+                            <option value="Efectivo">Efectivo</option>
+                            <option value="Transferencia Bancaria">Transferencia Bancaria</option>
+                            <option value="Tarjeta de Crédito">Tarjeta de Crédito</option>
+                            <option value="Otro">Otro</option>
+                        </select>
+                        {errors.metodoPago && <p className="mt-1 text-xs text-red-600">{errors.metodoPago.message}</p>}
+                    </div>
+
+                    <div className="flex items-center justify-end pt-4 gap-4 border-t border-gray-200">
+                        <button
+                            type="button"
+                            className="text-gray-500 bg-white hover:bg-gray-100 focus:ring-4 focus:outline-none focus:ring-gray-300 rounded-lg border border-gray-200 text-sm font-medium px-5 py-2.5 hover:text-gray-900"
+                            onClick={toggleModal}
+                            disabled={loading}
+                        >
+                            Cancelar
+                        </button>
+                        <button
+                            type="submit"
+                            className="text-slate-300 bg-gray-600 hover:bg-gray-900 focus:ring-4 focus:outline-none focus:ring-gray-300 font-medium rounded-lg text-sm px-5 py-2.5 text-center disabled:bg-gray-400"
+                            disabled={loading}
+                        >
+                            {loading ? "Creando..." : "Crear Orden"}
+                        </button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    );
+};
+
+export default ModalTreatments;
 
 // 2. CAMBIAMOS EL NOMBRE DEL PROP PARA MAYOR CLARIDAD
 const ModalTreatments = ({ clientID }) => {
@@ -52,7 +156,7 @@ const ModalTreatments = ({ clientID }) => {
                             type="text"
                             id="concepto"
                             placeholder="Ej: Servicio de mantenimiento, Producto X"
-                            className="bg-gray-50 border border-gray-300 text-gray-900 text-sm rounded-lg focus:ring-orange-500 focus:border-orange-500 block w-full p-2.5"
+                            className="bg-gray-50 border border-gray-300 text-gray-900 text-sm rounded-lg focus:ring-gray-300 focus:border-purple-700 block w-full p-2.5"
                             {...register("concepto", { required: "El concepto es obligatorio" })}
                         />
                         {errors.concepto && <p className="mt-1 text-xs text-red-600">{errors.concepto.message}</p>}
@@ -63,7 +167,7 @@ const ModalTreatments = ({ clientID }) => {
                             id="descripcion"
                             rows="3"
                             placeholder="Detalles del servicio, productos personalizados, etc."
-                            className="bg-gray-50 border border-gray-300 text-gray-900 text-sm rounded-lg focus:ring-orange-500 focus:border-orange-500 block w-full p-2.5"
+                            className="bg-gray-50 border border-gray-300 text-gray-900 text-sm rounded-lg focus:ring-gray-300 focus:border-purple-700 block w-full p-2.5"
                             {...register("descripcion")}
                         />
                     </div>
@@ -74,7 +178,7 @@ const ModalTreatments = ({ clientID }) => {
                             id="total"
                             step="0.01" 
                             placeholder="Ej: 150.50"
-                            className="bg-gray-50 border border-gray-300 text-gray-900 text-sm rounded-lg focus:ring-orange-500 focus:border-orange-500 block w-full p-2.5"
+                            className="bg-gray-50 border border-gray-300 text-gray-900 text-sm rounded-lg focus:ring-gray-300 focus:border-purple-700 block w-full p-2.5"
                             {...register("total", {
                                 required: "El monto total es obligatorio",
                                 valueAsNumber: true,
@@ -87,7 +191,7 @@ const ModalTreatments = ({ clientID }) => {
                         <label htmlFor="metodoPago" className="block mb-2 text-sm font-medium text-gray-700">Método de Pago</p>
                         <select
                             id="metodoPago"
-                            className="bg-gray-50 border border-gray-300 text-gray-900 text-sm rounded-lg focus:ring-orange-500 focus:border-orange-500 block w-full p-2.5"
+                            className="bg-gray-50 border border-gray-300 text-gray-900 text-sm rounded-lg focus:ring-gray-300 focus:border-purple-700 block w-full p-2.5"
                             {...register("metodoPago", { required: "Debes seleccionar un método de pago" })}
                         >
                             <option value="">--- Seleccionar ---</option>
@@ -103,7 +207,7 @@ const ModalTreatments = ({ clientID }) => {
                     <div className="flex items-center justify-end pt-4 gap-4 border-t border-gray-200">
                         <button
                             type="button"
-                            className="text-gray-500 bg-white hover:bg-gray-100 focus:ring-4 focus:outline-none focus:ring-orange-300 rounded-lg border border-gray-200 text-sm font-medium px-5 py-2.5 hover:text-gray-900"
+                            className="text-gray-500 bg-white hover:bg-gray-100 focus:ring-4 focus:outline-none focus:ring-gray-300 rounded-lg border border-gray-200 text-sm font-medium px-5 py-2.5 hover:text-gray-900"
                             onClick={toggleModal}
                             disabled={loading}
                         >
@@ -111,7 +215,7 @@ const ModalTreatments = ({ clientID }) => {
                         </button>
                         <button
                             type="submit"
-                            className="text-white bg-orange-500 hover:bg-orange-600 focus:ring-4 focus:outline-none focus:ring-orange-300 font-medium rounded-lg text-sm px-5 py-2.5 text-center disabled:bg-orange-300"
+                            className="text-white bg-gray-600 hover:bg-gray-600 focus:ring-4 focus:outline-none focus:ring-gray-300 font-medium rounded-lg text-sm px-5 py-2.5 text-center disabled:bg-gray-600"
                             disabled={loading}
                         >
                             {loading ? "Creando..." : "Crear Orden"}

@@ -1,5 +1,6 @@
 import Cliente from "../models/Cliente.js";
-import { sendMailToRegister, sendMailToRecoveryPassword } from "../config/nodemailer.js";
+import { sendMailToRegister, sendMailToRecoveryPassword, sendMailToInviteCliente } from "../config/nodemailer.js";
+import crypto from 'crypto';
 import { crearTokenJWT } from '../middlewares/JWT.js';
 import mongoose from 'mongoose';
 
@@ -172,23 +173,60 @@ const actualizarPassword = async (req, res) => {
 // ==         BLOQUE 4: RUTAS PRIVADAS (Gestión por Vendedor/Admin)        ==
 // ============================================================================
 
-// La función 'crearClientePorAdmin' se mantiene igual, ya que atribuye la creación
-// al usuario actual, lo cual sigue siendo una buena práctica.
+// Flujo de invitación: el admin crea el cliente sin password.
+// Se envía un correo para que el cliente active su cuenta y establezca su contraseña.
 const crearClientePorAdmin = async (req, res) => {
-    const { email, password, nombre } = req.body;
-    if (!email || !password || !nombre) return res.status(400).json({ msg: "Nombre, email y password son obligatorios." });
+    const { email, nombre, telefono, direccion } = req.body;
+    if (!email || !nombre) return res.status(400).json({ msg: "Nombre y email son obligatorios." });
     try {
         const existeCliente = await Cliente.findOne({ email });
-        if (existeCliente) return res.status(400).json({ msg: "El email ya se encuentra registrado." });
-        
-        const nuevoCliente = new Cliente(req.body);
-        nuevoCliente.confirmEmail = true;
-        nuevoCliente.creadoPor = req.usuario._id; // <-- Mantenemos la atribución
-        
+        if (existeCliente) {
+            if (existeCliente.confirmEmail) {
+                return res.status(400).json({ msg: "Ya existe un cliente activo con ese correo electrónico." });
+            }
+            // Si está pendiente de activación, reenviar la invitación
+            const token = existeCliente.crearToken();
+            await existeCliente.save();
+            await sendMailToInviteCliente(email, token);
+            return res.status(200).json({ msg: "La invitación fue reenviada. El cliente debe revisar su correo para activar la cuenta." });
+        }
+
+        const nuevoCliente = new Cliente({
+            email, nombre, telefono, direccion,
+            confirmEmail: false,
+            creadoPor: req.usuario._id,
+            // Contraseña temporal aleatoria (será reemplazada cuando el cliente active su cuenta)
+            password: crypto.randomBytes(32).toString('hex'),
+        });
+        const token = nuevoCliente.crearToken();
         await nuevoCliente.save();
-        res.status(201).json({ msg: "Cliente creado exitosamente." });
+        await sendMailToInviteCliente(email, token);
+        res.status(201).json({ msg: "Invitación enviada al nuevo cliente. Debe revisar su correo para activar la cuenta." });
     } catch (error) {
+        console.error('Error al crear cliente por admin:', error);
         res.status(500).json({ msg: "Error al crear el cliente." });
+    }
+};
+
+// POST /api/clientes/setup-account/:token -> El cliente activa su cuenta y establece su contraseña
+const configurarCuentaClienteYPassword = async (req, res) => {
+    const { token } = req.params;
+    const { password } = req.body;
+    if (!password || password.length < 6) {
+        return res.status(400).json({ msg: "La contraseña debe tener al menos 6 caracteres." });
+    }
+    try {
+        const cliente = await Cliente.findOne({ token, confirmEmail: false });
+        if (!cliente) return res.status(404).json({ msg: "El enlace de activación no es válido o la cuenta ya ha sido activada." });
+
+        cliente.password = password;
+        cliente.confirmEmail = true;
+        cliente.token = null;
+        await cliente.save();
+
+        res.status(200).json({ msg: "¡Cuenta activada! Ahora puedes iniciar sesión con tu nueva contraseña." });
+    } catch (error) {
+        res.status(500).json({ msg: "Error en el servidor al activar la cuenta." });
     }
 };
 
@@ -267,6 +305,7 @@ export {
     actualizarPerfil,
     actualizarPassword,
     crearClientePorAdmin,
+    configurarCuentaClienteYPassword,
     obtenerClientes,
     obtenerClientePorId,
     actualizarClientePorAdmin,

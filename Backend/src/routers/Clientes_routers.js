@@ -7,6 +7,7 @@ import {
     validateProfileUpdate,
     validatePasswordChange,
     validateAdminClienteCreation,
+    validateAccountSetup,
     validateMongoId
 } from '../middlewares/validators.js';
 import { 
@@ -20,6 +21,7 @@ import {
     actualizarPerfil,
     actualizarPassword,
     crearClientePorAdmin,
+    configurarCuentaClienteYPassword,
     obtenerClientes,
     obtenerClientePorId,
     actualizarClientePorAdmin,
@@ -40,6 +42,8 @@ router.post('/login', validateLogin, login);
 router.post('/recuperar-password', validatePasswordRecovery, recuperarPassword);
 router.get('/recuperar-password/:token', comprobarTokenPassword);
 router.post('/nuevo-password/:token', validatePasswordReset, crearNuevoPassword);
+// Activación de cuenta para clientes creados por el administrador
+router.post('/setup-account/:token', validateAccountSetup, configurarCuentaClienteYPassword);
 
 // =======================================================================
 // ==                RUTAS DE PERFIL (PARA EL CLIENTE LOGUEADO)         ==
