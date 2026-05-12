@@ -419,7 +419,11 @@ export const obtenerNotificacionesVendedor = async (req, res) => {
     const notifs = await Notificacion.find({ vendedor: _id })
       .sort({ createdAt: -1 })
       .limit(50);
-    res.json({ ok: true, notificaciones: notifs });
+    const notifsDescifradas = notifs.map(n => {
+      const decrypted = n.descifrarDatos();
+      return { ...n.toObject(), mensaje: decrypted.mensaje, productos: decrypted.productos };
+    });
+    res.json({ ok: true, notificaciones: notifsDescifradas });
   } catch (error) {
     res.status(500).json({ msg: 'Error al obtener notificaciones', ok: false });
   }

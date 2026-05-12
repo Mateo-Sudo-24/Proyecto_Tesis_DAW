@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import { useParams, useNavigate } from "react-router-dom";
+import { useParams, useNavigate, useLocation } from "react-router-dom";
 import useFetch from "../hooks/useFetch";
 import { toast } from "react-toastify";
 import storeProfile from "../context/storeProfile";
@@ -190,16 +190,20 @@ const styles = `
 const Details = () => {
     const { id } = useParams();
     const navigate = useNavigate();
+    const location = useLocation();
     const { user } = storeProfile();
     const isVendedor = user?.rol === 'vendedor';
 
+    // tipo passed from Table.jsx navigation state; fallback keeps old behaviour
+    const tipoFromNav = location.state?.tipo;
     const [entityDetails, setEntityDetails] = useState(null);
     const { fetchDataBackend } = useFetch();
 
     const getEntityDetails = async () => {
         if (!user?.rol) return;
         try {
-            const entityType = isVendedor ? 'clientes' : 'vendedores';
+            // Use tipo from nav state when available so admin can view clients correctly
+            const entityType = tipoFromNav || (isVendedor ? 'clientes' : 'vendedores');
             const url = `${import.meta.env.VITE_BACKEND_URL}/${entityType}/${id}`;
             const storedUser = JSON.parse(localStorage.getItem("auth-token"));
             if (!storedUser?.state?.token) { toast.error("No estás autenticado."); return; }
@@ -226,7 +230,9 @@ const Details = () => {
     // eslint-disable-next-line react-hooks/exhaustive-deps
     }, [id, user?.rol]);
 
-    const entityLabel = isVendedor ? 'cliente' : 'vendedor';
+    const entityLabel = tipoFromNav
+        ? (tipoFromNav === 'clientes' ? 'cliente' : 'vendedor')
+        : (isVendedor ? 'cliente' : 'vendedor');
 
     // ── Loading ──────────────────────────────────────────────
     if (!entityDetails) {

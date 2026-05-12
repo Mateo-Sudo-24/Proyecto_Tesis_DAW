@@ -1,28 +1,31 @@
 import { useEffect, useState } from "react";
-import { useParams } from "react-router-dom";
+import { useParams, useLocation } from "react-router-dom";
 import useFetch from "../hooks/useFetch";
 import { toast } from "react-toastify";
 import FormVendedor from "../components/create/FormVendedor";
+import FormCliente from "../components/create/FormCliente";
 
 const Update = () => {
     const { id } = useParams();
-    const [vendedor, setVendedor] = useState(null);
+    const location = useLocation();
+    const tipo = location.state?.tipo || 'vendedores';
+    const [entity, setEntity] = useState(null);
     const { fetchDataBackend } = useFetch();
 
     useEffect(() => {
-        const searchVendedor = async () => {
+        const searchEntity = async () => {
             try {
-                const url = `${import.meta.env.VITE_BACKEND_URL}/vendedores/${id}`;
+                const url = `${import.meta.env.VITE_BACKEND_URL}/${tipo}/${id}`;
                 const response = await fetchDataBackend(url, null, "GET");
                 if (response) {
-                    setVendedor(response);
+                    setEntity(response);
                 }
             } catch (error) {
-                toast.error("No se pudieron cargar los datos del vendedor.");
+                toast.error("No se pudieron cargar los datos.");
             }
         };
-        searchVendedor();
-    }, [id]);
+        searchEntity();
+    }, [id, tipo]);
 
     return (
         <div>
@@ -30,11 +33,13 @@ const Update = () => {
             <hr className='my-4 border-t-2 border-gray-300' />
             <p className='mb-8'>Este módulo te permite actualizar un registro</p>
 
-            {vendedor ? (
-                <FormVendedor vendedor={vendedor} />
+            {entity ? (
+                tipo === 'clientes'
+                    ? <FormCliente clienteToUpdate={entity} />
+                    : <FormVendedor vendedor={entity} />
             ) : (
                 <div className="text-center py-10 text-gray-500">
-                    Cargando datos del vendedor...
+                    Cargando datos...
                 </div>
             )}
         </div>

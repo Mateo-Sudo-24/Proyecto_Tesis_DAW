@@ -27,22 +27,39 @@ const crearNotificacionPago = async (orden) => {
     }
 };
 
-// ─── Helper: crear notificación de confirmación para todos los vendedores ────
+// ─── Helper: crear notificación de confirmación para todos los vendedores y admin ──
 const crearNotificacionConfirmacionVendedores = async (orden) => {
     try {
-        const vendedores = await Vendedor.find().select('_id');
-        await Promise.all(vendedores.map(v =>
-            Notificacion.crearConCifrado({
-                vendedor: v._id,
-                tipo: 'confirmacion_pedido',
-                mensaje: `✅ El administrador confirmó el pago de la Orden #${orden.codigoOrden ?? orden._id.toString().slice(-6).toUpperCase()} por $${(orden.precioTotal ?? orden.total ?? 0).toFixed(2)} — Método: ${orden.metodoPago}. El pedido está listo para ser procesado.`,
-                leida: false,
-                estadoGestion: 'pendiente',
-                metadatos: { timestamp: new Date() }
-            })
-        ));
+        const [vendedores, admins] = await Promise.all([
+            Vendedor.find().select('_id'),
+            Administrador.find().select('_id')
+        ]);
+        const codigoOrden = orden.codigoOrden ?? orden._id.toString().slice(-6).toUpperCase();
+        const total = (orden.precioTotal ?? orden.total ?? 0).toFixed(2);
+        await Promise.all([
+            ...vendedores.map(v =>
+                Notificacion.crearConCifrado({
+                    vendedor: v._id,
+                    tipo: 'confirmacion_pedido',
+                    mensaje: `✅ El administrador confirmó el pago de la Orden #${codigoOrden} por $${total} — Método: ${orden.metodoPago}. El pedido está listo para ser procesado.`,
+                    leida: false,
+                    estadoGestion: 'pendiente',
+                    metadatos: { timestamp: new Date() }
+                })
+            ),
+            ...admins.map(admin =>
+                Notificacion.crearConCifrado({
+                    administrador: admin._id,
+                    tipo: 'confirmacion_pedido',
+                    mensaje: `✅ Confirmaste el pago de la Orden #${codigoOrden} por $${total} — Método: ${orden.metodoPago}. Los vendedores han sido notificados.`,
+                    leida: false,
+                    estadoGestion: 'pendiente',
+                    metadatos: { timestamp: new Date() }
+                })
+            )
+        ]);
     } catch (err) {
-        console.error('❌ Error al crear notificación de confirmación para vendedores:', err.message);
+        console.error('❌ Error al crear notificación de confirmación:', err.message);
     }
 };
 
@@ -179,7 +196,7 @@ const actualizarEstadoOrden = async (req, res) => {
     if (!orden) return res.status(404).json({ msg: "Orden no encontrada." });
 
     // Validar: No hay solicitud de cancelación pendiente
-    if (orden.solicitudCancelacion.estado === 'pendiente') {
+    if (orden.solicitudCancelacion?.estado === 'pendiente') {
       return res.status(400).json({ msg: "No se puede actualizar una orden con solicitud de cancelación pendiente." });
     }
 

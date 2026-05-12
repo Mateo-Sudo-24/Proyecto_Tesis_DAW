@@ -222,11 +222,11 @@ const Table = ({ tipo = 'clientes' }) => {
                                     )}
                                     <td className="tbl-actions">
                                         {!isVendedor && (
-                                            <button title="Actualizar" className="tbl-icon-btn gray" onClick={() => navigate(`/dashboard/actualizar/${item._id}`)}>
+                                            <button title="Actualizar" className="tbl-icon-btn gray" onClick={() => navigate(`/dashboard/actualizar/${item._id}`, { state: { tipo } })}>
                                                 <MdPublishedWithChanges size={20} />
                                             </button>
                                         )}
-                                        <button title="Más información" className="tbl-icon-btn blue" onClick={() => navigate(`/dashboard/visualizar/${item._id}`)}>
+                                        <button title="Más información" className="tbl-icon-btn blue" onClick={() => navigate(`/dashboard/visualizar/${item._id}`, { state: { tipo } })}>
                                             <MdInfo size={20} />
                                         </button>
                                         <button title="Eliminar" className="tbl-icon-btn red" onClick={() => pedirConfirmacion(item)}>
@@ -282,11 +282,11 @@ const Table = ({ tipo = 'clientes' }) => {
                             )}
                             <div className="tbl-card-actions">
                                 {!isVendedor && (
-                                    <button title="Actualizar" className="tbl-icon-btn gray" onClick={() => navigate(`/dashboard/actualizar/${item._id}`)}>
+                                    <button title="Actualizar" className="tbl-icon-btn gray" onClick={() => navigate(`/dashboard/actualizar/${item._id}`, { state: { tipo } })}>
                                         <MdPublishedWithChanges size={22} />
                                     </button>
                                 )}
-                                <button title="Ver" className="tbl-icon-btn blue" onClick={() => navigate(`/dashboard/visualizar/${item._id}`)}>
+                                <button title="Ver" className="tbl-icon-btn blue" onClick={() => navigate(`/dashboard/visualizar/${item._id}`, { state: { tipo } })}>
                                     <MdInfo size={22} />
                                 </button>
                                 <button title="Eliminar" className="tbl-icon-btn red" onClick={() => pedirConfirmacion(item)}>
