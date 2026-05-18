@@ -26,8 +26,7 @@ import ChatbotBubble from './components/chatbot/ChatbotBubble';
 import ProductosAdmin from './pages/ProductosAdmin';
 import UpdateProducto from './pages/UpdateProducto';
 import Notificaciones from './pages/Notificaciones';
-import MisPedidos from './pages/MisPedidos';
-
+import MisPedidos from './pages/MisPedidos';import Usuarios from './pages/Usuarios'
 import PublicRoute from './routes/PublicRoute';
 import ProtectedRoute from './routes/ProtectedRoute';
 import useProfileStore from './context/storeProfile';
@@ -87,6 +86,7 @@ function AppContent() {
             <Route path="listar" element={<List />} />
             <Route path="visualizar/:id" element={<Details />} />
             <Route path="crear" element={<Create />} />
+            <Route path="usuarios" element={<Usuarios />} />
             <Route path="actualizar/:id" element={<Update />} />
             <Route path="chat" element={<Chat />} />
             <Route path="carrito" element={<Carrito />} />

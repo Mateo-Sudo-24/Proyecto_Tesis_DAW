@@ -308,7 +308,6 @@ const Dashboard = () => {
     const urlActual = location.pathname
     const { clearToken } = storeAuth()
     const { user } = storeProfile()
-    const [gestionOpen, setGestionOpen] = useState(false)
     const [sidebarOpen, setSidebarOpen] = useState(false)
 
     const closeSidebar = () => setSidebarOpen(false)
@@ -321,8 +320,6 @@ const Dashboard = () => {
 
     const lc = (path) => `dsb-nav-link${urlActual === path ? ' active' : ''}`
     const lcMobile = (path) => { closeSidebar(); return lc(path); }
-
-    const gestionActive = urlActual === '/dashboard/listar' || urlActual === '/dashboard/crear'
 
     return (
         <>
@@ -368,29 +365,13 @@ const Dashboard = () => {
                             <span className="dsb-icon">💬</span> Chat
                         </Link>
 
-                        {/* Gestión (dropdown — admin + vendedor) */}
+                        {/* Gestión (admin + vendedor) */}
                         {(isVendedor || isAdmin) && (
                             <>
                                 <span className="dsb-nav-section">Gestión</span>
-                                <button
-                                    className={`dsb-nav-link${gestionActive ? ' active' : ''}`}
-                                    onClick={() => setGestionOpen(o => !o)}
-                                >
-                                    <div className="dsb-nav-link-row">
-                                        <div className="dsb-nav-link-inner">
-                                            <span className="dsb-icon">🗂️</span> Usuarios
-                                        </div>
-                                        <span className={`dsb-chevron${gestionOpen ? ' open' : ''}`}>▼</span>
-                                    </div>
-                                </button>
-                                <div className={`dsb-submenu${gestionOpen ? ' open' : ''}`}>
-                                    <Link to="/dashboard/listar" className={lc('/dashboard/listar')} onClick={closeSidebar}>
-                                        <span className="dsb-icon">📋</span> Listar
-                                    </Link>
-                                    <Link to="/dashboard/crear" className={lc('/dashboard/crear')} onClick={closeSidebar}>
-                                        <span className="dsb-icon">➕</span> Crear
-                                    </Link>
-                                </div>
+                                <Link to="/dashboard/usuarios" className={lc('/dashboard/usuarios')} onClick={closeSidebar}>
+                                    <span className="dsb-icon">🗂️</span> Usuarios
+                                </Link>
                             </>
                         )}
 

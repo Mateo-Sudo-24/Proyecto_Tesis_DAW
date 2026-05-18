@@ -6,62 +6,64 @@ const styles = `
     .notif-page {
         min-height: 100%;
         background-color: #f3f4f6;
-        padding: 2.5rem 1.5rem;
+        padding: 0.75rem 1rem;
     }
     .notif-inner {
-        max-width: 860px;
-        margin: 0 auto;
+        width: 100%;
     }
     .notif-header {
         background-color: #1f2937;
-        border-radius: 1rem;
-        padding: 1.75rem 2rem;
+        border-radius: 0.6rem;
+        padding: 0.75rem 1.1rem;
         color: #fff;
         display: flex;
         align-items: center;
         justify-content: space-between;
-        gap: 1rem;
-        margin-bottom: 1.5rem;
-        box-shadow: 0 4px 20px rgba(0,0,0,0.18);
+        gap: 0.75rem;
+        margin-bottom: 0.75rem;
+        box-shadow: 0 2px 10px rgba(0,0,0,0.14);
     }
     .notif-header h1 {
-        font-size: 1.75rem;
+        font-size: 1.1rem;
         font-weight: 900;
         color: #f59e0b;
-        margin: 0 0 0.25rem 0;
+        margin: 0 0 0.1rem 0;
     }
     .notif-header p {
-        font-size: 0.85rem;
+        font-size: 0.78rem;
         color: #9ca3af;
         margin: 0;
     }
     .notif-header .badge-sin-leer {
         background: #f59e0b;
         color: #1f2937;
-        font-size: 0.7rem;
+        font-size: 0.65rem;
         font-weight: 800;
-        padding: 0.15rem 0.55rem;
+        padding: 0.1rem 0.45rem;
         border-radius: 9999px;
-        margin-left: 0.5rem;
+        margin-left: 0.4rem;
     }
     .notif-header .pendientes-box {
         background: rgba(239,68,68,0.15);
         border: 1px solid rgba(239,68,68,0.35);
-        border-radius: 0.75rem;
-        padding: 0.5rem 1.25rem;
+        border-radius: 0.5rem;
+        padding: 0.3rem 0.85rem;
         text-align: center;
         flex-shrink: 0;
+        display: flex;
+        align-items: center;
+        gap: 0.4rem;
     }
-    .notif-header .pendientes-box .num { font-size: 1.6rem; font-weight: 900; color: #fca5a5; line-height: 1; }
-    .notif-header .pendientes-box .lbl { font-size: 0.7rem; color: #fca5a5; font-weight: 600; margin-top: 0.2rem; }
+    .notif-header .pendientes-box .num { font-size: 1.1rem; font-weight: 900; color: #fca5a5; line-height: 1; }
+    .notif-header .pendientes-box .lbl { font-size: 0.65rem; color: #fca5a5; font-weight: 600; }
 
     /* Filtros */
-    .notif-filtros { display: flex; flex-wrap: wrap; gap: 0.5rem; margin-bottom: 1.5rem; }
+    .notif-filtros { display: flex; flex-wrap: wrap; gap: 0.35rem; margin-bottom: 0.65rem; }
     .notif-filtro-btn {
-        padding: 0.5rem 1.1rem;
-        border-radius: 0.75rem;
+        padding: 0.35rem 0.8rem;
+        border-radius: 0.5rem;
         font-weight: 700;
-        font-size: 0.85rem;
+        font-size: 0.78rem;
         border: 1.5px solid #d1d5db;
         background: #fff;
         color: #4b5563;
@@ -69,7 +71,7 @@ const styles = `
         transition: all 0.18s ease;
         display: flex;
         align-items: center;
-        gap: 0.4rem;
+        gap: 0.3rem;
     }
     .notif-filtro-btn:hover { background: #f9fafb; border-color: #9ca3af; }
     .notif-filtro-btn.activo { background: #1f2937; color: #f59e0b; border-color: #1f2937; }
@@ -85,32 +87,32 @@ const styles = `
     /* Estado vacío */
     .notif-empty {
         background: #fff;
-        border-radius: 1rem;
+        border-radius: 0.6rem;
         border: 1px solid #e5e7eb;
-        padding: 4rem 2rem;
+        padding: 2rem 1.25rem;
         text-align: center;
-        box-shadow: 0 2px 12px rgba(0,0,0,0.06);
+        box-shadow: 0 1px 6px rgba(0,0,0,0.05);
     }
-    .notif-empty .icon { font-size: 3.5rem; margin-bottom: 1rem; }
-    .notif-empty .title { font-size: 1.1rem; font-weight: 700; color: #374151; margin-bottom: 0.4rem; }
-    .notif-empty .sub   { font-size: 0.85rem; color: #9ca3af; }
+    .notif-empty .icon { font-size: 2rem; margin-bottom: 0.5rem; }
+    .notif-empty .title { font-size: 0.95rem; font-weight: 700; color: #374151; margin-bottom: 0.25rem; }
+    .notif-empty .sub   { font-size: 0.78rem; color: #9ca3af; }
 
     /* Tarjeta de notificación */
     .notif-card {
         background: #fff;
-        border-radius: 1rem;
-        border: 1.5px solid #e5e7eb;
+        border-radius: 0.5rem;
+        border: 1px solid #e5e7eb;
         overflow: hidden;
-        margin-bottom: 0.75rem;
-        box-shadow: 0 2px 8px rgba(0,0,0,0.05);
-        transition: box-shadow 0.2s ease;
+        margin-bottom: 0.4rem;
+        box-shadow: 0 1px 3px rgba(0,0,0,0.04);
+        transition: box-shadow 0.15s ease;
     }
-    .notif-card:hover { box-shadow: 0 4px 18px rgba(0,0,0,0.1); }
-    .notif-card.no-leida { background: #fffbeb; border-color: #fcd34d; box-shadow: 0 2px 12px rgba(245,158,11,0.12); }
-    .notif-card.pendiente { background: #fef2f2; border-color: #fca5a5; box-shadow: 0 2px 12px rgba(239,68,68,0.1); }
+    .notif-card:hover { box-shadow: 0 3px 10px rgba(0,0,0,0.08); }
+    .notif-card.no-leida { background: #fffbeb; border-color: #fcd34d; }
+    .notif-card.pendiente { background: #fef2f2; border-color: #fca5a5; }
 
     .notif-card .stripe {
-        height: 4px; width: 100%;
+        height: 3px; width: 100%;
         background: #e5e7eb;
     }
     .notif-card.no-leida .stripe { background: #f59e0b; }
@@ -119,17 +121,17 @@ const styles = `
     /* Cabecera clicable */
     .notif-card-head {
         width: 100%; text-align: left;
-        padding: 1rem 1.25rem;
-        display: flex; align-items: center; gap: 1rem;
+        padding: 0.6rem 0.9rem;
+        display: flex; align-items: center; gap: 0.65rem;
         background: transparent; border: none; cursor: pointer;
     }
     .notif-tipo-label {
-        font-size: 0.7rem; font-weight: 800;
-        text-transform: uppercase; letter-spacing: 0.07em;
+        font-size: 0.65rem; font-weight: 800;
+        text-transform: uppercase; letter-spacing: 0.06em;
         color: #6b7280;
     }
-    .notif-mensaje { font-size: 0.9rem; font-weight: 600; color: #111827; margin: 0.15rem 0 0; }
-    .notif-fecha   { font-size: 0.75rem; color: #9ca3af; margin-top: 0.15rem; }
+    .notif-mensaje { font-size: 0.82rem; font-weight: 600; color: #111827; margin: 0.1rem 0 0; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; max-width: 100%; }
+    .notif-fecha   { font-size: 0.7rem; color: #9ca3af; margin-top: 0.08rem; }
 
     .badge-nueva    { font-size: 0.7rem; font-weight: 800; padding: 0.15rem 0.5rem; border-radius: 9999px; background: #fef3c7; color: #92400e; }
     .badge-aprobado { font-size: 0.7rem; font-weight: 800; padding: 0.15rem 0.5rem; border-radius: 9999px; background: #d1fae5; color: #065f46; }
@@ -155,29 +157,28 @@ const styles = `
 
     /* Cuerpo expandido */
     .notif-body {
-        padding: 1rem 1.25rem 1.25rem;
+        padding: 0.6rem 0.9rem 0.85rem;
         border-top: 1px solid rgba(0,0,0,0.07);
     }
-    .notif-body-msg { font-size: 0.875rem; color: #374151; margin-bottom: 1rem; line-height: 1.6; }
+    .notif-body-msg { font-size: 0.8rem; color: #374151; margin-bottom: 0.6rem; line-height: 1.5; }
 
-    .productos-label { font-size: 0.7rem; font-weight: 800; text-transform: uppercase; letter-spacing: 0.07em; color: #6b7280; margin-bottom: 0.75rem; }
+    .productos-label { font-size: 0.65rem; font-weight: 800; text-transform: uppercase; letter-spacing: 0.06em; color: #6b7280; margin-bottom: 0.4rem; }
     .producto-fila {
         display: flex; align-items: center; justify-content: space-between;
-        background: #fff; border: 1px solid #e5e7eb;
-        border-radius: 0.75rem; padding: 0.75rem 1rem; margin-bottom: 0.5rem;
-        box-shadow: 0 1px 4px rgba(0,0,0,0.05);
+        background: #f9fafb; border: 1px solid #e5e7eb;
+        border-radius: 0.4rem; padding: 0.4rem 0.65rem; margin-bottom: 0.3rem;
     }
-    .producto-nombre { font-size: 0.875rem; font-weight: 700; color: #111827; }
-    .producto-desc   { font-size: 0.75rem; color: #9ca3af; margin-top: 0.1rem; }
-    .producto-stock  { font-size: 0.9rem; font-weight: 900; color: #dc2626; }
-    .producto-umbral { font-size: 0.72rem; color: #9ca3af; text-align: right; }
+    .producto-nombre { font-size: 0.8rem; font-weight: 700; color: #111827; }
+    .producto-desc   { font-size: 0.7rem; color: #9ca3af; margin-top: 0.05rem; }
+    .producto-stock  { font-size: 0.82rem; font-weight: 900; color: #dc2626; }
+    .producto-umbral { font-size: 0.68rem; color: #9ca3af; text-align: right; }
 
     /* Botones de gestión */
-    .gestion-row { display: flex; gap: 0.75rem; margin-top: 1rem; }
+    .gestion-row { display: flex; gap: 0.5rem; margin-top: 0.6rem; }
     .btn-aprobar, .btn-rechazar {
-        flex: 1; padding: 0.7rem 1rem;
-        border-radius: 0.75rem; border: none; cursor: pointer;
-        font-size: 0.9rem; font-weight: 800;
+        flex: 1; padding: 0.5rem 0.75rem;
+        border-radius: 0.5rem; border: none; cursor: pointer;
+        font-size: 0.8rem; font-weight: 800;
         transition: all 0.18s ease;
     }
     .btn-aprobar         { background: #16a34a; color: #fff; }
@@ -199,7 +200,7 @@ const styles = `
         justify-content: center;
         flex-wrap: wrap;
         gap: 0.25rem;
-        padding: 1.25rem 0 0.5rem;
+        padding: 0.65rem 0 0.25rem;
     }
     .notif-page-btn {
         border-radius: 9999px;
@@ -240,9 +241,9 @@ const styles = `
     /* Botones acción en cuerpo expandido */
     .btn-confirmar-paso1, .btn-rechazar-paso1,
     .btn-paso2-ok, .btn-paso2-ko {
-        flex: 1; padding: 0.7rem 1rem;
-        border-radius: 0.75rem; border: none; cursor: pointer;
-        font-size: 0.88rem; font-weight: 800;
+        flex: 1; padding: 0.5rem 0.75rem;
+        border-radius: 0.5rem; border: none; cursor: pointer;
+        font-size: 0.8rem; font-weight: 800;
         transition: all 0.18s ease;
     }
     .btn-confirmar-paso1 { background: #0284c7; color: #fff; }
@@ -332,7 +333,7 @@ const necesitaGestion = (notif) =>
 
 const isN8n = (n) => n.tipo === 'stock_critico' || n.tipo === 'pago_completado';
 
-const ITEMS_POR_PAGINA = 10;
+const ITEMS_POR_PAGINA = 5;
 
 /* ═══════════════════════════════════════════════════════════════ */
 const Notificaciones = () => {

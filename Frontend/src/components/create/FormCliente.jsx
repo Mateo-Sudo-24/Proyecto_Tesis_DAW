@@ -158,7 +158,7 @@ const styles = `
  * ✅ FORMULARIO DE USUARIO
  * Crea o edita CLIENTE o VENDEDOR a través de un selector de tipo
  */
-export const FormCliente = ({ clienteToUpdate }) => {
+const FormCliente = ({ clienteToUpdate, onSuccess, tipoInicial }) => {
     const navigate = useNavigate();
     const { register, handleSubmit, formState: { errors }, reset } = useForm();
     const { fetchDataBackend } = useFetch();
@@ -167,7 +167,7 @@ export const FormCliente = ({ clienteToUpdate }) => {
     const soloClientes = user?.rol === 'vendedor';
     // Si es vendedor, siempre forzamos 'cliente' sin importar clienteToUpdate
     const [tipoUsuario, setTipoUsuario] = useState(
-        soloClientes ? 'cliente' : (clienteToUpdate?.rol || 'cliente')
+        soloClientes ? 'cliente' : (clienteToUpdate?.rol || tipoInicial || 'cliente')
     );
 
     useEffect(() => {
@@ -199,7 +199,7 @@ export const FormCliente = ({ clienteToUpdate }) => {
             if (response) {
                 const tipoNombre = tipo === "cliente" ? "Cliente" : "Vendedor";
                 toast.success(clienteToUpdate ? `${tipoNombre} actualizado correctamente` : `Invitación enviada a ${data.email}`);
-                setTimeout(() => navigate("/dashboard/listar"), 1500);
+                setTimeout(() => { if (onSuccess) onSuccess(); else navigate("/dashboard/listar"); }, 1500);
             }
         } catch (error) {
             toast.error(error.message || "Ocurrió un error al guardar.");
@@ -351,7 +351,7 @@ export const FormCliente = ({ clienteToUpdate }) => {
                             </button>
                             <button
                                 type="button"
-                                onClick={() => navigate("/dashboard/listar")}
+                                onClick={() => { if (onSuccess) onSuccess(); else navigate("/dashboard/listar"); }}
                                 className="btn-ux-secondary"
                             >
                                 Cancelar

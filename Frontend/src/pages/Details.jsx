@@ -202,16 +202,9 @@ const Details = () => {
     const getEntityDetails = async () => {
         if (!user?.rol) return;
         try {
-            // Use tipo from nav state when available so admin can view clients correctly
             const entityType = tipoFromNav || (isVendedor ? 'clientes' : 'vendedores');
             const url = `${import.meta.env.VITE_BACKEND_URL}/${entityType}/${id}`;
-            const storedUser = JSON.parse(localStorage.getItem("auth-token"));
-            if (!storedUser?.state?.token) { toast.error("No estás autenticado."); return; }
-            const headers = {
-                "Content-Type": "application/json",
-                Authorization: `Bearer ${storedUser.state.token}`,
-            };
-            const response = await fetchDataBackend(url, null, "GET", headers);
+            const response = await fetchDataBackend(url, null, "GET");
             if (response) setEntityDetails(response);
         } catch {
             toast.error("No se pudieron cargar los datos.");
