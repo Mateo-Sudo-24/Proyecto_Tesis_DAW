@@ -1,5 +1,7 @@
 import { useEffect, useRef, useState } from 'react';
 
+const ITEMS_POR_PAGINA = 10;
+
 const bmStyles = `
     /* ── Wrapper ── */
     .bm-wrap { position: relative; }
@@ -285,10 +287,58 @@ const bmStyles = `
         .bm-filter-btn { font-size: 0.68rem; padding: 0.5rem 0.3rem; }
         .bm-filter-count { display: none; }
     }
+
+    /* ── Paginación ── */
+    .bm-pagination {
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        flex-wrap: wrap;
+        gap: 0.25rem;
+        padding: 0.65rem 1rem;
+        border-top: 1px solid #f3f4f6;
+    }
+    .bm-page-btn {
+        border-radius: 9999px;
+        border: 1px solid #cbd5e1;
+        padding: 0.4rem 0.7rem;
+        text-align: center;
+        font-size: 0.75rem;
+        line-height: 1.25;
+        transition: all 0.15s;
+        box-shadow: 0 1px 2px rgba(0,0,0,0.06);
+        color: #475569;
+        background: #fff;
+        cursor: pointer;
+        font-weight: 700;
+    }
+    .bm-page-btn:hover:not(:disabled) {
+        background: #1f2937;
+        color: #fff;
+        border-color: #1f2937;
+        box-shadow: 0 4px 6px rgba(0,0,0,0.12);
+    }
+    .bm-page-btn:disabled {
+        opacity: 0.5;
+        cursor: not-allowed;
+        pointer-events: none;
+        box-shadow: none;
+    }
+    .bm-page-num { min-width: 2rem; }
+    .bm-page-num.active {
+        background: #1f2937;
+        color: #fff;
+        border-color: transparent;
+        box-shadow: 0 2px 8px rgba(0,0,0,0.18);
+        cursor: default;
+        pointer-events: none;
+    }
 `;
 
 const necesitaGestion = (n) =>
     n.tipo === 'stock_critico' && (!n.estadoGestion || n.estadoGestion === 'pendiente');
+
+const isN8n = (n) => n.tipo === 'stock_critico' || n.tipo === 'pago_completado';
 
 const estadoTag = (estado) => {
     if (estado === 'aprobado')   return <span className="bm-tag bm-tag-aprobado">Aprobado ✓</span>;
@@ -303,6 +353,8 @@ export default function BandejaMensajes() {
     const [expandido, setExpandido] = useState(null);
     const [gestionando, setGestionando] = useState(null);
     const [filtro, setFiltro] = useState('todas');
+    const [localEstado, setLocalEstado] = useState({}); // { [id]: 'pendiente' }
+    const [pagina, setPagina] = useState(1);
     const panelRef = useRef(null);
 
     // Detectar rol del usuario desde el store de auth en localStorage
@@ -317,6 +369,8 @@ export default function BandejaMensajes() {
             return JSON.parse(localStorage.getItem('auth-token'))?.state?.token ?? null;
         } catch { return null; }
     };
+
+    const isAdminUser = getRol() === 'administrador';
 
     const fetchNotifs = async () => {
         try {
@@ -352,6 +406,12 @@ export default function BandejaMensajes() {
         return () => document.removeEventListener('mousedown', handler);
     }, [abierta]);
 
+    const cambiarFiltro = (key) => {
+        setFiltro(key);
+        setPagina(1);
+        setExpandido(null);
+    };
+
     const marcarLeida = async (id) => {
         try {
             const token = getToken();
@@ -381,23 +441,88 @@ export default function BandejaMensajes() {
                         ? { ...n, estadoGestion: decision === 'aprobar' ? 'aprobado' : 'rechazado', leida: true }
                         : n
                 ));
+                // Limpiar estado local pendiente (admin)
+                setLocalEstado(prev => { const next = { ...prev }; delete next[id]; return next; });
                 setExpandido(null);
             }
         } catch { /* silencioso */ }
         finally { setGestionando(null); }
     };
 
-    const noLeidas   = notifs.filter(n => !n.leida).length;
-    const pendientes  = notifs.filter(necesitaGestion).length;
-    const leidas      = notifs.filter(n => n.leida).length;
-    const totalBadge  = noLeidas + pendientes;
+    // Admin — Paso 1: Confirmar desde "Sin leer" → mueve a "Pendientes" solo en local
+    const moverAPendiente = (id) => {
+        setLocalEstado(prev => ({ ...prev, [id]: 'pendiente' }));
+        setExpandido(null);
+    };
 
+    // Admin — Paso 1: Rechazar desde "Sin leer" → marca como leída, desaparece
+    const rechazarDesdeUnread = async (id) => {
+        await marcarLeida(id);
+        setExpandido(null);
+    };
+
+    // ── Conteos generales ──
+    const noLeidas  = notifs.filter(n => !n.leida).length;
+    const pendientes = notifs.filter(necesitaGestion).length;
+    const leidas     = notifs.filter(n => n.leida).length;
+
+    // ── Conteos admin ──
+    const unreadAdmin     = notifs.filter(n => !n.leida && !localEstado[n._id]).length;
+    const pendientesAdmin = notifs.filter(n => localEstado[n._id] === 'pendiente').length;
+    const aprobadasAdmin  = notifs.filter(n => n.estadoGestion === 'aprobado').length;
+
+    const badgeUnread  = isAdminUser ? unreadAdmin    : noLeidas;
+    const badgePending = isAdminUser ? pendientesAdmin : pendientes;
+    const totalBadge   = badgeUnread + badgePending;
+
+    // ── Tabs ──
+    const tabs = isAdminUser
+        ? [
+            { key: 'todas',   label: 'Todas',      count: notifs.length },
+            { key: 'unread',  label: 'Sin leer',   count: unreadAdmin },
+            { key: 'pending', label: 'Pendientes', count: pendientesAdmin },
+            { key: 'read',    label: 'Aprobadas',  count: aprobadasAdmin },
+          ]
+        : [
+            { key: 'todas',   label: 'Todas',      count: notifs.length },
+            { key: 'unread',  label: 'Sin leer',   count: noLeidas },
+            { key: 'pending', label: 'Pendientes', count: pendientes },
+            { key: 'read',    label: 'Leídas',     count: leidas },
+          ];
+
+    // ── Filtrado ──
     const notifsFiltradas = notifs.filter(n => {
+        if (isAdminUser) {
+            if (filtro === 'unread')  return !n.leida && !localEstado[n._id];
+            if (filtro === 'pending') return localEstado[n._id] === 'pendiente';
+            if (filtro === 'read')    return n.estadoGestion === 'aprobado';
+            return true;
+        }
         if (filtro === 'unread')  return !n.leida;
         if (filtro === 'pending') return necesitaGestion(n);
         if (filtro === 'read')    return n.leida;
         return true;
     });
+
+    // ── Paginación (solo admin) ──
+    const totalPaginas  = Math.ceil(notifsFiltradas.length / ITEMS_POR_PAGINA);
+    const paginaActual  = Math.min(pagina, Math.max(1, totalPaginas));
+    const notifsEnPagina = isAdminUser
+        ? notifsFiltradas.slice((paginaActual - 1) * ITEMS_POR_PAGINA, paginaActual * ITEMS_POR_PAGINA)
+        : notifsFiltradas;
+
+    // ── Clase visual del item ──
+    const getItemClass = (n) => {
+        if (isAdminUser) {
+            if (localEstado[n._id] === 'pendiente') return 'bm-item pending';
+            if (n.estadoGestion === 'aprobado')     return 'bm-item read';
+            if (!n.leida)                           return 'bm-item unread';
+            return 'bm-item read';
+        }
+        if (!n.leida)           return 'bm-item unread';
+        if (necesitaGestion(n)) return 'bm-item pending';
+        return 'bm-item read';
+    };
 
     return (
         <>
@@ -413,7 +538,7 @@ export default function BandejaMensajes() {
                 </button>
                 {totalBadge > 0 && (
                     <span
-                        className={`bm-badge${pendientes > 0 ? '' : ' orange'}`}
+                        className={`bm-badge${badgePending > 0 ? '' : ' orange'}`}
                         onClick={() => setAbierta(v => !v)}
                     >
                         {totalBadge > 9 ? '9+' : totalBadge}
@@ -427,22 +552,22 @@ export default function BandejaMensajes() {
                         <div className="bm-panel-header">
                             <p className="bm-panel-title">Notificaciones</p>
                             <div className="bm-header-badges">
-                                {noLeidas > 0 && (
+                                {badgeUnread > 0 && (
                                     <button
                                         className={`bm-hbadge bm-hbadge-unread${filtro === 'unread' ? ' bm-hbadge-active' : ''}`}
-                                        onClick={() => { setFiltro(filtro === 'unread' ? 'todas' : 'unread'); setExpandido(null); }}
+                                        onClick={() => cambiarFiltro(filtro === 'unread' ? 'todas' : 'unread')}
                                         title="Filtrar sin leer"
                                     >
-                                        {noLeidas} sin leer
+                                        {badgeUnread} sin leer
                                     </button>
                                 )}
-                                {pendientes > 0 && (
+                                {badgePending > 0 && (
                                     <button
                                         className={`bm-hbadge bm-hbadge-pending${filtro === 'pending' ? ' bm-hbadge-active' : ''}`}
-                                        onClick={() => { setFiltro(filtro === 'pending' ? 'todas' : 'pending'); setExpandido(null); }}
+                                        onClick={() => cambiarFiltro(filtro === 'pending' ? 'todas' : 'pending')}
                                         title="Filtrar pendientes"
                                     >
-                                        {pendientes} pendiente{pendientes !== 1 ? 's' : ''}
+                                        {badgePending} pendiente{badgePending !== 1 ? 's' : ''}
                                     </button>
                                 )}
                             </div>
@@ -450,16 +575,11 @@ export default function BandejaMensajes() {
 
                         {/* Filtros */}
                         <div className="bm-filters">
-                            {[
-                                { key: 'todas',   label: 'Todas',      count: notifs.length },
-                                { key: 'unread',  label: 'Sin leer',   count: noLeidas },
-                                { key: 'pending', label: 'Pendientes', count: pendientes },
-                                { key: 'read',    label: 'Leídas',     count: leidas },
-                            ].map(({ key, label, count }) => (
+                            {tabs.map(({ key, label, count }) => (
                                 <button
                                     key={key}
                                     className={`bm-filter-btn${filtro === key ? ` active-${key}` : ''}`}
-                                    onClick={() => { setFiltro(key); setExpandido(null); }}
+                                    onClick={() => cambiarFiltro(key)}
                                 >
                                     {label}
                                     <span className="bm-filter-count">{count}</span>
@@ -469,32 +589,47 @@ export default function BandejaMensajes() {
 
                         {/* Lista */}
                         <div className="bm-list">
-                            {notifsFiltradas.length === 0 ? (
+                            {notifsEnPagina.length === 0 ? (
                                 <div className="bm-empty">
                                     <div className="bm-empty-icon">🔕</div>
                                     <p>{notifs.length === 0 ? 'Sin notificaciones por ahora' : 'Sin resultados en este filtro'}</p>
                                 </div>
                             ) : (
-                                notifsFiltradas.map(n => {
-                                    const estaExpandido  = expandido === n._id;
-                                    const puedeGestionar = necesitaGestion(n);
-                                    const itemClass = `bm-item${!n.leida ? ' unread' : puedeGestionar ? ' pending' : ' read'}`;
+                                notifsEnPagina.map(n => {
+                                    const estaExpandido    = expandido === n._id;
+                                    const enPendienteLocal = isAdminUser && localEstado[n._id] === 'pendiente';
+                                    const esUnreadAdmin    = isAdminUser && !n.leida && !localEstado[n._id];
+                                    const puedeGestionar   = !isAdminUser && necesitaGestion(n);
 
                                     return (
-                                        <div key={n._id} className={itemClass}>
+                                        <div key={n._id} className={getItemClass(n)}>
                                             {/* Cabecera */}
                                             <button
                                                 className="bm-item-head"
                                                 onClick={() => setExpandido(estaExpandido ? null : n._id)}
                                             >
                                                 <span className="bm-item-icon">
-                                                    {n.tipo === 'stock_critico' ? '⚠️' : '🔔'}
+                                                    {n.tipo === 'stock_critico'
+                                                        ? '⚠️'
+                                                        : n.tipo === 'pago_completado'
+                                                            ? '💰'
+                                                            : '🔔'}
                                                 </span>
                                                 <div className="bm-item-info">
                                                     <div className="bm-item-tags">
                                                         {estadoTag(n.estadoGestion)}
-                                                        {puedeGestionar && <span className="bm-tag bm-tag-accion">Acción requerida</span>}
-                                                        {!n.leida && !puedeGestionar && <span className="bm-tag bm-tag-nueva">Nueva</span>}
+                                                        {enPendienteLocal && (
+                                                            <span className="bm-tag bm-tag-accion">Pendiente de aprobación</span>
+                                                        )}
+                                                        {esUnreadAdmin && (
+                                                            <span className="bm-tag bm-tag-nueva">Nueva</span>
+                                                        )}
+                                                        {puedeGestionar && (
+                                                            <span className="bm-tag bm-tag-accion">Acción requerida</span>
+                                                        )}
+                                                        {!isAdminUser && !n.leida && !puedeGestionar && (
+                                                            <span className="bm-tag bm-tag-nueva">Nueva</span>
+                                                        )}
                                                     </div>
                                                     <p className="bm-item-msg">{n.mensaje}</p>
                                                     <p className="bm-item-date">
@@ -528,6 +663,51 @@ export default function BandejaMensajes() {
                                                         </div>
                                                     )}
 
+                                                    {/* ── Admin — Paso 1: Sin leer → Confirmar/Rechazar ── */}
+                                                    {esUnreadAdmin && (
+                                                        <div className="bm-gestion-row">
+                                                            <button
+                                                                className="bm-btn-ok"
+                                                                onClick={() => moverAPendiente(n._id)}
+                                                            >
+                                                                ✓ Confirmar
+                                                            </button>
+                                                            <button
+                                                                className="bm-btn-ko"
+                                                                onClick={() => rechazarDesdeUnread(n._id)}
+                                                            >
+                                                                ✗ Rechazar
+                                                            </button>
+                                                        </div>
+                                                    )}
+
+                                                    {/* ── Admin — Paso 2: Pendiente → Aprobar/Rechazar o Confirmar pedido/Dejar ── */}
+                                                    {enPendienteLocal && (
+                                                        <div className="bm-gestion-row">
+                                                            <button
+                                                                className="bm-btn-ok"
+                                                                onClick={() => gestionarPedido(n._id, 'aprobar')}
+                                                                disabled={gestionando === n._id}
+                                                            >
+                                                                {gestionando === n._id
+                                                                    ? 'Procesando…'
+                                                                    : isN8n(n) ? '✓ Aprobar' : '✓ Confirmar pedido'}
+                                                            </button>
+                                                            <button
+                                                                className="bm-btn-ko"
+                                                                onClick={isN8n(n)
+                                                                    ? () => gestionarPedido(n._id, 'rechazar')
+                                                                    : () => setExpandido(null)}
+                                                                disabled={gestionando === n._id}
+                                                            >
+                                                                {gestionando === n._id
+                                                                    ? 'Procesando…'
+                                                                    : isN8n(n) ? '✗ Rechazar' : '⏸ Dejar en pendiente'}
+                                                            </button>
+                                                        </div>
+                                                    )}
+
+                                                    {/* ── Vendedor — Gestión stock_critico ── */}
                                                     {puedeGestionar && (
                                                         <div className="bm-gestion-row">
                                                             <button
@@ -547,7 +727,8 @@ export default function BandejaMensajes() {
                                                         </div>
                                                     )}
 
-                                                    {!n.leida && !puedeGestionar && (
+                                                    {/* Marcar leída (vendedor, no gestionable) */}
+                                                    {!isAdminUser && !n.leida && !puedeGestionar && (
                                                         <button className="bm-btn-leida" onClick={() => marcarLeida(n._id)}>
                                                             Marcar como leída
                                                         </button>
@@ -560,10 +741,42 @@ export default function BandejaMensajes() {
                             )}
                         </div>
 
+                        {/* Paginación — solo admin, cuando hay más de una página */}
+                        {isAdminUser && totalPaginas > 1 && (
+                            <div className="bm-pagination">
+                                <button
+                                    className="bm-page-btn"
+                                    onClick={() => { setPagina(p => Math.max(1, p - 1)); setExpandido(null); }}
+                                    disabled={paginaActual === 1}
+                                >
+                                    Prev
+                                </button>
+                                {Array.from({ length: totalPaginas }, (_, i) => (
+                                    <button
+                                        key={i + 1}
+                                        className={`bm-page-btn bm-page-num${paginaActual === i + 1 ? ' active' : ''}`}
+                                        onClick={() => { setPagina(i + 1); setExpandido(null); }}
+                                    >
+                                        {i + 1}
+                                    </button>
+                                ))}
+                                <button
+                                    className="bm-page-btn"
+                                    onClick={() => { setPagina(p => Math.min(totalPaginas, p + 1)); setExpandido(null); }}
+                                    disabled={paginaActual === totalPaginas}
+                                >
+                                    Next
+                                </button>
+                            </div>
+                        )}
+
                         {/* Footer */}
                         {notifs.length > 0 && (
                             <div className="bm-footer">
                                 {notifs.length} notificación{notifs.length !== 1 ? 'es' : ''} en total
+                                {isAdminUser && totalPaginas > 1 && (
+                                    <span> · Pág. {paginaActual}/{totalPaginas}</span>
+                                )}
                             </div>
                         )}
                     </div>
