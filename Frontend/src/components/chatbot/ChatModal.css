@@ -425,6 +425,185 @@
   scrollbar-color: #888 #f1f1f1;
 }
 
+/* ── Tira de imágenes seleccionadas ── */
+.chat-images-strip {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 10px 16px 4px;
+  background: white;
+  border-top: 1px solid #eee;
+  flex-wrap: wrap;
+}
+
+.chat-thumb-wrap {
+  position: relative;
+  width: 64px;
+  height: 64px;
+  border-radius: 8px;
+  overflow: visible;
+  flex-shrink: 0;
+}
+
+.chat-thumb-img {
+  width: 64px;
+  height: 64px;
+  object-fit: cover;
+  border-radius: 8px;
+  border: 2px solid #e0e0e0;
+}
+
+.chat-thumb-remove {
+  position: absolute;
+  top: -8px;
+  right: -8px;
+  width: 22px;
+  height: 22px;
+  background: #ef4444;
+  color: white;
+  border: none;
+  border-radius: 50%;
+  font-size: 11px;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  line-height: 1;
+  transition: background 0.15s;
+  z-index: 1;
+}
+
+.chat-thumb-remove:hover { background: #dc2626; }
+
+.chat-thumb-add {
+  width: 64px;
+  height: 64px;
+  border: 2px dashed #c4b5fd;
+  border-radius: 8px;
+  background: #f5f3ff;
+  color: #7c3aed;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  transition: background 0.15s, border-color 0.15s;
+  flex-shrink: 0;
+}
+
+.chat-thumb-add:hover { background: #ede9fe; border-color: #7c3aed; }
+
+/* ── Badge contador de imágenes en botón ── */
+.chat-button-action {
+  position: relative;
+}
+
+.chat-img-badge {
+  position: absolute;
+  top: -6px;
+  right: -6px;
+  background: #667eea;
+  color: white;
+  border-radius: 50%;
+  width: 18px;
+  height: 18px;
+  font-size: 10px;
+  font-weight: 700;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  line-height: 1;
+}
+
+/* ── Imágenes en el bubble del usuario ── */
+.chat-message-imgs {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  margin-top: 8px;
+}
+
+.chat-message-img-thumb {
+  width: 80px;
+  height: 80px;
+  object-fit: cover;
+  border-radius: 8px;
+  border: 2px solid rgba(255,255,255,0.4);
+}
+
+/* ── Tarjetas de productos en chat ── */
+.chat-products-grid {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  margin-top: 4px;
+}
+
+.chat-product-card {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  background: #f9fafb;
+  border: 1px solid #e5e7eb;
+  border-radius: 10px;
+  padding: 8px 10px;
+  transition: box-shadow 0.15s;
+}
+
+.chat-product-card:hover {
+  box-shadow: 0 3px 10px rgba(0,0,0,0.1);
+}
+
+.chat-product-img {
+  width: 52px;
+  height: 52px;
+  object-fit: cover;
+  border-radius: 7px;
+  flex-shrink: 0;
+  background: #e5e7eb;
+}
+
+.chat-product-info {
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+  min-width: 0;
+  flex: 1;
+}
+
+.chat-product-name {
+  font-size: 13px;
+  font-weight: 700;
+  color: #111827;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.chat-product-price {
+  font-size: 13px;
+  font-weight: 700;
+  color: #e8760a;
+}
+
+.chat-product-btn {
+  display: inline-block;
+  padding: 4px 10px;
+  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  color: white;
+  border-radius: 6px;
+  font-size: 11px;
+  font-weight: 700;
+  text-decoration: none;
+  transition: opacity 0.15s, transform 0.1s;
+  align-self: flex-start;
+}
+
+.chat-product-btn:hover {
+  opacity: 0.88;
+  transform: translateY(-1px);
+}
+
+
 /* Responsive */
 @media (max-width: 768px) {
   .chat-message-content {

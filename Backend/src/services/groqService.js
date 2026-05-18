@@ -1,5 +1,5 @@
 // Servicio de Groq API - Protegido en Backend
-export const consultarGroq = async (mensaje, imagenBase64 = null, historial = []) => {
+export const consultarGroq = async (mensaje, imagenBase64 = null, historial = [], imagenesBase64 = []) => {
     const GROQ_API_KEY = process.env.GROQ_API_KEY;
     const GROQ_API_URL = "https://api.groq.com/openai/v1/chat/completions";
 
@@ -9,14 +9,17 @@ export const consultarGroq = async (mensaje, imagenBase64 = null, historial = []
 
     try {
         const content = [];
-        
-        // Agregar imagen primero si existe (la API procesa mejor imagen→texto)
-        if (imagenBase64) {
+
+        // Normalizar imágenes: soporta array o imagen única
+        const todasLasImagenes = imagenesBase64.length > 0
+            ? imagenesBase64
+            : (imagenBase64 ? [imagenBase64] : []);
+
+        // Agregar imágenes primero (la API procesa mejor imagen→texto)
+        for (const b64 of todasLasImagenes) {
             content.push({
                 type: "image_url",
-                image_url: {
-                    url: `data:image/jpeg;base64,${imagenBase64}`
-                }
+                image_url: { url: `data:image/jpeg;base64,${b64}` }
             });
         }
 

@@ -2,7 +2,7 @@
 const BACKEND_URL = import.meta.env.VITE_BACKEND_URL;
 
 // Consultar Groq a través del Backend
-export const consultarGroqBackend = async (mensaje, imagenBase64 = null, historial = []) => {
+export const consultarGroqBackend = async (mensaje, imagenBase64 = null, historial = [], imagenesBase64 = []) => {
     try {
         const response = await fetch(`${BACKEND_URL}/chatbot/groq`, {
             method: 'POST',
@@ -12,6 +12,7 @@ export const consultarGroqBackend = async (mensaje, imagenBase64 = null, histori
             body: JSON.stringify({
                 mensaje,
                 imagenBase64,
+                imagenesBase64,
                 historial
             })
         });

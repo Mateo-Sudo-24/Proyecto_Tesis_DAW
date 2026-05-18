@@ -244,8 +244,7 @@ const MapaPicker = ({ onSelect, onClose }) => {
                     </div>
                 </div>
             </div>
-        </>
-    );
+
         </>
     );
 };

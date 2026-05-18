@@ -4,13 +4,13 @@ import { consultarGroq } from '../services/groqService.js';
 // Consultar Groq (Público)
 export const consultarGroqPublic = async (req, res) => {
     try {
-        const { mensaje, imagenBase64, historial = [] } = req.body;
+        const { mensaje, imagenBase64, imagenesBase64 = [], historial = [] } = req.body;
 
         if (!mensaje) {
             return res.status(400).json({ error: 'Mensaje es requerido' });
         }
 
-        const respuesta = await consultarGroq(mensaje, imagenBase64, historial);
+        const respuesta = await consultarGroq(mensaje, imagenBase64, historial, imagenesBase64);
         res.json({ respuesta });
     } catch (error) {
         console.error('Error en consultarGroqPublic:', error);
@@ -21,13 +21,13 @@ export const consultarGroqPublic = async (req, res) => {
 // Consultar Groq (Autenticado)
 export const consultarGroqAuth = async (req, res) => {
     try {
-        const { mensaje, imagenBase64, historial = [] } = req.body;
+        const { mensaje, imagenBase64, imagenesBase64 = [], historial = [] } = req.body;
 
         if (!mensaje) {
             return res.status(400).json({ error: 'Mensaje es requerido' });
         }
 
-        const respuesta = await consultarGroq(mensaje, imagenBase64, historial);
+        const respuesta = await consultarGroq(mensaje, imagenBase64, historial, imagenesBase64);
         res.json({ respuesta });
     } catch (error) {
         console.error('Error en consultarGroqAuth:', error);
