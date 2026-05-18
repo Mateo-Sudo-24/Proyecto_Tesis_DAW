@@ -192,6 +192,74 @@ const styles = `
     @keyframes spin { to { transform: rotate(360deg); } }
     .spinner-txt { font-size: 0.875rem; color: #9ca3af; font-weight: 500; }
 
+    /* ── Paginación ── */
+    .notif-pagination {
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        flex-wrap: wrap;
+        gap: 0.25rem;
+        padding: 1.25rem 0 0.5rem;
+    }
+    .notif-page-btn {
+        border-radius: 9999px;
+        border: 1px solid #cbd5e1;
+        padding: 0.45rem 0.75rem;
+        text-align: center;
+        font-size: 0.8rem;
+        line-height: 1.25;
+        transition: all 0.15s;
+        box-shadow: 0 1px 2px rgba(0,0,0,0.06);
+        color: #475569;
+        background: #fff;
+        cursor: pointer;
+        font-weight: 700;
+    }
+    .notif-page-btn:hover:not(:disabled) {
+        background: #1f2937;
+        color: #fff;
+        border-color: #1f2937;
+        box-shadow: 0 4px 6px rgba(0,0,0,0.12);
+    }
+    .notif-page-btn:disabled {
+        opacity: 0.5;
+        cursor: not-allowed;
+        pointer-events: none;
+        box-shadow: none;
+    }
+    .notif-page-num { min-width: 2.25rem; }
+    .notif-page-num.active {
+        background: #1f2937;
+        color: #fff;
+        border-color: transparent;
+        box-shadow: 0 2px 8px rgba(0,0,0,0.18);
+        cursor: default;
+        pointer-events: none;
+    }
+
+    /* Botones acción en cuerpo expandido */
+    .btn-confirmar-paso1, .btn-rechazar-paso1,
+    .btn-paso2-ok, .btn-paso2-ko {
+        flex: 1; padding: 0.7rem 1rem;
+        border-radius: 0.75rem; border: none; cursor: pointer;
+        font-size: 0.88rem; font-weight: 800;
+        transition: all 0.18s ease;
+    }
+    .btn-confirmar-paso1 { background: #0284c7; color: #fff; }
+    .btn-confirmar-paso1:hover { background: #0369a1; }
+    .btn-rechazar-paso1  { background: #dc2626; color: #fff; }
+    .btn-rechazar-paso1:hover  { background: #b91c1c; }
+    .btn-paso2-ok  { background: #16a34a; color: #fff; }
+    .btn-paso2-ok:hover  { background: #15803d; }
+    .btn-paso2-ko  { background: #dc2626; color: #fff; }
+    .btn-paso2-ko:hover  { background: #b91c1c; }
+    .btn-paso2-ko.dejar  { background: #6b7280; }
+    .btn-paso2-ko.dejar:hover  { background: #4b5563; }
+    .btn-paso2-ok:disabled, .btn-paso2-ko:disabled { opacity: 0.5; cursor: not-allowed; }
+    .notif-card.en-pendiente { background: #eff6ff; border-color: #93c5fd; box-shadow: 0 2px 12px rgba(59,130,246,0.1); }
+    .notif-card.en-pendiente .stripe { background: #3b82f6; }
+    .badge-en-pendiente { font-size: 0.7rem; font-weight: 800; padding: 0.15rem 0.5rem; border-radius: 9999px; background: #dbeafe; color: #1e40af; }
+
     /* ── Media queries móvil ── */
     @media (max-width: 640px) {
         .notif-page { padding: 0.75rem 0; }
@@ -262,13 +330,19 @@ const necesitaGestion = (notif) =>
     notif.tipo === 'stock_critico' &&
     (!notif.estadoGestion || notif.estadoGestion === 'pendiente');
 
+const isN8n = (n) => n.tipo === 'stock_critico' || n.tipo === 'pago_completado';
+
+const ITEMS_POR_PAGINA = 10;
+
 /* ═══════════════════════════════════════════════════════════════ */
 const Notificaciones = () => {
     const [notificaciones, setNotificaciones] = useState([]);
-    const [loading, setLoading]     = useState(true);
-    const [filtro, setFiltro]       = useState('todas');
-    const [expandido, setExpandido] = useState(null);
-    const [gestionando, setGestionando] = useState(null);
+    const [loading, setLoading]               = useState(true);
+    const [filtro, setFiltro]                 = useState('todas');
+    const [expandido, setExpandido]           = useState(null);
+    const [gestionando, setGestionando]       = useState(null);
+    const [localEstado, setLocalEstado]       = useState({});  // { [id]: 'pendiente' }
+    const [pagina, setPagina]                 = useState(1);
 
     const token      = JSON.parse(localStorage.getItem('auth-token'))?.state?.token;
     const backendUrl = import.meta.env.VITE_BACKEND_URL;
@@ -291,20 +365,13 @@ const Notificaciones = () => {
 
     useEffect(() => { if (token) fetchNotificaciones(); }, [token]);
 
-    const toggleExpandido = (id) => setExpandido(prev => prev === id ? null : id);
-
-    const marcarComoLeida = async (e, id) => {
-        e.stopPropagation();
-        try {
-            const res = await fetch(`${backendUrl}/notificaciones/${id}/leida`, {
-                method: 'PATCH', headers: { Authorization: `Bearer ${token}` }
-            });
-            if (res.ok) {
-                setNotificaciones(prev => prev.map(n => n._id === id ? { ...n, leida: true } : n));
-                toast.success('Notificación marcada como leída');
-            }
-        } catch { toast.error('Error al actualizar notificación'); }
+    const cambiarFiltro = (key) => {
+        setFiltro(key);
+        setPagina(1);
+        setExpandido(null);
     };
+
+    const toggleExpandido = (id) => setExpandido(prev => prev === id ? null : id);
 
     const eliminarNotificacion = async (e, id) => {
         e.stopPropagation();
@@ -314,6 +381,7 @@ const Notificaciones = () => {
             });
             if (res.ok) {
                 setNotificaciones(prev => prev.filter(n => n._id !== id));
+                setLocalEstado(prev => { const next = { ...prev }; delete next[id]; return next; });
                 if (expandido === id) setExpandido(null);
                 toast.success('Notificación eliminada');
             }
@@ -331,23 +399,64 @@ const Notificaciones = () => {
                 setNotificaciones(prev =>
                     prev.map(n => n._id === id ? { ...n, estadoGestion: nuevoEstado, leida: true } : n)
                 );
-                toast.success(decision === 'aprobar' ? 'Pedido aprobado' : 'Pedido rechazado');
+                setLocalEstado(prev => { const next = { ...prev }; delete next[id]; return next; });
+                setExpandido(null);
+                toast.success(decision === 'aprobar' ? 'Notificación aprobada' : 'Notificación rechazada');
             } else {
-                toast.error(`Error al ${decision === 'aprobar' ? 'aprobar' : 'rechazar'} el pedido`);
+                toast.error(`Error al ${decision === 'aprobar' ? 'aprobar' : 'rechazar'}`);
             }
         } catch { toast.error('Error de conexión'); }
         finally { setGestionando(null); }
     };
 
-    const notificacionesFiltradas = notificaciones.filter(notif => {
-        if (filtro === 'leidas')     return notif.leida;
-        if (filtro === 'no-leidas')  return !notif.leida;
-        if (filtro === 'pendientes') return necesitaGestion(notif);
+    // Paso 1 — Confirmar desde "Sin leer" → mueve a "Pendientes" solo localmente
+    const moverAPendiente = (id) => {
+        setLocalEstado(prev => ({ ...prev, [id]: 'pendiente' }));
+        setExpandido(null);
+        toast.info('Notificación movida a Pendientes de aprobación');
+    };
+
+    // Paso 1 — Rechazar desde "Sin leer" → PATCH leida, desaparece de Sin leer
+    const rechazarDesdeUnread = async (id) => {
+        try {
+            const res = await fetch(`${backendUrl}/notificaciones/${id}/leida`, {
+                method: 'PATCH', headers: { Authorization: `Bearer ${token}` }
+            });
+            if (res.ok) {
+                setNotificaciones(prev => prev.map(n => n._id === id ? { ...n, leida: true } : n));
+                setExpandido(null);
+                toast.success('Notificación rechazada y marcada como leída');
+            }
+        } catch { toast.error('Error al rechazar'); }
+    };
+
+    // ── Conteos ──
+    const sinLeerCount    = notificaciones.filter(n => !n.leida && !localEstado[n._id]).length;
+    const pendientesCount = notificaciones.filter(n => localEstado[n._id] === 'pendiente').length;
+    const aprobadasCount  = notificaciones.filter(n => n.estadoGestion === 'aprobado').length;
+
+    // ── Filtrado ──
+    const notificacionesFiltradas = notificaciones.filter(n => {
+        if (filtro === 'sin-leer')   return !n.leida && !localEstado[n._id];
+        if (filtro === 'pendientes') return localEstado[n._id] === 'pendiente';
+        if (filtro === 'aprobadas')  return n.estadoGestion === 'aprobado';
         return true;
     });
 
-    const noLeidasCount   = notificaciones.filter(n => !n.leida).length;
-    const pendientesCount = notificaciones.filter(necesitaGestion).length;
+    // ── Paginación ──
+    const totalPaginas    = Math.ceil(notificacionesFiltradas.length / ITEMS_POR_PAGINA);
+    const paginaActual    = Math.min(pagina, Math.max(1, totalPaginas));
+    const notifsPagina    = notificacionesFiltradas.slice(
+        (paginaActual - 1) * ITEMS_POR_PAGINA,
+        paginaActual * ITEMS_POR_PAGINA
+    );
+
+    const getCardClass = (n) => {
+        if (localEstado[n._id] === 'pendiente') return 'notif-card en-pendiente';
+        if (n.estadoGestion === 'aprobado')     return 'notif-card';
+        if (!n.leida && !localEstado[n._id])    return 'notif-card no-leida';
+        return 'notif-card';
+    };
 
     if (loading) {
         return (
@@ -378,8 +487,8 @@ const Notificaciones = () => {
                             <h1>Notificaciones</h1>
                             <p>
                                 {notificaciones.length} notificación{notificaciones.length !== 1 ? 'es' : ''} en total
-                                {noLeidasCount > 0 && (
-                                    <span className="badge-sin-leer">{noLeidasCount} sin leer</span>
+                                {sinLeerCount > 0 && (
+                                    <span className="badge-sin-leer">{sinLeerCount} sin leer</span>
                                 )}
                             </p>
                         </div>
@@ -395,13 +504,13 @@ const Notificaciones = () => {
                     <div className="notif-filtros">
                         {[
                             { key: 'todas',      label: 'Todas',       count: notificaciones.length },
-                            { key: 'no-leidas',  label: 'Sin leer',    count: noLeidasCount,   alert: noLeidasCount > 0 },
+                            { key: 'sin-leer',   label: 'Sin leer',    count: sinLeerCount,    alert: sinLeerCount > 0 },
                             { key: 'pendientes', label: 'Pendientes',  count: pendientesCount, alert: pendientesCount > 0 },
-                            { key: 'leidas',     label: 'Leídas',      count: notificaciones.filter(n => n.leida).length },
+                            { key: 'aprobadas',  label: 'Aprobadas',   count: aprobadasCount },
                         ].map(({ key, label, count, alert }) => (
                             <button
                                 key={key}
-                                onClick={() => setFiltro(key)}
+                                onClick={() => cambiarFiltro(key)}
                                 className={`notif-filtro-btn${filtro === key ? ' activo' : alert ? ' alerta' : ''}`}
                             >
                                 {label}
@@ -411,7 +520,7 @@ const Notificaciones = () => {
                     </div>
 
                     {/* ── Lista ─────────────────────────────────────────── */}
-                    {notificacionesFiltradas.length === 0 ? (
+                    {notifsPagina.length === 0 ? (
                         <div className="notif-empty">
                             <div className="icon">🔔</div>
                             <p className="title">No hay notificaciones en esta categoría</p>
@@ -419,14 +528,14 @@ const Notificaciones = () => {
                         </div>
                     ) : (
                         <div>
-                            {notificacionesFiltradas.map(notif => {
-                                const estaExpandido  = expandido === notif._id;
-                                const puedeGestionar = necesitaGestion(notif);
-                                const label          = TIPO_LABELS[notif.tipo] || notif.tipo || 'Notificación';
-                                const cardClass      = `notif-card${!notif.leida ? ' no-leida' : puedeGestionar ? ' pendiente' : ''}`;
+                            {notifsPagina.map(notif => {
+                                const estaExpandido    = expandido === notif._id;
+                                const enPendienteLocal = localEstado[notif._id] === 'pendiente';
+                                const esUnread         = !notif.leida && !localEstado[notif._id];
+                                const label            = TIPO_LABELS[notif.tipo] || notif.tipo || 'Notificación';
 
                                 return (
-                                    <div key={notif._id} className={cardClass}>
+                                    <div key={notif._id} className={getCardClass(notif)}>
                                         {/* Franja de color */}
                                         <div className="stripe" />
 
@@ -440,7 +549,8 @@ const Notificaciones = () => {
                                                 <div style={{ display: 'flex', alignItems: 'center', gap: '0.4rem', flexWrap: 'wrap', marginBottom: '0.15rem' }}>
                                                     <span className="notif-tipo-label">{label}</span>
                                                     {estadoBadge(notif.estadoGestion)}
-                                                    {!notif.leida && <span className="badge-nueva">Nueva</span>}
+                                                    {esUnread && <span className="badge-nueva">Nueva</span>}
+                                                    {enPendienteLocal && <span className="badge-en-pendiente">Pendiente de aprobación</span>}
                                                 </div>
                                                 <p className="notif-mensaje">{notif.mensaje}</p>
                                                 <p className="notif-fecha">
@@ -450,17 +560,8 @@ const Notificaciones = () => {
                                                 </p>
                                             </div>
 
-                                            {/* Botones de acción rápida */}
+                                            {/* Botón eliminar rápido */}
                                             <div className="notif-actions">
-                                                {!notif.leida && (
-                                                    <button
-                                                        className="notif-btn-accion notif-btn-leer"
-                                                        onClick={(e) => marcarComoLeida(e, notif._id)}
-                                                        title="Marcar como leída"
-                                                    >
-                                                        Marcar leída
-                                                    </button>
-                                                )}
                                                 <button
                                                     className="notif-btn-accion notif-btn-del"
                                                     onClick={(e) => eliminarNotificacion(e, notif._id)}
@@ -479,7 +580,7 @@ const Notificaciones = () => {
 
                                                 {notif.productos && notif.productos.length > 0 && (
                                                     <div style={{ marginBottom: '1rem' }}>
-                                                        <p className="productos-label">Productos con stock crítico</p>
+                                                        <p className="productos-label">Productos afectados</p>
                                                         {notif.productos.map((p, i) => (
                                                             <div key={i} className="producto-fila">
                                                                 <div>
@@ -495,21 +596,46 @@ const Notificaciones = () => {
                                                     </div>
                                                 )}
 
-                                                {puedeGestionar && (
+                                                {/* ── Paso 1: Sin leer → Confirmar / Rechazar ── */}
+                                                {esUnread && (
                                                     <div className="gestion-row">
                                                         <button
-                                                            className="btn-aprobar"
+                                                            className="btn-confirmar-paso1"
+                                                            onClick={() => moverAPendiente(notif._id)}
+                                                        >
+                                                            ✓ Confirmar
+                                                        </button>
+                                                        <button
+                                                            className="btn-rechazar-paso1"
+                                                            onClick={() => rechazarDesdeUnread(notif._id)}
+                                                        >
+                                                            ✗ Rechazar
+                                                        </button>
+                                                    </div>
+                                                )}
+
+                                                {/* ── Paso 2: Pendiente → Aprobar / Rechazar o Confirmar pedido / Dejar ── */}
+                                                {enPendienteLocal && (
+                                                    <div className="gestion-row">
+                                                        <button
+                                                            className="btn-paso2-ok"
                                                             onClick={() => gestionarPedido(notif._id, 'aprobar')}
                                                             disabled={gestionando === notif._id}
                                                         >
-                                                            {gestionando === notif._id ? 'Procesando…' : '✓ Confirmar reposición'}
+                                                            {gestionando === notif._id
+                                                                ? 'Procesando…'
+                                                                : isN8n(notif) ? '✓ Aprobar' : '✓ Confirmar pedido'}
                                                         </button>
                                                         <button
-                                                            className="btn-rechazar"
-                                                            onClick={() => gestionarPedido(notif._id, 'rechazar')}
+                                                            className={`btn-paso2-ko${isN8n(notif) ? '' : ' dejar'}`}
+                                                            onClick={isN8n(notif)
+                                                                ? () => gestionarPedido(notif._id, 'rechazar')
+                                                                : () => setExpandido(null)}
                                                             disabled={gestionando === notif._id}
                                                         >
-                                                            {gestionando === notif._id ? 'Procesando…' : '✗ Rechazar pedido'}
+                                                            {gestionando === notif._id
+                                                                ? 'Procesando…'
+                                                                : isN8n(notif) ? '✗ Rechazar' : '⏸ Dejar en pendiente'}
                                                         </button>
                                                     </div>
                                                 )}
@@ -518,6 +644,35 @@ const Notificaciones = () => {
                                     </div>
                                 );
                             })}
+                        </div>
+                    )}
+
+                    {/* ── Paginación ── */}
+                    {totalPaginas > 1 && (
+                        <div className="notif-pagination">
+                            <button
+                                className="notif-page-btn"
+                                onClick={() => { setPagina(p => Math.max(1, p - 1)); setExpandido(null); }}
+                                disabled={paginaActual === 1}
+                            >
+                                Prev
+                            </button>
+                            {Array.from({ length: totalPaginas }, (_, i) => (
+                                <button
+                                    key={i + 1}
+                                    className={`notif-page-btn notif-page-num${paginaActual === i + 1 ? ' active' : ''}`}
+                                    onClick={() => { setPagina(i + 1); setExpandido(null); }}
+                                >
+                                    {i + 1}
+                                </button>
+                            ))}
+                            <button
+                                className="notif-page-btn"
+                                onClick={() => { setPagina(p => Math.min(totalPaginas, p + 1)); setExpandido(null); }}
+                                disabled={paginaActual === totalPaginas}
+                            >
+                                Next
+                            </button>
                         </div>
                     )}
                 </div>
