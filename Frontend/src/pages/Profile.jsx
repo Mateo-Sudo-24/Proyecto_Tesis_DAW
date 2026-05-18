@@ -5,123 +5,85 @@ import FormProfile from '../components/profile/FormProfile';
 import storeProfile from '../context/storeProfile';
 
 const styles = `
-    .profile-page {
-        height: calc(100vh - 120px);
-        display: flex;
-        flex-direction: column;
-        overflow: hidden;
-        gap: 0.75rem;
-    }
-    .profile-title {
-        font-size: 1.4rem;
+    /* ── Título con barrita naranja ── */
+    .prf-page-title {
+        font-size: 1.5rem;
         font-weight: 900;
-        color: #6b7280;
-        margin: 0;
+        color: #111827;
+        margin: 0 0 0.2rem;
+        display: flex;
+        align-items: center;
+        gap: 0.6rem;
+    }
+    .prf-page-title::before {
+        content: '';
+        display: inline-block;
+        width: 4px;
+        height: 1.4rem;
+        background: #e8760a;
+        border-radius: 2px;
         flex-shrink: 0;
     }
-    .profile-body {
-        flex: 1;
-        display: flex;
-        gap: 1.25rem;
-        min-height: 0;
-        overflow: hidden;
+    .prf-page-sub {
+        font-size: 0.875rem;
+        color: #6b7280;
+        margin: 0;
     }
-    .profile-col {
-        flex: 1;
-        display: flex;
-        flex-direction: column;
-        gap: 0.75rem;
-        min-height: 0;
-        overflow: hidden;
+    .prf-page-divider {
+        height: 1px;
+        background: linear-gradient(90deg, #e8760a 0%, #f3f4f6 60%);
+        margin: 0 0 1.25rem;
+        border: none;
     }
-    .profile-col > * {
-        flex: 1;
-        min-height: 0;
-        overflow: hidden;
-    }
-    /* Compactar cards internas */
-    .cpo-header, .cp-header, .pwd-header, .prof-form-header {
-        padding: 0.75rem 1.25rem !important;
+
+    /* ── Compactar cards internas (moderado) ── */
+    .cpo-header, .cp-header {
+        padding: 1rem 1.25rem !important;
+        gap: 0.5rem !important;
     }
     .cpo-avatar, .cp-avatar {
-        width: 48px !important;
-        height: 48px !important;
-        font-size: 1.3rem !important;
+        width: 56px !important;
+        height: 56px !important;
+        font-size: 1.5rem !important;
     }
-    .cpo-header-name, .cp-header-name {
-        font-size: 0.9rem !important;
-    }
-    .cpo-header-email, .cp-header-email {
-        font-size: 0.72rem !important;
-    }
-    .cpo-body, .cp-body {
-        padding: 0.5rem 1.25rem !important;
-    }
-    .cpo-row, .cp-row {
-        padding: 0.35rem 0 !important;
-    }
-    .pwd-body, .prof-form-body {
-        padding: 0.75rem 1.25rem !important;
-    }
-    .pwd-field, .prof-field {
-        margin-bottom: 0.6rem !important;
-    }
-    .pwd-warning {
-        padding: 0.45rem 0.75rem !important;
-        margin-bottom: 0.6rem !important;
-        font-size: 0.75rem !important;
+    .cpo-header-name, .cp-header-name { font-size: 0.95rem !important; }
+    .cpo-header-email, .cp-header-email { font-size: 0.75rem !important; }
+    .cpo-body { padding: 0.75rem 1.25rem !important; }
+    .cpo-row, .cp-row { padding: 0.4rem 0 !important; }
+    .cp-body { padding: 0.75rem 1.25rem !important; }
+
+    .pwd-header, .prof-form-header {
+        padding: 1rem 1.5rem !important;
     }
     .pwd-header h2, .prof-form-header h2 {
-        font-size: 0.95rem !important;
+        font-size: 1rem !important;
         margin-bottom: 0.1rem !important;
     }
-    .pwd-header p, .prof-form-header p {
-        font-size: 0.72rem !important;
+    .pwd-header p, .prof-form-header p { font-size: 0.78rem !important; }
+
+    .pwd-body { padding: 1rem 1.5rem !important; }
+    .pwd-field { margin-bottom: 0.7rem !important; }
+    .pwd-warning {
+        padding: 0.5rem 0.75rem !important;
+        margin-bottom: 0.7rem !important;
+        font-size: 0.78rem !important;
     }
-    .pwd-label, .prof-label {
-        font-size: 0.7rem !important;
-        margin-bottom: 0.25rem !important;
+    .pwd-input { padding: 0.5rem 0.875rem !important; font-size: 0.875rem !important; }
+    .btn-pwd-submit {
+        padding: 0.6rem 1rem !important;
+        font-size: 0.875rem !important;
+        margin-top: 0.5rem !important;
     }
-    .pwd-input, .prof-input {
-        padding: 0.4rem 0.75rem !important;
-        font-size: 0.82rem !important;
-    }
-    .btn-pwd-submit, .btn-prof-submit {
-        padding: 0.5rem 1rem !important;
-        font-size: 0.82rem !important;
-        margin-top: 0.25rem !important;
-    }
-    .prof-divider {
-        margin: 0.5rem 0 !important;
-    }
-    .prof-form-wrapper {
-        max-width: 100% !important;
-        height: 100%;
-        display: flex;
-        flex-direction: column;
-    }
-    .prof-form-body {
-        flex: 1;
-        overflow: hidden;
-    }
-    .cpo-card, .cp-card, .pwd-card {
-        height: 100%;
-        display: flex;
-        flex-direction: column;
-    }
-    .cpo-body, .cp-body, .pwd-body {
-        flex: 1;
-        overflow: hidden;
-    }
-    @media (max-width: 768px) {
-        .profile-page {
-            height: auto;
-            overflow: auto;
-        }
-        .profile-body {
-            flex-direction: column;
-            overflow: visible;
-        }
+
+    .prof-form-wrapper { max-width: 100% !important; margin: 0 !important; }
+    .prof-form-body { padding: 1rem 1.5rem !important; }
+    .prof-field { margin-bottom: 0.7rem !important; }
+    .prof-input { padding: 0.5rem 0.875rem !important; font-size: 0.875rem !important; }
+    .prof-divider { margin: 0.6rem 0 !important; }
+    .btn-prof-submit {
+        padding: 0.6rem 1rem !important;
+        font-size: 0.875rem !important;
+        margin-top: 0.5rem !important;
     }
 `;
 
@@ -131,31 +93,33 @@ const Profile = () => {
     return (
         <>
             <style>{styles}</style>
-            <div className="profile-page">
-                <h1 className="profile-title">Perfil</h1>
-
-                {user && (user.rol === 'cliente' || user.rol === 'vendedor') ? (
-                    <div className="profile-body">
-                        <div className="profile-col">
-                            <CardProfileOwner />
-                        </div>
-                    </div>
-                ) : user && user.rol === 'administrador' ? (
-                    <div className="profile-body">
-                        <div className="profile-col">
-                            <FormProfile />
-                        </div>
-                        <div className="profile-col">
-                            <CardProfile />
-                            <CardPassword />
-                        </div>
-                    </div>
-                ) : (
-                    <div className="text-center py-12 text-gray-400">
-                        No se pudo cargar el perfil del usuario.
-                    </div>
-                )}
+            <div style={{ marginBottom: '1.25rem' }}>
+                <h1 className='prf-page-title'>Perfil</h1>
+                <p className='prf-page-sub'>Administra tu información personal y seguridad.</p>
             </div>
+            <hr className='prf-page-divider' />
+
+            {user && (user.rol === 'cliente' || user.rol === 'vendedor') ? (
+                <div className='flex justify-around gap-x-8 flex-wrap gap-y-8 md:flex-nowrap'>
+                    <div className='w-full md:w-1/2'>
+                        <CardProfileOwner />
+                    </div>
+                </div>
+            ) : user && user.rol === 'administrador' ? (
+                <div className='flex justify-around gap-x-8 flex-wrap gap-y-8 md:flex-nowrap'>
+                    <div className='w-full md:w-1/2'>
+                        <FormProfile />
+                    </div>
+                    <div className='w-full md:w-1/2' style={{ display: 'flex', flexDirection: 'column', gap: '1.25rem' }}>
+                        <CardProfile />
+                        <CardPassword />
+                    </div>
+                </div>
+            ) : (
+                <div className="text-center py-12 text-gray-400">
+                    No se pudo cargar el perfil del usuario.
+                </div>
+            )}
         </>
     );
 };

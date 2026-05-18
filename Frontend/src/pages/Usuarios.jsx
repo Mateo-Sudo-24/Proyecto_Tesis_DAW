@@ -97,30 +97,34 @@ const styles = `
         box-shadow: 0 3px 10px rgba(232,118,10,0.28);
         white-space: nowrap;
     }
-    .usu-btn-crear:hover:not(.abierto) {
+    .usu-btn-crear:hover {
         background: #c4620a;
         transform: translateY(-1px);
     }
-    .usu-btn-crear.abierto {
-        background: #374151;
-        box-shadow: none;
-    }
-    .usu-btn-crear.abierto:hover { background: #1f2937; }
 
-    /* ── Accordion ── */
-    .usu-accordion {
-        overflow: hidden;
-        max-height: 0;
-        transition: max-height 0.38s cubic-bezier(0.4,0,0.2,1),
-                    opacity 0.25s ease,
-                    margin-bottom 0.3s ease;
-        opacity: 0;
-        margin-bottom: 0;
+    /* ── Modal ── */
+    .usu-modal-overlay {
+        position: fixed;
+        inset: 0;
+        background: rgba(0,0,0,0.5);
+        backdrop-filter: blur(3px);
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        z-index: 50;
+        padding: 1rem;
+        overflow-y: auto;
     }
-    .usu-accordion.open {
-        max-height: 1000px;
-        opacity: 1;
-        margin-bottom: 1.5rem;
+    .usu-modal {
+        width: 100%;
+        max-width: 640px;
+        margin: auto;
+        animation: usu-modal-in 0.18s ease;
+    }
+    .usu-modal .ux-form-wrapper { margin: 0 !important; }
+    @keyframes usu-modal-in {
+        from { opacity: 0; transform: scale(0.96) translateY(12px); }
+        to   { opacity: 1; transform: scale(1) translateY(0); }
     }
 
     /* ── Responsive ── */
@@ -188,25 +192,27 @@ const Usuarios = () => {
 
                         {/* Botón crear */}
                         <button
-                            className={`usu-btn-crear${formAbierto ? ' abierto' : ''}`}
-                            onClick={() => setFormAbierto(o => !o)}
+                            className="usu-btn-crear"
+                            onClick={() => setFormAbierto(true)}
                         >
-                            {formAbierto
-                                ? '✕ Cerrar formulario'
-                                : `➕ Crear ${tipoEfectivo === 'clientes' ? 'cliente' : 'vendedor'}`}
+                            ➕ Crear {tipoEfectivo === 'clientes' ? 'cliente' : 'vendedor'}
                         </button>
                     </div>
                 </div>
 
                 <hr className="usu-divider" />
 
-                {/* ── Formulario desplegable ── */}
-                <div className={`usu-accordion${formAbierto ? ' open' : ''}`}>
-                    <FormCliente
-                        tipoInicial={tipoEfectivo === 'clientes' ? 'cliente' : 'vendedor'}
-                        onSuccess={handleSuccess}
-                    />
-                </div>
+                {/* ── Modal ── */}
+                {formAbierto && (
+                    <div className="usu-modal-overlay" onClick={() => setFormAbierto(false)}>
+                        <div className="usu-modal" onClick={e => e.stopPropagation()}>
+                            <FormCliente
+                                tipoInicial={tipoEfectivo === 'clientes' ? 'cliente' : 'vendedor'}
+                                onSuccess={handleSuccess}
+                            />
+                        </div>
+                    </div>
+                )}
 
                 {/* ── Tabla ── */}
                 <Table key={tableKey} tipo={tipoEfectivo} />
