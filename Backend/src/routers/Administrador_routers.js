@@ -20,7 +20,7 @@ import {
     obtenerUsuariosChat,
 } from '../controllers/Administrador_controller.js';
 import { verificarTokenJWT } from '../middlewares/JWT.js';
-import { esAdmin } from '../middlewares/AuthMiddleware.js';
+import { esAdmin, esVendedor } from '../middlewares/AuthMiddleware.js';
 import { protegerRutaCrearAdmin } from '../middlewares/setupMiddleware.js';
 
 const router = Router();
@@ -52,7 +52,7 @@ router.put('/perfil', verificarTokenJWT, esAdmin, validateProfileUpdate, actuali
 router.put('/perfil/password', verificarTokenJWT, esAdmin, validatePasswordChange, cambiarPassword);
 
 // GET /api/admin/usuarios-chat -> Todos los usuarios verificados para el chat
-router.get('/usuarios-chat', verificarTokenJWT, esAdmin, obtenerUsuariosChat);
+router.get('/usuarios-chat', verificarTokenJWT, esVendedor, obtenerUsuariosChat);
 
 
 export default router;

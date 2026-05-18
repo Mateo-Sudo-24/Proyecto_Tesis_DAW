@@ -67,7 +67,7 @@ const crearNotificacionConfirmacionVendedores = async (orden) => {
 // Crear una nueva orden
 const registrarOrden = async (req, res) => {
     const clienteId = req.usuario._id;
-    const { direccionEnvio, metodoPago } = req.body;
+    const { direccionEnvio, metodoPago, tipoEntrega } = req.body;
 
     // --- ¡VALIDACIÓN AÑADIDA! ---
     // Verificar que direccionEnvio sea un objeto antes de continuar.
@@ -107,6 +107,7 @@ const registrarOrden = async (req, res) => {
             direccionEnvio,
             metodoPago,
             precioTotal,
+            tipoEntrega: tipoEntrega || 'domicilio',
         });
         
         await orden.save();

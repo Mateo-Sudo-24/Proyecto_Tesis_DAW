@@ -228,8 +228,8 @@ const FormCliente = ({ clienteToUpdate, onSuccess, tipoInicial }) => {
                 </div>
 
                 <div className="ux-form-body">
-                    {/* Selector de tipo */}
-                    {!isEditing && (
+                    {/* Selector de tipo: solo visible si no hay tipoInicial fijo y no estamos editando */}
+                    {!isEditing && !tipoInicial && !soloClientes && (
                         <div className="ux-type-selector">
                             <button
                                 type="button"
@@ -238,15 +238,13 @@ const FormCliente = ({ clienteToUpdate, onSuccess, tipoInicial }) => {
                             >
                                 👤 Cliente
                             </button>
-                            {!soloClientes && (
-                                <button
-                                    type="button"
-                                    className={`ux-type-btn${tipoUsuario === "vendedor" ? " active" : ""}`}
-                                    onClick={() => setTipoUsuario("vendedor")}
-                                >
-                                    🏪 Vendedor
-                                </button>
-                            )}
+                            <button
+                                type="button"
+                                className={`ux-type-btn${tipoUsuario === "vendedor" ? " active" : ""}`}
+                                onClick={() => setTipoUsuario("vendedor")}
+                            >
+                                🏪 Vendedor
+                            </button>
                         </div>
                     )}
 

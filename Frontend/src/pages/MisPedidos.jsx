@@ -2,6 +2,7 @@ import { useEffect, useState } from "react";
 import { toast, ToastContainer } from "react-toastify";
 import storeProfile from "../context/storeProfile";
 import storeAuth from "../context/storeAuth";
+import FacturaPDF from "../components/carrito/FacturaPDF.jsx";
 
 const pageStyles = `
     :root { --orange-main:#e8760a; --orange-dark:#c4620a; --orange-light:#fde8ce; }
@@ -41,6 +42,13 @@ const pageStyles = `
     .mp-total-row { display:flex; justify-content:flex-end; margin-top:0.75rem; font-size:0.95rem; font-weight:800; color:#111827; gap:0.5rem; }
     .mp-total-label { color:#6b7280; font-weight:600; }
     .mp-spinner { text-align:center; padding:3rem; color:#9ca3af; }
+    /* ── Paginación ── */
+    .mp-pagination { display:flex; align-items:center; justify-content:center; gap:0.5rem; margin-top:1.25rem; flex-wrap:wrap; }
+    .mp-page-btn { padding:0.45rem 0.9rem; border-radius:0.5rem; border:1.5px solid #e5e7eb; background:#fff; color:#374151; font-size:0.82rem; font-weight:700; cursor:pointer; transition:background 0.15s,border-color 0.15s,color 0.15s; }
+    .mp-page-btn:hover:not(:disabled) { background:var(--orange-light); border-color:var(--orange-main); color:var(--orange-dark); }
+    .mp-page-btn.current { background:var(--orange-main); border-color:var(--orange-main); color:#fff; }
+    .mp-page-btn:disabled { opacity:0.4; cursor:not-allowed; }
+    .mp-page-info { font-size:0.8rem; color:#6b7280; font-weight:600; }
     .mp-progress { display:flex; align-items:center; gap:0; margin:0.875rem 0 0; overflow-x:auto; padding-bottom:0.25rem; }
     .mp-step { display:flex; flex-direction:column; align-items:center; flex:1; min-width:70px; }
     .mp-step-dot { width:26px; height:26px; border-radius:50%; display:flex; align-items:center; justify-content:center; font-size:0.85rem; font-weight:800; border:2px solid #e5e7eb; background:#fff; color:#d1d5db; transition:all 0.2s; flex-shrink:0; }
@@ -58,13 +66,18 @@ const pageStyles = `
     .mp-step-connector.done { background:#10b981; }
     .mp-section-title { font-size:1rem; font-weight:700; color:#374151; margin:0 0 0.75rem; }
     .mp-vendor-hint { font-size:0.68rem; color:#9ca3af; margin-top:0.35rem; font-style:italic; }
+    .mp-factura-row { display:flex; justify-content:flex-end; margin-top:0.875rem; padding-top:0.75rem; border-top:1px solid #f3f4f6; }
 `;
 
-const ORDER_STEPS = ['pendiente', 'procesando', 'enviado', 'entregado'];
+const ORDER_STEPS_DOMICILIO = ['pendiente', 'procesando', 'enviado', 'entregado'];
+const ORDER_STEPS_RETIRO    = ['pendiente', 'procesando', 'listo', 'entregado'];
+const getSteps = (tipoEntrega) => tipoEntrega === 'retiro' ? ORDER_STEPS_RETIRO : ORDER_STEPS_DOMICILIO;
+const ITEMS_PER_PAGE = 4;
 
 const estadoIcono = { pendiente:'⏳', procesando:'⚙️', enviado:'🚚', entregado:'✅', cancelado:'❌', pagado:'💰' };
 
-const ProgressBar = ({ estadoOrden, isVendedor, ordenId, token, onStatusUpdate }) => {
+const ProgressBar = ({ estadoOrden, tipoEntrega, isVendedor, ordenId, token, onStatusUpdate }) => {
+    const ORDER_STEPS = getSteps(tipoEntrega);
     const [updating, setUpdating] = useState(false);
 
     if (estadoOrden === 'cancelado') {
@@ -76,7 +89,7 @@ const ProgressBar = ({ estadoOrden, isVendedor, ordenId, token, onStatusUpdate }
         );
     }
 
-    // Índice actual: si estadoOrden es 'pagado', lo tratamos como 'pendiente' (idx 0)
+    // Índice actual: si estadoOrden es 'pagado'/'listo' etc, mapeamos al índice correcto
     const currentIdx = ORDER_STEPS.indexOf(estadoOrden);
     const effectiveIdx = currentIdx === -1 ? 0 : currentIdx;
 
@@ -166,7 +179,7 @@ const OrdenCard = ({ orden: ordenInicial, index, isVendedor, token }) => {
     const [orden, setOrden] = useState(ordenInicial);
     const [open, setOpen] = useState(false);
     const fecha = new Date(orden.createdAt).toLocaleDateString('es-ES', { day:'2-digit', month:'short', year:'numeric' });
-    const total = orden.total ?? orden.items?.reduce((s, it) => s + (it.precio * it.cantidad), 0) ?? 0;
+    const total = orden.precioTotal ?? orden.total ?? orden.items?.reduce((s, it) => s + (it.precio * it.cantidad), 0) ?? 0;
 
     const pagoClass = {
         pendiente: 'pago-pendiente',
@@ -198,6 +211,7 @@ const OrdenCard = ({ orden: ordenInicial, index, isVendedor, token }) => {
             <ProgressBar
                 estadoOrden={orden.estadoOrden}
                 isVendedor={isVendedor}
+                tipoEntrega={orden.tipoEntrega}
                 ordenId={orden._id}
                 token={token}
                 onStatusUpdate={handleStatusUpdate}
@@ -249,6 +263,21 @@ const OrdenCard = ({ orden: ordenInicial, index, isVendedor, token }) => {
                     )}
                 </>
             )}
+            <div className="mp-factura-row">
+                <FacturaPDF
+                    orden={orden}
+                    facturacion={
+                        orden.datosFacturacion
+                        ?? (orden.cliente ? {
+                            nombre: orden.cliente.nombre,
+                            apellido: orden.cliente.apellido ?? '',
+                            correo: orden.cliente.email ?? '',
+                            direccion: orden.direccionEnvio?.direccion ?? '',
+                        } : undefined)
+                    }
+                    label="📄 Factura PDF"
+                />
+            </div>
         </div>
     );
 };
@@ -258,6 +287,7 @@ const MisPedidos = () => {
     const { token } = storeAuth();
     const [ordenes, setOrdenes] = useState([]);
     const [loading, setLoading] = useState(true);
+    const [page, setPage] = useState(1);
 
     const isVendedor = user?.rol === 'vendedor';
     const isCliente  = user?.rol === 'cliente';
@@ -272,7 +302,10 @@ const MisPedidos = () => {
                 });
                 if (!res.ok) throw new Error("Error al cargar pedidos");
                 const data = await res.json();
-                setOrdenes(Array.isArray(data) ? data : (data.ordenes ?? []));
+                const raw = Array.isArray(data) ? data : (data.ordenes ?? []);
+                // Más reciente primero
+                raw.sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt));
+                setOrdenes(raw);
             } catch (e) {
                 toast.error(e.message || "No se pudieron cargar los pedidos.");
             } finally {
@@ -281,6 +314,9 @@ const MisPedidos = () => {
         };
         fetchOrdenes();
     }, [token]);
+
+    const totalPages = Math.ceil(ordenes.length / ITEMS_PER_PAGE);
+    const paginatedOrdenes = ordenes.slice((page - 1) * ITEMS_PER_PAGE, page * ITEMS_PER_PAGE);
 
     const titulo = isVendedor ? 'Pedidos en curso' : 'Mis pedidos';
     const subtitulo = isVendedor
@@ -312,15 +348,36 @@ const MisPedidos = () => {
                 ) : (
                     <>
                         <p className="mp-section-title">{ordenes.length} pedido{ordenes.length !== 1 ? 's' : ''}</p>
-                        {ordenes.map((orden, i) => (
+                        {paginatedOrdenes.map((orden, i) => (
                             <OrdenCard
                                 key={orden._id}
                                 orden={orden}
-                                index={i}
+                                index={(page - 1) * ITEMS_PER_PAGE + i}
                                 isVendedor={isVendedor}
                                 token={token}
                             />
                         ))}
+                        {totalPages > 1 && (
+                            <div className="mp-pagination">
+                                <button
+                                    className="mp-page-btn"
+                                    onClick={() => setPage(p => p - 1)}
+                                    disabled={page === 1}
+                                >← Anterior</button>
+                                {Array.from({ length: totalPages }, (_, i) => (
+                                    <button
+                                        key={i + 1}
+                                        className={`mp-page-btn${page === i + 1 ? ' current' : ''}`}
+                                        onClick={() => setPage(i + 1)}
+                                    >{i + 1}</button>
+                                ))}
+                                <button
+                                    className="mp-page-btn"
+                                    onClick={() => setPage(p => p + 1)}
+                                    disabled={page === totalPages}
+                                >Siguiente →</button>
+                            </div>
+                        )}
                     </>
                 )}
             </div>

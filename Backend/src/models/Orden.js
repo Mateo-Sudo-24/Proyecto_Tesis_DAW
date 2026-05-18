@@ -32,7 +32,12 @@ const ordenSchema = new Schema({
     estadoOrden: {
         type: String,
         default: 'pendiente',
-        enum: ['pendiente', 'pagado', 'procesando', 'enviado', 'completado', 'entregado', 'cancelado']
+        enum: ['pendiente', 'pagado', 'procesando', 'enviado', 'listo', 'completado', 'entregado', 'cancelado']
+    },
+    tipoEntrega: {
+        type: String,
+        enum: ['domicilio', 'retiro'],
+        default: 'domicilio'
     },
     estadoPago: { type: Boolean, default: false },
     fechaPago: { type: Date },

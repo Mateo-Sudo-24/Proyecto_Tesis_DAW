@@ -3,6 +3,8 @@ import { toast } from "react-toastify";
 import { Link, useNavigate } from "react-router-dom";
 import useFetch from "../../hooks/useFetch";
 import ModalPago from "./ModalPago.jsx";
+import MapaPicker from "./MapaPicker.jsx";
+import FacturaPDF from "./FacturaPDF.jsx";
 
 const cartStyles = `
     :root {
@@ -222,6 +224,95 @@ const cartStyles = `
     }
     .cart-summary-total-amount { color: var(--orange-main); }
 
+    /* ── Selector tipo entrega ── */
+    .cart-delivery-section { padding: 1.25rem 1.5rem; }
+    .cart-delivery-section h3 {
+        font-size: 0.95rem;
+        font-weight: 800;
+        color: #111827;
+        margin-bottom: 0.875rem;
+        display: flex;
+        align-items: center;
+        gap: 0.4rem;
+    }
+    .cart-delivery-options {
+        display: grid;
+        grid-template-columns: 1fr 1fr;
+        gap: 0.625rem;
+        margin-bottom: 0;
+    }
+    .cart-delivery-opt {
+        border: 2px solid #e5e7eb;
+        border-radius: 0.875rem;
+        padding: 0.875rem 1rem;
+        cursor: pointer;
+        transition: border-color 0.15s, background 0.15s, box-shadow 0.15s;
+        text-align: center;
+        background: #fff;
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        gap: 0.35rem;
+    }
+    .cart-delivery-opt:hover { border-color: #e8760a; box-shadow: 0 0 0 3px rgba(232,118,10,0.1); }
+    .cart-delivery-opt.selected {
+        border-color: #e8760a;
+        background: #fde8ce;
+        box-shadow: 0 0 0 3px rgba(232,118,10,0.18);
+    }
+    .cart-delivery-opt-icon { font-size: 1.5rem; }
+    .cart-delivery-opt-label {
+        font-size: 0.8rem;
+        font-weight: 700;
+        color: #374151;
+        line-height: 1.3;
+    }
+    .cart-delivery-opt.selected .cart-delivery-opt-label { color: #c4620a; }
+
+    /* ── Dirección domicilio ── */
+    .cart-addr-btn {
+        width: 100%;
+        padding: 0.75rem 1rem;
+        border: 2px dashed #d1d5db;
+        border-radius: 0.875rem;
+        background: #fafafa;
+        color: #374151;
+        font-size: 0.875rem;
+        font-weight: 700;
+        cursor: pointer;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        gap: 0.5rem;
+        transition: border-color 0.15s, background 0.15s;
+    }
+    .cart-addr-btn:hover { border-color: #e8760a; background: #fde8ce; color: #c4620a; }
+    .cart-addr-selected {
+        background: #f0fdf4;
+        border: 1.5px solid #86efac;
+        border-radius: 0.75rem;
+        padding: 0.65rem 1rem;
+        font-size: 0.82rem;
+        color: #166534;
+        font-weight: 600;
+        display: flex;
+        align-items: flex-start;
+        gap: 0.5rem;
+        margin-bottom: 0.875rem;
+    }
+    .cart-addr-change {
+        margin-left: auto;
+        font-size: 0.75rem;
+        font-weight: 700;
+        color: #e8760a;
+        background: none;
+        border: none;
+        cursor: pointer;
+        white-space: nowrap;
+        flex-shrink: 0;
+        text-decoration: underline;
+    }
+
     /* ── Formulario envío ── */
     .cart-form { padding: 1.25rem 1.5rem; }
     .cart-form h3 {
@@ -307,20 +398,27 @@ const cartStyles = `
 
 const Carrito = () => {
     const [carrito, setCarrito] = useState(null);
-    const [direccion, setDireccion] = useState("");
-    const [ciudad, setCiudad] = useState("");
-    const [provincia, setProvincia] = useState("");
-    const [codigoPostal, setCodigoPostal] = useState("");
-    const [pais, setPais] = useState("Ecuador");
-    const [metodoPago, setMetodoPago] = useState("Stripe");
 
-    // Estados locales para manejar carga
+    // Tipo de entrega
+    const [tipoEntrega, setTipoEntrega] = useState(''); // 'domicilio' | 'retiro'
+
+    // Dirección domicilio (del mapa)
+    const [direccionDomicilio, setDireccionDomicilio] = useState('');
+    const [coordsDomicilio, setCoordsDomicilio] = useState(null);
+    const [mapaAbierto, setMapaAbierto] = useState(false);
+
+    // Datos de facturación (comunes a ambos tipos)
+    const [facNombre, setFacNombre] = useState('');
+    const [facApellido, setFacApellido] = useState('');
+    const [facCorreo, setFacCorreo] = useState('');
+    const [facDireccion, setFacDireccion] = useState('');
+    const [metodoPago, setMetodoPago] = useState('Stripe');
+
     const [isLoadingCart, setIsLoadingCart] = useState(false);
     const [isCreatingOrder, setIsCreatingOrder] = useState(false);
-    
-    // Estados para el modal de pago
     const [showModalPago, setShowModalPago] = useState(false);
     const [ordenCreada, setOrdenCreada] = useState(null);
+    const [pedidoExitoso, setPedidoExitoso] = useState(null); // { orden, facturacion }
 
     const navigate = useNavigate();
     const { fetchDataBackend } = useFetch();
@@ -368,17 +466,45 @@ const Carrito = () => {
         if (response) setCarrito({ items: [] });
     };
 
-    // Crear orden - MODIFICADO PARA MANEJAR EL MODAL
+    // Crear orden
     const handleCrearOrden = async (e) => {
         e.preventDefault();
-        if (!direccion.trim() || !ciudad.trim() || !provincia.trim() || !codigoPostal.trim() || !pais.trim()) {
-            return toast.error("Debes completar todos los campos de la dirección de envío.");
+        if (!tipoEntrega) return toast.error("Selecciona un método de entrega.");
+        if (!facNombre.trim() || !facApellido.trim() || !facCorreo.trim() || !facDireccion.trim()) {
+            return toast.error("Completa todos los datos de facturación.");
+        }
+        if (tipoEntrega === 'domicilio' && !direccionDomicilio) {
+            return toast.error("Selecciona tu dirección de entrega en el mapa.");
         }
 
         setIsCreatingOrder(true);
+
+        // Construir direccionEnvio según el tipo
+        let direccionEnvio;
+        if (tipoEntrega === 'domicilio') {
+            direccionEnvio = {
+                direccion: direccionDomicilio,
+                ciudad: 'N/A',
+                provincia: 'N/A',
+                codigoPostal: '000000',
+                pais: 'Ecuador',
+            };
+        } else {
+            // retiro en almacenes — usar dirección de facturación
+            direccionEnvio = {
+                direccion: 'Retiro en almacenes — ' + facDireccion,
+                ciudad: 'N/A',
+                provincia: 'N/A',
+                codigoPostal: '000000',
+                pais: 'Ecuador',
+            };
+        }
+
         const orderData = {
-            direccionEnvio: { direccion, ciudad, provincia, codigoPostal, pais },
+            direccionEnvio,
             metodoPago,
+            tipoEntrega,
+            datosFacturacion: { nombre: facNombre, apellido: facApellido, correo: facCorreo, direccion: facDireccion },
         };
 
         const response = await fetchDataBackend(
@@ -395,7 +521,6 @@ const Carrito = () => {
         const ordenRecien = response.orden;
         setOrdenCreada(ordenRecien);
 
-        // Si es Stripe, mostrar modal de pago con tarjeta
         if (metodoPago === "Stripe") {
             setIsCreatingOrder(false);
             toast.success("Orden creada. Completa el pago con tarjeta.");
@@ -403,7 +528,6 @@ const Carrito = () => {
             return;
         }
 
-        // Para métodos no-Stripe: registrar pago directamente en backend
         const pagoRes = await fetchDataBackend(
             `${import.meta.env.VITE_BACKEND_URL}/ordenes/pagar`,
             { ordenId: ordenRecien._id },
@@ -413,8 +537,14 @@ const Carrito = () => {
         setIsCreatingOrder(false);
 
         if (pagoRes) {
-            toast.success(`✅ ¡Pedido confirmado! Pago registrado correctamente.`);
-            setTimeout(() => navigate('/dashboard/mis-pedidos'), 1800);
+            const mensaje = tipoEntrega === 'domicilio'
+                ? '🚚 ¡Pedido enviado! Tu pedido está en camino.'
+                : '🏪 ¡Pedido listo! Pasa a retirarlo en nuestros almacenes.';
+            toast.success(mensaje);
+            setPedidoExitoso({
+                orden: ordenRecien,
+                facturacion: { nombre: facNombre, apellido: facApellido, correo: facCorreo, direccion: facDireccion },
+            });
         }
     };
 
@@ -428,6 +558,66 @@ const Carrito = () => {
         (acc, item) => acc + (item.producto?.precio || 0) * item.cantidad,
         0
     ) || 0;
+
+    if (pedidoExitoso) {
+        return (
+            <>
+                <style>{cartStyles}</style>
+                <style>{`
+                    .cart-success-card {
+                        max-width: 560px;
+                        margin: 3rem auto;
+                        background: #fff;
+                        border-radius: 1.25rem;
+                        box-shadow: 0 8px 32px rgba(0,0,0,0.1);
+                        padding: 2.5rem 2rem;
+                        text-align: center;
+                        font-family: inherit;
+                    }
+                    .cart-success-icon { font-size: 3.5rem; margin-bottom: 0.75rem; }
+                    .cart-success-title { font-size: 1.4rem; font-weight: 800; color: #111827; margin-bottom: 0.4rem; }
+                    .cart-success-sub { font-size: 0.95rem; color: #6b7280; margin-bottom: 1.75rem; }
+                    .cart-success-info { background: #f9fafb; border-radius: 0.875rem; padding: 1rem 1.25rem; margin-bottom: 1.75rem; text-align: left; font-size: 0.875rem; color: #374151; line-height: 1.8; }
+                    .cart-success-actions { display: flex; gap: 1rem; justify-content: center; flex-wrap: wrap; }
+                    .cart-success-link {
+                        padding: 0.6rem 1.25rem;
+                        background: #f3f4f6;
+                        color: #374151;
+                        border-radius: 0.6rem;
+                        text-decoration: none;
+                        font-size: 0.875rem;
+                        font-weight: 700;
+                        transition: background 0.15s;
+                    }
+                    .cart-success-link:hover { background: #e5e7eb; }
+                `}</style>
+                <div className="cart-wrapper">
+                    <div className="cart-success-card">
+                        <div className="cart-success-icon">✅</div>
+                        <div className="cart-success-title">¡Pedido confirmado!</div>
+                        <div className="cart-success-sub">
+                            Tu orden ha sido creada exitosamente.
+                        </div>
+                        <div className="cart-success-info">
+                            <strong>Método de pago:</strong> {pedidoExitoso.orden.metodoPago}<br />
+                            <strong>Entrega:</strong> {pedidoExitoso.orden.tipoEntrega === 'domicilio' ? 'Envío a domicilio' : 'Retiro en almacenes'}<br />
+                            <strong>A nombre de:</strong> {pedidoExitoso.facturacion.nombre} {pedidoExitoso.facturacion.apellido}
+                        </div>
+                        <div className="cart-success-actions">
+                            <FacturaPDF
+                                orden={pedidoExitoso.orden}
+                                facturacion={pedidoExitoso.facturacion}
+                                label="📄 Descargar factura PDF"
+                            />
+                            <Link to="/dashboard/mis-pedidos" className="cart-success-link">
+                                Ver mis pedidos →
+                            </Link>
+                        </div>
+                    </div>
+                </div>
+            </>
+        );
+    }
 
     return (
         <>
@@ -535,69 +725,135 @@ const Carrito = () => {
                                 </div>
                             </div>
 
-                            {/* Formulario envío */}
+                            {/* Selector de entrega */}
                             <div className="cart-card">
-                                <form onSubmit={handleCrearOrden} className="cart-form">
-                                    <h3>📦 Datos de envío</h3>
-
-                                    <div className="cart-form-group">
-                                        <label className="cart-label">Dirección</label>
-                                        <input
-                                            type="text"
-                                            className="cart-input"
-                                            placeholder="Calle Principal 123"
-                                            value={direccion}
-                                            onChange={e => setDireccion(e.target.value)}
-                                            required
-                                        />
-                                    </div>
-
-                                    <div className="cart-form-row">
-                                        <div>
-                                            <label className="cart-label">Ciudad</label>
-                                            <input type="text" className="cart-input" placeholder="Guayaquil" value={ciudad} onChange={e => setCiudad(e.target.value)} required />
+                                <div className="cart-delivery-section">
+                                    <h3>🚚 Método de entrega</h3>
+                                    <div className="cart-delivery-options">
+                                        <div
+                                            className={`cart-delivery-opt${tipoEntrega === 'domicilio' ? ' selected' : ''}`}
+                                            onClick={() => setTipoEntrega('domicilio')}
+                                        >
+                                            <span className="cart-delivery-opt-icon">🛵</span>
+                                            <span className="cart-delivery-opt-label">Envío a domicilio</span>
                                         </div>
-                                        <div>
-                                            <label className="cart-label">Provincia</label>
-                                            <input type="text" className="cart-input" placeholder="Guayas" value={provincia} onChange={e => setProvincia(e.target.value)} required />
+                                        <div
+                                            className={`cart-delivery-opt${tipoEntrega === 'retiro' ? ' selected' : ''}`}
+                                            onClick={() => setTipoEntrega('retiro')}
+                                        >
+                                            <span className="cart-delivery-opt-icon">🏪</span>
+                                            <span className="cart-delivery-opt-label">Retiro en almacenes</span>
                                         </div>
                                     </div>
-
-                                    <div className="cart-form-row">
-                                        <div>
-                                            <label className="cart-label">Cód. Postal</label>
-                                            <input type="text" className="cart-input" placeholder="090101" value={codigoPostal} onChange={e => setCodigoPostal(e.target.value)} required />
-                                        </div>
-                                        <div>
-                                            <label className="cart-label">País</label>
-                                            <input type="text" className="cart-input" value={pais} onChange={e => setPais(e.target.value)} required />
-                                        </div>
-                                    </div>
-
-                                    <div className="cart-form-group">
-                                        <label className="cart-label">Método de pago</label>
-                                        <select className="cart-select" value={metodoPago} onChange={e => setMetodoPago(e.target.value)} required>
-                                            <option value="Transferencia Bancaria">Transferencia Bancaria</option>
-                                            <option value="Contra Entrega">Contra Entrega</option>
-                                            <option value="Tarjeta de Crédito">Tarjeta de Crédito</option>
-                                            <option value="PayPal">PayPal</option>
-                                            <option value="Efectivo">Efectivo</option>
-                                            <option value="Stripe">Stripe</option>
-                                        </select>
-                                    </div>
-
-                                    <button type="submit" className="cart-submit-btn" disabled={isCreatingOrder}>
-                                        {isCreatingOrder ? (
-                                            <>
-                                                <span style={{width:'16px',height:'16px',border:'2px solid rgba(255,255,255,0.4)',borderTopColor:'#fff',borderRadius:'50%',display:'inline-block',animation:'cart-spin 0.7s linear infinite'}} />
-                                                Procesando...
-                                            </>
-                                        ) : (
-                                            <>✅ Confirmar pedido</>
-                                        )}
-                                    </button>
-                                </form>
+                                </div>
                             </div>
+
+                            {/* Formulario — aparece al elegir tipo */}
+                            {tipoEntrega && (
+                                <div className="cart-card">
+                                    <form onSubmit={handleCrearOrden} className="cart-form">
+                                        <h3>🧾 Datos de facturación</h3>
+
+                                        {/* Dirección domicilio (solo si es domicilio) */}
+                                        {tipoEntrega === 'domicilio' && (
+                                            <div className="cart-form-group">
+                                                {direccionDomicilio ? (
+                                                    <div className="cart-addr-selected">
+                                                        📍 <span style={{flex:1}}>{direccionDomicilio}</span>
+                                                        <button
+                                                            type="button"
+                                                            className="cart-addr-change"
+                                                            onClick={() => setMapaAbierto(true)}
+                                                        >Cambiar</button>
+                                                    </div>
+                                                ) : (
+                                                    <button
+                                                        type="button"
+                                                        className="cart-addr-btn"
+                                                        onClick={() => setMapaAbierto(true)}
+                                                    >
+                                                        📍 Elija su dirección de entrega
+                                                    </button>
+                                                )}
+                                            </div>
+                                        )}
+
+                                        <div className="cart-form-row">
+                                            <div>
+                                                <label className="cart-label">Nombre</label>
+                                                <input
+                                                    type="text"
+                                                    className="cart-input"
+                                                    placeholder="Juan"
+                                                    value={facNombre}
+                                                    onChange={e => setFacNombre(e.target.value)}
+                                                    required
+                                                />
+                                            </div>
+                                            <div>
+                                                <label className="cart-label">Apellido</label>
+                                                <input
+                                                    type="text"
+                                                    className="cart-input"
+                                                    placeholder="García"
+                                                    value={facApellido}
+                                                    onChange={e => setFacApellido(e.target.value)}
+                                                    required
+                                                />
+                                            </div>
+                                        </div>
+
+                                        <div className="cart-form-group">
+                                            <label className="cart-label">Correo electrónico</label>
+                                            <input
+                                                type="email"
+                                                className="cart-input"
+                                                placeholder="correo@ejemplo.com"
+                                                value={facCorreo}
+                                                onChange={e => setFacCorreo(e.target.value)}
+                                                required
+                                            />
+                                        </div>
+
+                                        <div className="cart-form-group">
+                                            <label className="cart-label">
+                                                {tipoEntrega === 'retiro' ? 'Dirección de facturación' : 'Dirección de facturación'}
+                                            </label>
+                                            <input
+                                                type="text"
+                                                className="cart-input"
+                                                placeholder="Av. Principal 123, Guayaquil"
+                                                value={facDireccion}
+                                                onChange={e => setFacDireccion(e.target.value)}
+                                                required
+                                            />
+                                        </div>
+
+                                        <div className="cart-form-group">
+                                            <label className="cart-label">Método de pago</label>
+                                            <select className="cart-select" value={metodoPago} onChange={e => setMetodoPago(e.target.value)} required>
+                                                <option value="Stripe">Stripe (tarjeta)</option>
+                                                <option value="Transferencia Bancaria">Transferencia Bancaria</option>
+                                                <option value="Contra Entrega">Contra Entrega</option>
+                                                <option value="Tarjeta de Crédito">Tarjeta de Crédito</option>
+                                                <option value="PayPal">PayPal</option>
+                                                <option value="Efectivo">Efectivo</option>
+                                            </select>
+                                        </div>
+
+                                        <button type="submit" className="cart-submit-btn" disabled={isCreatingOrder}>
+                                            {isCreatingOrder ? (
+                                                <>
+                                                    <span style={{width:'16px',height:'16px',border:'2px solid rgba(255,255,255,0.4)',borderTopColor:'#fff',borderRadius:'50%',display:'inline-block',animation:'cart-spin 0.7s linear infinite'}} />
+                                                    Procesando...
+                                                </>
+                                            ) : (
+                                                <>✅ Confirmar pedido</>
+                                            )}
+                                        </button>
+                                    </form>
+                                </div>
+                            )}
                         </div>
                     </div>
                 )}
@@ -605,6 +861,16 @@ const Carrito = () => {
 
             {showModalPago && ordenCreada && (
                 <ModalPago orden={ordenCreada} closeModal={closeModalPago} />
+            )}
+
+            {mapaAbierto && (
+                <MapaPicker
+                    onSelect={(addr, coords) => {
+                        setDireccionDomicilio(addr);
+                        setCoordsDomicilio(coords);
+                    }}
+                    onClose={() => setMapaAbierto(false)}
+                />
             )}
         </>
     );
