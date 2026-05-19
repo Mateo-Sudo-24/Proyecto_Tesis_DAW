@@ -488,9 +488,6 @@ const Notificaciones = () => {
                             <h1>Notificaciones</h1>
                             <p>
                                 {notificaciones.length} notificación{notificaciones.length !== 1 ? 'es' : ''} en total
-                                {sinLeerCount > 0 && (
-                                    <span className="badge-sin-leer">{sinLeerCount} sin leer</span>
-                                )}
                             </p>
                         </div>
                         {pendientesCount > 0 && (
