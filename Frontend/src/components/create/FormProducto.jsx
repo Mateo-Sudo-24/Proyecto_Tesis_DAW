@@ -132,7 +132,7 @@ export const FormProducto = ({ productoToUpdate, onSuccess, onCancel }) => {
     const [isSubmitting, setIsSubmitting] = useState(false);
     const [imagen, setImagen] = useState(null);
     const [imagenUrl, setImagenUrl] = useState('');
-    const [metodoImagen, setMetodoImagen] = useState('archivo');
+    const [metodoImagen, setMetodoImagen] = useState('url');
     const [previewImagen, setPreviewImagen] = useState(null);
     const [categoriasOptions, setCategoriasOptions] = useState([]);
     const [selectedCategoria, setSelectedCategoria] = useState('');
@@ -373,6 +373,8 @@ export const FormProducto = ({ productoToUpdate, onSuccess, onCancel }) => {
                 <div className="fp-field">
                     <label className="fp-label">Imagen {!productoToUpdate && '*'}</label>
                     <div className="fp-img-section">
+                        {/* Opción de subir archivo deshabilitada temporalmente — solo Cloudinary URL */}
+                        {/*
                         <div className="fp-img-toggle">
                             <label className="fp-img-option">
                                 <input
@@ -393,23 +395,17 @@ export const FormProducto = ({ productoToUpdate, onSuccess, onCancel }) => {
                                 🔗 URL de imagen
                             </label>
                         </div>
-                        {metodoImagen === 'archivo' ? (
-                            <>
-                                <input type="file" accept="image/*" className="fp-input" onChange={handleArchivoChange} />
-                                <p className="fp-img-hint">Máximo 5MB — JPG, PNG, WebP</p>
-                            </>
-                        ) : (
-                            <>
-                                <input
-                                    type="url"
-                                    placeholder="https://res.cloudinary.com/..."
-                                    className="fp-input"
-                                    value={imagenUrl}
-                                    onChange={e => { setImagenUrl(e.target.value); setPreviewImagen(e.target.value); }}
-                                />
-                                <p className="fp-img-hint">URL completa de la imagen (Cloudinary, etc.)</p>
-                            </>
-                        )}
+                        */}
+                        <>
+                            <input
+                                type="url"
+                                placeholder="https://res.cloudinary.com/..."
+                                className="fp-input"
+                                value={imagenUrl}
+                                onChange={e => { setImagenUrl(e.target.value); setPreviewImagen(e.target.value); }}
+                            />
+                            <p className="fp-img-hint">🔗 Solo URLs de Cloudinary — ej: https://res.cloudinary.com/tu-cloud/image/upload/...</p>
+                        </>
                         {previewImagen && (
                             <div className="fp-preview">
                                 <img src={previewImagen} alt="Vista previa" onError={() => setPreviewImagen(null)} />
