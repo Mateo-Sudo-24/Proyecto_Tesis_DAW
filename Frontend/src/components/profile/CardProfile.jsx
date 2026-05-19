@@ -1,3 +1,4 @@
+import { useState } from 'react'
 import storeProfile from "../../context/storeProfile"
 
 const styles = `
@@ -81,10 +82,33 @@ const styles = `
         color: #d1d5db;
         font-style: italic;
     }
+    .cp-toggle-btn {
+        display: flex;
+        align-items: center;
+        gap: 0.4rem;
+        padding: 0.45rem 0;
+        background: none;
+        border: none;
+        cursor: pointer;
+        font-size: 0.72rem;
+        font-weight: 700;
+        text-transform: uppercase;
+        letter-spacing: 0.06em;
+        color: #e8760a;
+        width: 100%;
+        border-bottom: 1px solid #f3f4f6;
+        transition: color 0.15s;
+    }
+    .cp-toggle-btn:hover { color: #c4620a; }
+    .cp-toggle-chevron { font-size: 0.6rem; margin-left: auto; transition: transform 0.2s; }
+    .cp-toggle-chevron.open { transform: rotate(180deg); }
+    .cp-collapsible { overflow: hidden; transition: max-height 0.25s ease; max-height: 0; }
+    .cp-collapsible.open { max-height: 150px; }
 `;
 
 export const CardProfile = () => {
     const { user } = storeProfile()
+    const [showContact, setShowContact] = useState(false)
     const initial = user?.nombre ? user.nombre.charAt(0).toUpperCase() : 'U'
 
     return (
@@ -97,13 +121,23 @@ export const CardProfile = () => {
                     <p className="cp-header-email">{user?.email}</p>
                 </div>
                 <div className="cp-body">
-                    <div className="cp-row">
-                        <span className="cp-row-label">Dirección</span>
-                        <p className="cp-row-value">{user?.direccion || <span className="cp-empty">Sin datos</span>}</p>
-                    </div>
-                    <div className="cp-row">
-                        <span className="cp-row-label">Teléfono</span>
-                        <p className="cp-row-value">{user?.celular || user?.telefono || <span className="cp-empty">Sin datos</span>}</p>
+                    <button
+                        className="cp-toggle-btn"
+                        onClick={() => setShowContact(o => !o)}
+                        type="button"
+                    >
+                        📍 Dirección y Teléfono
+                        <span className={`cp-toggle-chevron${showContact ? ' open' : ''}`}>▼</span>
+                    </button>
+                    <div className={`cp-collapsible${showContact ? ' open' : ''}`}>
+                        <div className="cp-row">
+                            <span className="cp-row-label">Dirección</span>
+                            <p className="cp-row-value">{user?.direccion || <span className="cp-empty">Sin datos</span>}</p>
+                        </div>
+                        <div className="cp-row">
+                            <span className="cp-row-label">Teléfono</span>
+                            <p className="cp-row-value">{user?.celular || user?.telefono || <span className="cp-empty">Sin datos</span>}</p>
+                        </div>
                     </div>
                     <div className="cp-row">
                         <span className="cp-row-label">Correo</span>

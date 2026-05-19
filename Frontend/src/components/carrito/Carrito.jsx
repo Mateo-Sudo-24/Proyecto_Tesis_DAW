@@ -3,7 +3,7 @@ import { toast } from "react-toastify";
 import { Link, useNavigate } from "react-router-dom";
 import useFetch from "../../hooks/useFetch";
 import ModalPago from "./ModalPago.jsx";
-import MapaPicker from "./MapaPicker.jsx";
+import ModalOrdenPago from "./ModalOrdenPago.jsx";
 import FacturaPDF from "./FacturaPDF.jsx";
 
 const cartStyles = `
@@ -402,20 +402,10 @@ const Carrito = () => {
     // Tipo de entrega
     const [tipoEntrega, setTipoEntrega] = useState(''); // 'domicilio' | 'retiro'
 
-    // Dirección domicilio (del mapa)
-    const [direccionDomicilio, setDireccionDomicilio] = useState('');
-    const [coordsDomicilio, setCoordsDomicilio] = useState(null);
-    const [mapaAbierto, setMapaAbierto] = useState(false);
-
-    // Datos de facturación (comunes a ambos tipos)
-    const [facNombre, setFacNombre] = useState('');
-    const [facApellido, setFacApellido] = useState('');
-    const [facCorreo, setFacCorreo] = useState('');
-    const [facDireccion, setFacDireccion] = useState('');
-    const [metodoPago, setMetodoPago] = useState('Stripe');
+    // Modal orden de pago
+    const [showModalOP, setShowModalOP] = useState(false);
 
     const [isLoadingCart, setIsLoadingCart] = useState(false);
-    const [isCreatingOrder, setIsCreatingOrder] = useState(false);
     const [showModalPago, setShowModalPago] = useState(false);
     const [ordenCreada, setOrdenCreada] = useState(null);
     const [pedidoExitoso, setPedidoExitoso] = useState(null); // { orden, facturacion }
@@ -464,88 +454,6 @@ const Carrito = () => {
             "DELETE"
         );
         if (response) setCarrito({ items: [] });
-    };
-
-    // Crear orden
-    const handleCrearOrden = async (e) => {
-        e.preventDefault();
-        if (!tipoEntrega) return toast.error("Selecciona un método de entrega.");
-        if (!facNombre.trim() || !facApellido.trim() || !facCorreo.trim() || !facDireccion.trim()) {
-            return toast.error("Completa todos los datos de facturación.");
-        }
-        if (tipoEntrega === 'domicilio' && !direccionDomicilio) {
-            return toast.error("Selecciona tu dirección de entrega en el mapa.");
-        }
-
-        setIsCreatingOrder(true);
-
-        // Construir direccionEnvio según el tipo
-        let direccionEnvio;
-        if (tipoEntrega === 'domicilio') {
-            direccionEnvio = {
-                direccion: direccionDomicilio,
-                ciudad: 'N/A',
-                provincia: 'N/A',
-                codigoPostal: '000000',
-                pais: 'Ecuador',
-            };
-        } else {
-            // retiro en almacenes — usar dirección de facturación
-            direccionEnvio = {
-                direccion: 'Retiro en almacenes — ' + facDireccion,
-                ciudad: 'N/A',
-                provincia: 'N/A',
-                codigoPostal: '000000',
-                pais: 'Ecuador',
-            };
-        }
-
-        const orderData = {
-            direccionEnvio,
-            metodoPago,
-            tipoEntrega,
-            datosFacturacion: { nombre: facNombre, apellido: facApellido, correo: facCorreo, direccion: facDireccion },
-        };
-
-        const response = await fetchDataBackend(
-            `${import.meta.env.VITE_BACKEND_URL}/ordenes`,
-            orderData,
-            "POST"
-        );
-
-        if (!response?.orden) {
-            setIsCreatingOrder(false);
-            return;
-        }
-
-        const ordenRecien = response.orden;
-        setOrdenCreada(ordenRecien);
-
-        if (metodoPago === "Stripe") {
-            setIsCreatingOrder(false);
-            toast.success("Orden creada. Completa el pago con tarjeta.");
-            setShowModalPago(true);
-            return;
-        }
-
-        const pagoRes = await fetchDataBackend(
-            `${import.meta.env.VITE_BACKEND_URL}/ordenes/pagar`,
-            { ordenId: ordenRecien._id },
-            "POST"
-        );
-
-        setIsCreatingOrder(false);
-
-        if (pagoRes) {
-            const mensaje = tipoEntrega === 'domicilio'
-                ? '🚚 ¡Pedido enviado! Tu pedido está en camino.'
-                : '🏪 ¡Pedido listo! Pasa a retirarlo en nuestros almacenes.';
-            toast.success(mensaje);
-            setPedidoExitoso({
-                orden: ordenRecien,
-                facturacion: { nombre: facNombre, apellido: facApellido, correo: facCorreo, direccion: facDireccion },
-            });
-        }
     };
 
     // Función para cerrar el modal
@@ -732,14 +640,14 @@ const Carrito = () => {
                                     <div className="cart-delivery-options">
                                         <div
                                             className={`cart-delivery-opt${tipoEntrega === 'domicilio' ? ' selected' : ''}`}
-                                            onClick={() => setTipoEntrega('domicilio')}
+                                            onClick={() => { setTipoEntrega('domicilio'); setShowModalOP(true); }}
                                         >
                                             <span className="cart-delivery-opt-icon">🛵</span>
                                             <span className="cart-delivery-opt-label">Envío a domicilio</span>
                                         </div>
                                         <div
                                             className={`cart-delivery-opt${tipoEntrega === 'retiro' ? ' selected' : ''}`}
-                                            onClick={() => setTipoEntrega('retiro')}
+                                            onClick={() => { setTipoEntrega('retiro'); setShowModalOP(true); }}
                                         >
                                             <span className="cart-delivery-opt-icon">🏪</span>
                                             <span className="cart-delivery-opt-label">Retiro en almacenes</span>
@@ -747,113 +655,6 @@ const Carrito = () => {
                                     </div>
                                 </div>
                             </div>
-
-                            {/* Formulario — aparece al elegir tipo */}
-                            {tipoEntrega && (
-                                <div className="cart-card">
-                                    <form onSubmit={handleCrearOrden} className="cart-form">
-                                        <h3>🧾 Datos de facturación</h3>
-
-                                        {/* Dirección domicilio (solo si es domicilio) */}
-                                        {tipoEntrega === 'domicilio' && (
-                                            <div className="cart-form-group">
-                                                {direccionDomicilio ? (
-                                                    <div className="cart-addr-selected">
-                                                        📍 <span style={{flex:1}}>{direccionDomicilio}</span>
-                                                        <button
-                                                            type="button"
-                                                            className="cart-addr-change"
-                                                            onClick={() => setMapaAbierto(true)}
-                                                        >Cambiar</button>
-                                                    </div>
-                                                ) : (
-                                                    <button
-                                                        type="button"
-                                                        className="cart-addr-btn"
-                                                        onClick={() => setMapaAbierto(true)}
-                                                    >
-                                                        📍 Elija su dirección de entrega
-                                                    </button>
-                                                )}
-                                            </div>
-                                        )}
-
-                                        <div className="cart-form-row">
-                                            <div>
-                                                <label className="cart-label">Nombre</label>
-                                                <input
-                                                    type="text"
-                                                    className="cart-input"
-                                                    placeholder="Juan"
-                                                    value={facNombre}
-                                                    onChange={e => setFacNombre(e.target.value)}
-                                                    required
-                                                />
-                                            </div>
-                                            <div>
-                                                <label className="cart-label">Apellido</label>
-                                                <input
-                                                    type="text"
-                                                    className="cart-input"
-                                                    placeholder="García"
-                                                    value={facApellido}
-                                                    onChange={e => setFacApellido(e.target.value)}
-                                                    required
-                                                />
-                                            </div>
-                                        </div>
-
-                                        <div className="cart-form-group">
-                                            <label className="cart-label">Correo electrónico</label>
-                                            <input
-                                                type="email"
-                                                className="cart-input"
-                                                placeholder="correo@ejemplo.com"
-                                                value={facCorreo}
-                                                onChange={e => setFacCorreo(e.target.value)}
-                                                required
-                                            />
-                                        </div>
-
-                                        <div className="cart-form-group">
-                                            <label className="cart-label">
-                                                {tipoEntrega === 'retiro' ? 'Dirección de facturación' : 'Dirección de facturación'}
-                                            </label>
-                                            <input
-                                                type="text"
-                                                className="cart-input"
-                                                placeholder="Av. Principal 123, Guayaquil"
-                                                value={facDireccion}
-                                                onChange={e => setFacDireccion(e.target.value)}
-                                                required
-                                            />
-                                        </div>
-
-                                        <div className="cart-form-group">
-                                            <label className="cart-label">Método de pago</label>
-                                            <select className="cart-select" value={metodoPago} onChange={e => setMetodoPago(e.target.value)} required>
-                                                <option value="Stripe">Stripe (tarjeta)</option>
-                                                <option value="Transferencia Bancaria">Transferencia Bancaria</option>
-                                                <option value="Contra Entrega">Contra Entrega</option>
-                                                <option value="Tarjeta de Crédito">Tarjeta de Crédito</option>
-                                                <option value="PayPal">PayPal</option>
-                                                <option value="Efectivo">Efectivo</option>
-                                            </select>
-                                        </div>
-
-                                        <button type="submit" className="cart-submit-btn" disabled={isCreatingOrder}>
-                                            {isCreatingOrder ? (
-                                                <>
-                                                    <span style={{width:'16px',height:'16px',border:'2px solid rgba(255,255,255,0.4)',borderTopColor:'#fff',borderRadius:'50%',display:'inline-block',animation:'cart-spin 0.7s linear infinite'}} />
-                                                    Procesando...
-                                                </>
-                                            ) : (
-                                                <>✅ Confirmar pedido</>
-                                            )}
-                                        </button>
-                                    </form>
-                                </div>
-                            )}
                         </div>
                     </div>
                 )}
@@ -863,13 +664,21 @@ const Carrito = () => {
                 <ModalPago orden={ordenCreada} closeModal={closeModalPago} />
             )}
 
-            {mapaAbierto && (
-                <MapaPicker
-                    onSelect={(addr, coords) => {
-                        setDireccionDomicilio(addr);
-                        setCoordsDomicilio(coords);
+            {showModalOP && (
+                <ModalOrdenPago
+                    tipoEntrega={tipoEntrega}
+                    cartItems={carrito?.items || []}
+                    subtotalCart={subtotal}
+                    onClose={() => { setShowModalOP(false); setTipoEntrega(''); }}
+                    onOrdenCreada={(orden, fac) => {
+                        setShowModalOP(false);
+                        setPedidoExitoso({ orden, facturacion: fac });
                     }}
-                    onClose={() => setMapaAbierto(false)}
+                    onNeedStripe={(orden) => {
+                        setShowModalOP(false);
+                        setOrdenCreada(orden);
+                        setShowModalPago(true);
+                    }}
                 />
             )}
         </>

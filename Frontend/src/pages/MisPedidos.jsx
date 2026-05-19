@@ -66,6 +66,10 @@ const pageStyles = `
     .mp-step-connector.done { background:#10b981; }
     .mp-section-title { font-size:1rem; font-weight:700; color:#374151; margin:0 0 0.75rem; }
     .mp-vendor-hint { font-size:0.68rem; color:#9ca3af; margin-top:0.35rem; font-style:italic; }
+    .mp-terminado { display:flex; align-items:center; gap:0.6rem; margin-top:0.75rem; }
+    .mp-terminado-radio { width:16px; height:16px; border-radius:50%; border:2px solid #10b981; display:flex; align-items:center; justify-content:center; flex-shrink:0; }
+    .mp-terminado-radio::after { content:''; width:8px; height:8px; border-radius:50%; background:#10b981; }
+    .mp-terminado-label { font-size:0.8rem; font-weight:700; color:#065f46; background:#d1fae5; padding:0.25rem 0.75rem; border-radius:999px; border:1.5px solid #10b981; }
     .mp-factura-row { display:flex; justify-content:flex-end; margin-top:0.875rem; padding-top:0.75rem; border-top:1px solid #f3f4f6; }
 `;
 
@@ -166,6 +170,12 @@ const ProgressBar = ({ estadoOrden, tipoEntrega, isVendedor, ordenId, token, onS
                     );
                 })}
             </div>
+            {isVendedor && estadoOrden === 'entregado' && (
+                <div className="mp-terminado">
+                    <div className="mp-terminado-radio" />
+                    <span className="mp-terminado-label">✓ Terminado — No se puede modificar</span>
+                </div>
+            )}
             {isVendedor && estadoOrden !== 'entregado' && estadoOrden !== 'cancelado' && (
                 <p className="mp-vendor-hint">
                     💡 Haz clic en el siguiente círculo para avanzar el estado del pedido.

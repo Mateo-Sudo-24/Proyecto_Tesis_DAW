@@ -154,7 +154,8 @@ const listarOrdenes = async (req, res) => {
 
     const ordenes = await Orden.find(filtro)
       .populate("cliente", "nombre apellido email")
-      .populate("productoPedido.producto", "nombre");
+      .populate("productoPedido.producto", "nombre")
+      .sort({ createdAt: -1 });
 
     res.status(200).json(ordenes);
   } catch (error) {
