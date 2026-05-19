@@ -1,3 +1,4 @@
+import { useState } from "react"
 import { useForm } from "react-hook-form"
 import { ToastContainer } from 'react-toastify';
 import storeProfile from "../../context/storeProfile";
@@ -73,6 +74,30 @@ const styles = `
         align-items: center;
         gap: 0.5rem;
     }
+    .pwd-toggle {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        width: 100%;
+        padding: 0;
+        background: none;
+        border: none;
+        cursor: pointer;
+        text-align: left;
+    }
+    .pwd-toggle-chevron {
+        font-size: 0.65rem;
+        color: #9ca3af;
+        transition: transform 0.2s;
+        flex-shrink: 0;
+    }
+    .pwd-toggle-chevron.open { transform: rotate(180deg); }
+    .pwd-collapsible {
+        overflow: hidden;
+        transition: max-height 0.3s ease;
+        max-height: 0;
+    }
+    .pwd-collapsible.open { max-height: 500px; }
     .btn-pwd-submit {
         width: 100%;
         padding: 0.75rem 1rem;
@@ -94,6 +119,9 @@ const CardPassword = () => {
     const { register, handleSubmit, formState: { errors } } = useForm()
     const { user, updatePasswordProfile } = storeProfile()
     const { clearToken } = storeAuth()
+    const [open, setOpen] = useState(false)
+
+    const isAdmin = user?.rol === 'administrador'
 
     const updatePassword = async (data) => {
         const response = await updatePasswordProfile(data, user._id)
@@ -108,41 +136,59 @@ const CardPassword = () => {
             <ToastContainer />
             <div className="pwd-card">
                 <div className="pwd-header">
-                    <h2>Cambiar contraseña</h2>
-                    <p>Al guardar, se cerrará tu sesión automáticamente.</p>
-                </div>
-                <div className="pwd-body">
-                    <div className="pwd-warning">
-                        🔒 Por seguridad, deberás volver a iniciar sesión tras cambiar tu contraseña.
-                    </div>
-                    <form onSubmit={handleSubmit(updatePassword)} noValidate>
-                        <div className="pwd-field">
-                            <label className="pwd-label">Contraseña actual</label>
-                            <input
-                                type="password"
-                                placeholder="Ingresa tu contraseña actual"
-                                className="pwd-input"
-                                {...register("passwordActual", { required: "La contraseña actual es obligatoria" })}
-                            />
-                            {errors.passwordActual && <p className="pwd-error">⚠ {errors.passwordActual.message}</p>}
-                        </div>
-                        <div className="pwd-field">
-                            <label className="pwd-label">Nueva contraseña</label>
-                            <input
-                                type="password"
-                                placeholder="Mínimo 8 caracteres"
-                                className="pwd-input"
-                                {...register("passwordNuevo", {
-                                    required: "La nueva contraseña es obligatoria",
-                                    minLength: { value: 8, message: "Mínimo 8 caracteres" }
-                                })}
-                            />
-                            {errors.passwordNuevo && <p className="pwd-error">⚠ {errors.passwordNuevo.message}</p>}
-                        </div>
-                        <button type="submit" className="btn-pwd-submit">
-                            Cambiar contraseña
+                    {isAdmin ? (
+                        <button
+                            type="button"
+                            className="pwd-toggle"
+                            onClick={() => setOpen(o => !o)}
+                        >
+                            <div>
+                                <h2>Cambiar contraseña</h2>
+                                <p>Al guardar, se cerrará tu sesión automáticamente.</p>
+                            </div>
+                            <span className={`pwd-toggle-chevron${open ? ' open' : ''}`}>▼</span>
                         </button>
-                    </form>
+                    ) : (
+                        <>
+                            <h2>Cambiar contraseña</h2>
+                            <p>Al guardar, se cerrará tu sesión automáticamente.</p>
+                        </>
+                    )}
+                </div>
+                <div className={isAdmin ? `pwd-collapsible${open ? ' open' : ''}` : undefined}>
+                    <div className="pwd-body">
+                        <div className="pwd-warning">
+                            🔒 Por seguridad, deberás volver a iniciar sesión tras cambiar tu contraseña.
+                        </div>
+                        <form onSubmit={handleSubmit(updatePassword)} noValidate>
+                            <div className="pwd-field">
+                                <label className="pwd-label">Contraseña actual</label>
+                                <input
+                                    type="password"
+                                    placeholder="Ingresa tu contraseña actual"
+                                    className="pwd-input"
+                                    {...register("passwordActual", { required: "La contraseña actual es obligatoria" })}
+                                />
+                                {errors.passwordActual && <p className="pwd-error">⚠ {errors.passwordActual.message}</p>}
+                            </div>
+                            <div className="pwd-field">
+                                <label className="pwd-label">Nueva contraseña</label>
+                                <input
+                                    type="password"
+                                    placeholder="Mínimo 8 caracteres"
+                                    className="pwd-input"
+                                    {...register("passwordNuevo", {
+                                        required: "La nueva contraseña es obligatoria",
+                                        minLength: { value: 8, message: "Mínimo 8 caracteres" }
+                                    })}
+                                />
+                                {errors.passwordNuevo && <p className="pwd-error">⚠ {errors.passwordNuevo.message}</p>}
+                            </div>
+                            <button type="submit" className="btn-pwd-submit">
+                                Cambiar contraseña
+                            </button>
+                        </form>
+                    </div>
                 </div>
             </div>
         </>
