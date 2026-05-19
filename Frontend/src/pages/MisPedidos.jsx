@@ -362,7 +362,7 @@ const MisPedidos = () => {
                             <OrdenCard
                                 key={orden._id}
                                 orden={orden}
-                                index={(page - 1) * ITEMS_PER_PAGE + i}
+                                index={ordenes.length - 1 - ((page - 1) * ITEMS_PER_PAGE + i)}
                                 isVendedor={isVendedor}
                                 token={token}
                             />
