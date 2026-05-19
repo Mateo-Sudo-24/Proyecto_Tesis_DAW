@@ -1,6 +1,5 @@
 import { useState, useRef } from 'react'
 import { toast } from 'react-toastify'
-import MapaPicker from './MapaPicker.jsx'
 import useFetch from '../../hooks/useFetch.js'
 
 const IVA = 0.12
@@ -174,6 +173,46 @@ const modalStyles = `
     .op-input.error { border-color: #ef4444; }
     .op-error-msg { font-size: 0.68rem; color: #ef4444; }
 
+    /* ── Mapa collapsible ── */
+    .mop-mapa-toggle {
+        display: flex;
+        align-items: center;
+        gap: 0.5rem;
+        width: 100%;
+        padding: 0.65rem 1.25rem;
+        background: none;
+        border: none;
+        border-top: 1px solid var(--gray-200);
+        cursor: pointer;
+        font-size: 0.75rem;
+        font-weight: 700;
+        text-transform: uppercase;
+        letter-spacing: 0.06em;
+        color: var(--orange);
+        font-family: 'DM Sans', sans-serif;
+        transition: background 0.15s;
+    }
+    .mop-mapa-toggle:hover { background: var(--gray-50); }
+    .mop-mapa-chevron { margin-left: auto; font-size: 0.6rem; transition: transform 0.2s; }
+    .mop-mapa-chevron.open { transform: rotate(180deg); }
+    .mop-mapa-body {
+        overflow: hidden;
+        max-height: 0;
+        transition: max-height 0.3s ease;
+    }
+    .mop-mapa-body.open { max-height: 340px; }
+    .mop-mapa-iframe-wrap {
+        padding: 0.75rem 1.25rem 1rem;
+        border-top: 1px solid var(--gray-100);
+    }
+    .mop-mapa-iframe-wrap iframe {
+        width: 100%;
+        height: 260px;
+        border: 1.5px solid var(--gray-200);
+        border-radius: 0.625rem;
+        display: block;
+    }
+
     /* ── Items table ── */
     .mop-items-header {
         display: grid;
@@ -343,8 +382,8 @@ const ModalOrdenPago = ({
     const { fetchDataBackend } = useFetch()
     const [form, setForm] = useState({ nombre: '', apellido: '', ruc: '', email: '', telefono: '', direccion: '' })
     const [metodoPago, setMetodoPago] = useState('Transferencia Bancaria')
-    const [direccionDomicilio, setDireccionDomicilio] = useState('')
-    const [mapaAbierto, setMapaAbierto] = useState(false)
+    const [direccionDomicilio, setDireccionDomicilio] = useState('CAVA CORP — Almacenes Intex')
+    const [mapaVisible, setMapaVisible] = useState(false)
     const [isCreating, setIsCreating] = useState(false)
     const [loadingPdf, setLoadingPdf] = useState(false)
     const [errors, setErrors] = useState({})
@@ -489,30 +528,32 @@ const ModalOrdenPago = ({
                     {tipoEntrega === 'domicilio' && (
                         <div className="op-card">
                             <div className="op-section-title">📍 Dirección de entrega</div>
-                            <div style={{ padding: '0.875rem 1.25rem' }}>
-                                {direccionDomicilio ? (
-                                    <div style={{ background:'#f0fdf4', border:'1.5px solid #86efac', borderRadius:'0.6rem', padding:'0.6rem 1rem', fontSize:'0.875rem', color:'#166534', fontWeight:600, display:'flex', alignItems:'center', gap:'0.5rem' }}>
-                                        📍 <span style={{ flex:1 }}>{direccionDomicilio}</span>
-                                        <button
-                                            type="button"
-                                            onClick={() => setMapaAbierto(true)}
-                                            style={{ background:'none', border:'none', cursor:'pointer', fontSize:'0.75rem', fontWeight:700, color:'#e8760a', textDecoration:'underline', flexShrink:0 }}
-                                        >Cambiar</button>
-                                    </div>
-                                ) : (
-                                    <button
-                                        type="button"
-                                        onClick={() => setMapaAbierto(true)}
-                                        style={{ width:'100%', padding:'0.7rem 1rem', border:'2px dashed #d1d5db', borderRadius:'0.75rem', background:'#fafafa', color:'#374151', fontSize:'0.875rem', fontWeight:700, cursor:'pointer', display:'flex', alignItems:'center', justifyContent:'center', gap:'0.5rem', boxSizing:'border-box' }}
-                                    >
-                                        📍 Seleccionar dirección de entrega en el mapa
-                                    </button>
-                                )}
+                            <div style={{ padding: '0.875rem 1.25rem 0.5rem' }}>
+                                <div style={{ background:'#f0fdf4', border:'1.5px solid #86efac', borderRadius:'0.6rem', padding:'0.6rem 1rem', fontSize:'0.875rem', color:'#166534', fontWeight:600, display:'flex', alignItems:'center', gap:'0.5rem' }}>
+                                    📍 <span style={{ flex:1 }}>{direccionDomicilio}</span>
+                                </div>
                                 {errors.mapaDireccion && (
-                                    <span className="op-error-msg" style={{ display:'block', marginTop:'0.4rem' }}>
-                                        ⚠ {errors.mapaDireccion}
-                                    </span>
+                                    <span className="op-error-msg" style={{ display:'block', marginTop:'0.4rem' }}>⚠ {errors.mapaDireccion}</span>
                                 )}
+                            </div>
+                            <button
+                                type="button"
+                                className="mop-mapa-toggle"
+                                onClick={() => setMapaVisible(v => !v)}
+                            >
+                                🗺 Ver ubicación en el mapa
+                                <span className={`mop-mapa-chevron${mapaVisible ? ' open' : ''}`}>▼</span>
+                            </button>
+                            <div className={`mop-mapa-body${mapaVisible ? ' open' : ''}`}>
+                                <div className="mop-mapa-iframe-wrap">
+                                    <iframe
+                                        src="https://www.google.com/maps/embed?pb=!1m18!1m12!1m3!1d568.8202055531095!2d-78.5384308610558!3d-0.28916521175994486!2m3!1f0!2f0!3f0!3m2!1i1024!2i768!4f13.1!3m3!1m2!1s0x91d599ed7b9ee87b%3A0xa46e64b94018ff10!2sCAVA%20CORP!5e1!3m2!1ses-419!2sec!4v1779147118384!5m2!1ses-419!2sec"
+                                        allowFullScreen=""
+                                        loading="lazy"
+                                        referrerPolicy="no-referrer-when-downgrade"
+                                        title="Ubicación CAVA CORP"
+                                    />
+                                </div>
                             </div>
                         </div>
                     )}
@@ -688,16 +729,6 @@ const ModalOrdenPago = ({
                 </div>
             </div>
 
-            {/* Mapa */}
-            {mapaAbierto && (
-                <MapaPicker
-                    onSelect={(addr) => {
-                        setDireccionDomicilio(addr)
-                        setMapaAbierto(false)
-                    }}
-                    onClose={() => setMapaAbierto(false)}
-                />
-            )}
         </>
     )
 }
