@@ -37,21 +37,7 @@ const styles = `
         border: none;
     }
 
-    /* ── Compactar cards internas (moderado) ── */
-    .cpo-header, .cp-header {
-        padding: 1rem 1.25rem !important;
-        gap: 0.5rem !important;
-    }
-    .cpo-avatar, .cp-avatar {
-        width: 56px !important;
-        height: 56px !important;
-        font-size: 1.5rem !important;
-    }
-    .cpo-header-name, .cp-header-name { font-size: 0.95rem !important; }
-    .cpo-header-email, .cp-header-email { font-size: 0.75rem !important; }
-    .cpo-body { padding: 0.75rem 1.25rem !important; }
-    .cpo-row, .cp-row { padding: 0.4rem 0 !important; }
-    .cp-body { padding: 0.75rem 1.25rem !important; }
+
 
     .pwd-header, .prof-form-header {
         padding: 1rem 1.5rem !important;

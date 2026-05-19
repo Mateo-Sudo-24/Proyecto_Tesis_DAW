@@ -1,4 +1,3 @@
-import { useState } from 'react'
 import storeProfile from "../../context/storeProfile"
 
 const styles = `
@@ -108,7 +107,6 @@ const styles = `
 
 export const CardProfile = () => {
     const { user } = storeProfile()
-    const [showContact, setShowContact] = useState(false)
     const initial = user?.nombre ? user.nombre.charAt(0).toUpperCase() : 'U'
 
     return (
@@ -121,24 +119,6 @@ export const CardProfile = () => {
                     <p className="cp-header-email">{user?.email}</p>
                 </div>
                 <div className="cp-body">
-                    <button
-                        className="cp-toggle-btn"
-                        onClick={() => setShowContact(o => !o)}
-                        type="button"
-                    >
-                        📍 Dirección y Teléfono
-                        <span className={`cp-toggle-chevron${showContact ? ' open' : ''}`}>▼</span>
-                    </button>
-                    <div className={`cp-collapsible${showContact ? ' open' : ''}`}>
-                        <div className="cp-row">
-                            <span className="cp-row-label">Dirección</span>
-                            <p className="cp-row-value">{user?.direccion || <span className="cp-empty">Sin datos</span>}</p>
-                        </div>
-                        <div className="cp-row">
-                            <span className="cp-row-label">Teléfono</span>
-                            <p className="cp-row-value">{user?.celular || user?.telefono || <span className="cp-empty">Sin datos</span>}</p>
-                        </div>
-                    </div>
                     <div className="cp-row">
                         <span className="cp-row-label">Correo</span>
                         <p className="cp-row-value">{user?.email}</p>
