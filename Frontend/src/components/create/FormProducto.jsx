@@ -56,7 +56,7 @@ const fpStyles = `
         padding: 1rem;
     }
     .fp-img-toggle {
-        display: flex;
+        display: none;
         gap: 1.25rem;
         margin-bottom: 0.75rem;
     }
@@ -133,8 +133,10 @@ export const FormProducto = ({ productoToUpdate, onSuccess, onCancel }) => {
     const { register, handleSubmit, formState: { errors }, reset } = useForm();
     const [isSubmitting, setIsSubmitting] = useState(false);
     const [imagen, setImagen] = useState(null);
-    const [imagenUrl, setImagenUrl] = useState('');
-    const [metodoImagen, setMetodoImagen] = useState('archivo');
+    const imagenUrl = '';
+    const metodoImagen = 'archivo';
+    const setImagenUrl = () => {};
+    const setMetodoImagen = () => {};
     const [previewImagen, setPreviewImagen] = useState(null);
     const [categoriasOptions, setCategoriasOptions] = useState([]);
     const [selectedCategoria, setSelectedCategoria] = useState('');
@@ -180,8 +182,6 @@ export const FormProducto = ({ productoToUpdate, onSuccess, onCancel }) => {
             setSelectedCategoria(productoToUpdate.categoria || '');
             if (productoToUpdate.imagenUrl) {
                 setPreviewImagen(productoToUpdate.imagenUrl);
-                setMetodoImagen('url');
-                setImagenUrl(productoToUpdate.imagenUrl);
             }
         }
     }, [productoToUpdate, reset]);
@@ -193,13 +193,8 @@ export const FormProducto = ({ productoToUpdate, onSuccess, onCancel }) => {
             setIsSubmitting(false);
             return;
         }
-        if (!productoToUpdate && metodoImagen === 'archivo' && !imagen) {
+        if (!productoToUpdate && !imagen) {
             toast.error('Debes seleccionar una imagen');
-            setIsSubmitting(false);
-            return;
-        }
-        if (!productoToUpdate && metodoImagen === 'url' && !imagenUrl) {
-            toast.error('Debes ingresar una URL de imagen');
             setIsSubmitting(false);
             return;
         }
@@ -217,15 +212,11 @@ export const FormProducto = ({ productoToUpdate, onSuccess, onCancel }) => {
             }
 
             // Subir imagen a Cloudinary si se seleccionó archivo
-            let finalImagenUrl = imagenUrl;
+            let finalImagenUrl = productoToUpdate?.imagenUrl || '';
             let finalImagenId = productoToUpdate?.imagenID || '';
-            if (metodoImagen === 'archivo' && imagen) {
+            if (imagen) {
                 toast.info('Subiendo imagen...');
                 const { url: cloudUrl, publicId } = await editCloudinaryImage({ file: imagen });
-                finalImagenUrl = cloudUrl;
-                finalImagenId = publicId;
-            } else if (metodoImagen === 'url' && imagenUrl) {
-                const { url: cloudUrl, publicId } = await editCloudinaryImage({ url: imagenUrl });
                 finalImagenUrl = cloudUrl;
                 finalImagenId = publicId;
             }
