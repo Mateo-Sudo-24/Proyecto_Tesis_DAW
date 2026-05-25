@@ -5,6 +5,35 @@ import html2canvas from 'html2canvas';
 const IVA = 0.15;
 const fmt = (n) => `$${Number(n || 0).toFixed(2)}`;
 
+const normalizarItemsOrden = (orden) => {
+    const source = orden?.productoPedido ?? orden?.items ?? [];
+    return source.map((it) => ({
+        nombre: it.nombre ?? it.descripcion ?? it.producto?.nombre ?? 'Producto',
+        cantidad: Number(it.cantidad || 1),
+        precio: Number(it.precio ?? it.precioUnitario ?? it.producto?.precio ?? 0),
+    }));
+};
+
+const agregarCanvasPaginado = (pdf, canvas) => {
+    const pdfW = pdf.internal.pageSize.getWidth();
+    const pdfH = pdf.internal.pageSize.getHeight();
+    const imgH = canvas.height * (pdfW / canvas.width);
+    const imgData = canvas.toDataURL('image/png');
+
+    let remainingHeight = imgH;
+    let position = 0;
+
+    pdf.addImage(imgData, 'PNG', 0, position, pdfW, imgH);
+    remainingHeight -= pdfH;
+
+    while (remainingHeight > 0) {
+        position -= pdfH;
+        pdf.addPage();
+        pdf.addImage(imgData, 'PNG', 0, position, pdfW, imgH);
+        remainingHeight -= pdfH;
+    }
+};
+
 const tplStyles = `
     .fpdf-btn {
         padding: 0.6rem 1.25rem;
@@ -92,7 +121,7 @@ const FacturaPDF = ({ orden, facturacion, label = '📄 Descargar factura' }) =>
     const [loading, setLoading] = useState(false);
     const pdfRef = useRef(null);
 
-    const items = orden?.productoPedido || [];
+    const items = normalizarItemsOrden(orden);
     const subtotal = orden?.precioTotal ?? items.reduce((s, it) => s + ((it.precio || 0) * (it.cantidad || 1)), 0);
     const iva = subtotal * IVA;
     const total = subtotal + iva;
@@ -102,6 +131,8 @@ const FacturaPDF = ({ orden, facturacion, label = '📄 Descargar factura' }) =>
         : `${orden?.cliente?.nombre || ''} ${orden?.cliente?.apellido || ''}`.trim();
     const correoCliente = facturacion?.correo || orden?.cliente?.email || '';
     const direccionCliente = facturacion?.direccion || orden?.direccionEnvio?.direccion || '';
+    const rucCliente = facturacion?.ruc || orden?.datosFacturacion?.ruc || '';
+    const telefonoCliente = facturacion?.telefono || orden?.datosFacturacion?.telefono || '';
 
     const fechaDoc = new Date(orden?.createdAt || Date.now()).toLocaleDateString('es-EC', {
         year: 'numeric', month: 'long', day: 'numeric',
@@ -128,10 +159,7 @@ const FacturaPDF = ({ orden, facturacion, label = '📄 Descargar factura' }) =>
             el.style.visibility = 'visible';
 
             const pdf = new jsPDF({ unit: 'px', format: 'a4', orientation: 'portrait' });
-            const pdfW = pdf.internal.pageSize.getWidth();
-            const ratio = pdfW / canvas.width;
-            const imgH = canvas.height * ratio;
-            pdf.addImage(canvas.toDataURL('image/png'), 'PNG', 0, 0, pdfW, imgH);
+            agregarCanvasPaginado(pdf, canvas);
             pdf.save(`factura-${numeroOrden}.pdf`);
         } catch (err) {
             console.error('Error generando PDF:', err);
@@ -156,7 +184,7 @@ const FacturaPDF = ({ orden, facturacion, label = '📄 Descargar factura' }) =>
                         <div className="fpdf-brand-sub">Textiles</div>
                     </div>
                     <div>
-                        <div className="fpdf-doc-title">Orden de Pago</div>
+                        <div className="fpdf-doc-title">Factura</div>
                         <div className="fpdf-doc-num">#{numeroOrden}</div>
                         <div className="fpdf-doc-date">{fechaDoc}</div>
                     </div>
@@ -177,7 +205,9 @@ const FacturaPDF = ({ orden, facturacion, label = '📄 Descargar factura' }) =>
                         <div className="fpdf-party-label">Facturar a</div>
                         <div className="fpdf-party-name">{nombreCliente || '—'}</div>
                         <div className="fpdf-party-detail">
+                            {rucCliente && <>RUC/CI: {rucCliente}<br /></>}
                             {correoCliente && <>{correoCliente}<br /></>}
+                            {telefonoCliente && <>{telefonoCliente}<br /></>}
                             {direccionCliente && <>{direccionCliente}</>}
                         </div>
                     </div>
@@ -196,10 +226,10 @@ const FacturaPDF = ({ orden, facturacion, label = '📄 Descargar factura' }) =>
                     <tbody>
                         {items.length > 0 ? items.map((it, i) => (
                             <tr key={i}>
-                                <td>{it.nombre || it.descripcion || 'Producto'}</td>
+                                <td>{it.nombre}</td>
                                 <td>{it.cantidad}</td>
-                                <td>{fmt(it.precio || it.precioUnitario)}</td>
-                                <td>{fmt((it.precio || it.precioUnitario || 0) * (it.cantidad || 1))}</td>
+                                <td>{fmt(it.precio)}</td>
+                                <td>{fmt(it.precio * it.cantidad)}</td>
                             </tr>
                         )) : (
                             <tr>

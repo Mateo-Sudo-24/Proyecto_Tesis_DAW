@@ -1,7 +1,8 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useForm } from 'react-hook-form';
 import { toast, ToastContainer } from 'react-toastify';
+import { editCloudinaryImage, getPreviewUrl, revokePreviewUrl, checkDuplicateProductName } from '../../services/cloudinary';
 
 const fpStyles = `
     :root {
@@ -10,7 +11,8 @@ const fpStyles = `
         --orange-light: #fde8ce;
         --orange-border: #f0943a;
     }
-    .fp-form { width: 100%; }
+    .fp-form { width: 100%; min-height: 60vh; display: flex; flex-direction: column; }
+    .fp-form-body { flex: 1; overflow-y: auto; }
     .fp-grid-2 {
         display: grid;
         grid-template-columns: 1fr 1fr;
@@ -132,12 +134,19 @@ export const FormProducto = ({ productoToUpdate, onSuccess, onCancel }) => {
     const [isSubmitting, setIsSubmitting] = useState(false);
     const [imagen, setImagen] = useState(null);
     const [imagenUrl, setImagenUrl] = useState('');
-    const [metodoImagen, setMetodoImagen] = useState('url');
+    const [metodoImagen, setMetodoImagen] = useState('archivo');
     const [previewImagen, setPreviewImagen] = useState(null);
     const [categoriasOptions, setCategoriasOptions] = useState([]);
     const [selectedCategoria, setSelectedCategoria] = useState('');
+    const fileInputRef = useRef(null);
+    const previewBlobRef = useRef(null);
 
     const token = JSON.parse(localStorage.getItem('auth-token'))?.state?.token;
+
+    // Revoke blob preview on unmount
+    useEffect(() => {
+        return () => { if (previewBlobRef.current) revokePreviewUrl(previewBlobRef.current); };
+    }, []);
 
     useEffect(() => {
         const fetchCategorias = async () => {
@@ -169,7 +178,11 @@ export const FormProducto = ({ productoToUpdate, onSuccess, onCancel }) => {
                 etiquetas: productoToUpdate.etiquetas?.join(', ') || ''
             });
             setSelectedCategoria(productoToUpdate.categoria || '');
-            if (productoToUpdate.imagenUrl) setPreviewImagen(productoToUpdate.imagenUrl);
+            if (productoToUpdate.imagenUrl) {
+                setPreviewImagen(productoToUpdate.imagenUrl);
+                setMetodoImagen('url');
+                setImagenUrl(productoToUpdate.imagenUrl);
+            }
         }
     }, [productoToUpdate, reset]);
 
@@ -181,7 +194,7 @@ export const FormProducto = ({ productoToUpdate, onSuccess, onCancel }) => {
             return;
         }
         if (!productoToUpdate && metodoImagen === 'archivo' && !imagen) {
-            toast.error('Debes cargar una imagen o proporcionar URL');
+            toast.error('Debes seleccionar una imagen');
             setIsSubmitting(false);
             return;
         }
@@ -191,6 +204,32 @@ export const FormProducto = ({ productoToUpdate, onSuccess, onCancel }) => {
             return;
         }
         try {
+            const isEdit = Boolean(productoToUpdate?._id);
+
+            // Verificar duplicado por nombre (solo al crear)
+            if (!isEdit) {
+                const isDuplicate = await checkDuplicateProductName(data.nombre, token);
+                if (isDuplicate) {
+                    toast.error('Ya existe un producto con ese nombre');
+                    setIsSubmitting(false);
+                    return;
+                }
+            }
+
+            // Subir imagen a Cloudinary si se seleccionó archivo
+            let finalImagenUrl = imagenUrl;
+            let finalImagenId = productoToUpdate?.imagenID || '';
+            if (metodoImagen === 'archivo' && imagen) {
+                toast.info('Subiendo imagen...');
+                const { url: cloudUrl, publicId } = await editCloudinaryImage({ file: imagen });
+                finalImagenUrl = cloudUrl;
+                finalImagenId = publicId;
+            } else if (metodoImagen === 'url' && imagenUrl) {
+                const { url: cloudUrl, publicId } = await editCloudinaryImage({ url: imagenUrl });
+                finalImagenUrl = cloudUrl;
+                finalImagenId = publicId;
+            }
+
             const formData = new FormData();
             formData.append('nombre', data.nombre);
             formData.append('descripcion', data.descripcion);
@@ -202,10 +241,9 @@ export const FormProducto = ({ productoToUpdate, onSuccess, onCancel }) => {
             formData.append('estado', data.estado);
             const etiquetas = data.etiquetas ? data.etiquetas.split(',').map(e => e.trim()).filter(Boolean) : [];
             formData.append('etiquetas', JSON.stringify(etiquetas));
-            if (metodoImagen === 'archivo' && imagen) formData.append('imagen', imagen);
-            else if (metodoImagen === 'url' && imagenUrl) formData.append('imagenUrl', imagenUrl);
+            if (finalImagenUrl) formData.append('imagenUrl', finalImagenUrl);
+            if (finalImagenId) formData.append('imagenID', finalImagenId);
 
-            const isEdit = Boolean(productoToUpdate?._id);
             const url = isEdit
                 ? `${import.meta.env.VITE_BACKEND_URL}/productos/${productoToUpdate._id}`
                 : `${import.meta.env.VITE_BACKEND_URL}/productos`;
@@ -237,10 +275,12 @@ export const FormProducto = ({ productoToUpdate, onSuccess, onCancel }) => {
     const handleArchivoChange = (e) => {
         const file = e.target.files?.[0];
         if (file) {
+            // Revoke old blob URL if any
+            if (previewBlobRef.current) revokePreviewUrl(previewBlobRef.current);
             setImagen(file);
-            const reader = new FileReader();
-            reader.onload = (ev) => setPreviewImagen(ev.target.result);
-            reader.readAsDataURL(file);
+            const blobUrl = getPreviewUrl(file);
+            previewBlobRef.current = blobUrl;
+            setPreviewImagen(blobUrl);
         }
     };
 
@@ -254,6 +294,7 @@ export const FormProducto = ({ productoToUpdate, onSuccess, onCancel }) => {
             <style>{fpStyles}</style>
             {!onCancel && <ToastContainer />}
             <form onSubmit={handleSubmit(onSubmit)} className="fp-form" noValidate>
+            <div className="fp-form-body">
                 {/* Nombre */}
                 <div className="fp-field">
                     <label className="fp-label">Nombre del producto *</label>
@@ -373,15 +414,13 @@ export const FormProducto = ({ productoToUpdate, onSuccess, onCancel }) => {
                 <div className="fp-field">
                     <label className="fp-label">Imagen {!productoToUpdate && '*'}</label>
                     <div className="fp-img-section">
-                        {/* Opción de subir archivo deshabilitada temporalmente — solo Cloudinary URL */}
-                        {/*
                         <div className="fp-img-toggle">
                             <label className="fp-img-option">
                                 <input
                                     type="radio"
                                     value="archivo"
                                     checked={metodoImagen === 'archivo'}
-                                    onChange={() => { setMetodoImagen('archivo'); setImagenUrl(''); }}
+                                    onChange={() => { setMetodoImagen('archivo'); setImagenUrl(''); setPreviewImagen(null); }}
                                 />
                                 📤 Subir archivo
                             </label>
@@ -395,17 +434,32 @@ export const FormProducto = ({ productoToUpdate, onSuccess, onCancel }) => {
                                 🔗 URL de imagen
                             </label>
                         </div>
-                        */}
-                        <>
-                            <input
-                                type="url"
-                                placeholder="https://res.cloudinary.com/..."
-                                className="fp-input"
-                                value={imagenUrl}
-                                onChange={e => { setImagenUrl(e.target.value); setPreviewImagen(e.target.value); }}
-                            />
-                            <p className="fp-img-hint">🔗 Solo URLs de Cloudinary — ej: https://res.cloudinary.com/tu-cloud/image/upload/...</p>
-                        </>
+
+                        {metodoImagen === 'archivo' ? (
+                            <>
+                                <input
+                                    ref={fileInputRef}
+                                    type="file"
+                                    accept="image/*"
+                                    className="fp-input"
+                                    onChange={handleArchivoChange}
+                                    style={{ paddingTop: '0.45rem' }}
+                                />
+                                <p className="fp-img-hint">📤 Se subirá a Cloudinary al guardar. Formatos: JPG, PNG, WebP.</p>
+                            </>
+                        ) : (
+                            <>
+                                <input
+                                    type="url"
+                                    placeholder="https://res.cloudinary.com/..."
+                                    className="fp-input"
+                                    value={imagenUrl}
+                                    onChange={e => { setImagenUrl(e.target.value); setPreviewImagen(e.target.value); }}
+                                />
+                                <p className="fp-img-hint">🔗 URL pública de imagen (Cloudinary recomendado)</p>
+                            </>
+                        )}
+
                         {previewImagen && (
                             <div className="fp-preview">
                                 <img src={previewImagen} alt="Vista previa" onError={() => setPreviewImagen(null)} />
@@ -413,6 +467,7 @@ export const FormProducto = ({ productoToUpdate, onSuccess, onCancel }) => {
                         )}
                     </div>
                 </div>
+            </div>{/* fp-form-body */}
 
                 {/* Acciones */}
                 <div className="fp-actions">

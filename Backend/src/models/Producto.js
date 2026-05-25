@@ -19,11 +19,17 @@ const productoSchema = new Schema({
     precio: {
         type: Number,
         required: true,
+        min: [0, 'El precio no puede ser negativo.'],
         default: 0
     },
     stock: {
         type: Number,
         required: true,
+        min: [0, 'El stock no puede ser negativo.'],
+        validate: {
+            validator: Number.isInteger,
+            message: 'El stock debe ser un numero entero.'
+        },
         default: 0
     },
     // --- CAMPOS DE IMAGEN CORREGIDOS ---
@@ -42,6 +48,7 @@ const productoSchema = new Schema({
     descuento: {
         type: Number,
         required: true,
+        min: [0, 'El descuento no puede ser negativo.'],
         default: 0
     },
     color: {
@@ -55,6 +62,8 @@ const productoSchema = new Schema({
     },
     calificacionPromedio: {
         type: Number,
+        min: [0, 'La calificacion no puede ser negativa.'],
+        max: [5, 'La calificacion no puede ser mayor que 5.'],
         default: 0
     },
     etiquetas: [{

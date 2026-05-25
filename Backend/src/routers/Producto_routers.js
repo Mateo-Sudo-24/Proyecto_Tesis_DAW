@@ -4,6 +4,7 @@ import {
   actualizarProducto,
   listarProducto,
   eliminarProducto,
+  eliminarImagenProducto,
   detalleProducto,
   detalleProductoEditable,
   productosRecientes,
@@ -60,6 +61,9 @@ router.put('/:id', verificarTokenJWT, esVendedor, actualizarProducto);
 
 // DELETE /api/productos/:id -> Eliminar un producto
 router.delete('/:id', verificarTokenJWT, esVendedor, eliminarProducto);
+
+// DELETE /api/productos/:id/imagen -> Eliminar solo la imagen del producto
+router.delete('/:id/imagen', verificarTokenJWT, esVendedor, eliminarImagenProducto);
 
 
 export default router;

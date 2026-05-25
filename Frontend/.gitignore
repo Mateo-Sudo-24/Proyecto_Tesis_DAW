@@ -1,5 +1,6 @@
 node_modules/
 .env
+.evn.local
 
 # Tests
 src/tests/

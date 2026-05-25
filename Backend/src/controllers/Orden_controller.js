@@ -8,6 +8,19 @@ import Vendedor from '../models/Vendedor.js';
 import mongoose from "mongoose";
 import stripe from '../config/stripe.js';
 
+const limpiarTexto = (valor) => String(valor ?? '').trim();
+const soloDigitos = (valor) => String(valor ?? '').replace(/\D/g, '');
+const flujoManualOrden = ['pagado', 'procesando', 'listo', 'entregado'];
+const validarAvanceManualOrden = (estadoActualRaw, estadoSiguiente) => {
+    const estadoActual = estadoActualRaw === 'pendiente' ? 'pagado' : estadoActualRaw;
+    const indiceActual = flujoManualOrden.indexOf(estadoActual);
+    const indiceSiguiente = flujoManualOrden.indexOf(estadoSiguiente);
+
+    return ['procesando', 'listo', 'entregado'].includes(estadoSiguiente)
+        && indiceActual !== -1
+        && indiceSiguiente === indiceActual + 1;
+};
+
 // ─── Helper: crear notificación de pago para todos los admins ───────────────
 const crearNotificacionPago = async (orden) => {
     try {
@@ -67,7 +80,7 @@ const crearNotificacionConfirmacionVendedores = async (orden) => {
 // Crear una nueva orden
 const registrarOrden = async (req, res) => {
     const clienteId = req.usuario._id;
-    const { direccionEnvio, metodoPago, tipoEntrega } = req.body;
+    const { direccionEnvio, metodoPago, tipoEntrega, datosFacturacion } = req.body;
 
     // --- ¡VALIDACIÓN AÑADIDA! ---
     // Verificar que direccionEnvio sea un objeto antes de continuar.
@@ -101,6 +114,17 @@ const registrarOrden = async (req, res) => {
             };
         });
         
+        const datosFacturacionLimpios = datosFacturacion && typeof datosFacturacion === 'object'
+            ? {
+                nombre: limpiarTexto(datosFacturacion.nombre),
+                apellido: limpiarTexto(datosFacturacion.apellido),
+                correo: limpiarTexto(datosFacturacion.correo).toLowerCase(),
+                direccion: limpiarTexto(datosFacturacion.direccion),
+                ruc: soloDigitos(datosFacturacion.ruc),
+                telefono: soloDigitos(datosFacturacion.telefono),
+            }
+            : undefined;
+
         const orden = new Orden({
             cliente: clienteId,
             productoPedido: productosPedido,
@@ -108,6 +132,7 @@ const registrarOrden = async (req, res) => {
             metodoPago,
             precioTotal,
             tipoEntrega: tipoEntrega || 'domicilio',
+            datosFacturacion: datosFacturacionLimpios,
         });
         
         await orden.save();
@@ -214,7 +239,12 @@ const actualizarEstadoOrden = async (req, res) => {
         orden.estadoEnvio = estadoEnvio;
         orden.fechaEnvio = estadoEnvio ? new Date() : null;
       }
-      if (estadoOrden) orden.estadoOrden = estadoOrden;
+      if (estadoOrden) {
+        if (!validarAvanceManualOrden(orden.estadoOrden, estadoOrden)) {
+          return res.status(400).json({ msg: "El estado de la orden solo puede avanzar al siguiente paso: procesando, listo, entregado." });
+        }
+        orden.estadoOrden = estadoOrden;
+      }
     }
     // VENDEDOR: Solo puede actualizar estadoEnvio y estadoOrden (envío)
     else if (rol === 'vendedor') {
@@ -226,9 +256,9 @@ const actualizarEstadoOrden = async (req, res) => {
         orden.fechaEnvio = estadoEnvio ? new Date() : null;
       }
       if (estadoOrden) {
-        // Vendedor gestiona manualmente todo el flujo de la orden
-        if (!['procesando', 'enviado', 'entregado'].includes(estadoOrden)) {
-          return res.status(403).json({ msg: "Los vendedores solo pueden actualizar a estados: 'procesando', 'enviado', 'entregado'." });
+        // Vendedor gestiona manualmente el flujo pagado -> procesando -> listo -> entregado.
+        if (!validarAvanceManualOrden(orden.estadoOrden, estadoOrden)) {
+          return res.status(400).json({ msg: "El estado de la orden solo puede avanzar al siguiente paso: procesando, listo, entregado." });
         }
         orden.estadoOrden = estadoOrden;
       }
@@ -417,7 +447,7 @@ const procesarPagoOrden = async (req, res) => {
         }
 
         // ─── Métodos que no requieren pasarela externa ───────────────────────
-        const metodosInmediatos = ['Transferencia Bancaria', 'Efectivo', 'Contra Entrega', 'PayPal'];
+        const metodosInmediatos = ['Transferencia Bancaria', 'Efectivo', 'Contra Entrega', 'PayPal', 'De Una'];
         if (metodosInmediatos.includes(orden.metodoPago)) {
             orden.estadoPago = true;
             orden.estadoOrden = 'pagado';

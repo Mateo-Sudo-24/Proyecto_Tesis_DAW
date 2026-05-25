@@ -1,9 +1,80 @@
-import { useState, useRef } from 'react'
+import { useEffect, useState, useRef } from 'react'
 import { toast } from 'react-toastify'
 import useFetch from '../../hooks/useFetch.js'
+import storeProfile from '../../context/storeProfile'
+import deUnaQr from '../../assets/qr.jpeg'
 
 const IVA = 0.12
 const fmt = (n) => `$${Number(n).toFixed(2)}`
+const CAVA_COORDS = [-0.28916521175994486, -78.5384308610558]
+const LEAFLET_CSS_ID = 'leaflet-css'
+const LEAFLET_SCRIPT_ID = 'leaflet-js'
+const limpiarTexto = (value) => String(value ?? '').trim()
+const soloDigitos = (value) => String(value ?? '').replace(/\D/g, '')
+const numeroSeguro = (value) => {
+    const number = Number(value)
+    return Number.isFinite(number) ? number : 0
+}
+
+const metodosCliente = [
+    { value: 'Stripe', label: 'Tarjeta', helper: 'Pago con tarjeta mediante pasarela segura.' },
+    { value: 'De Una', label: 'De Una', helper: 'Escanea el QR y confirma tu pago.' },
+]
+
+const metodosVendedor = [
+    { value: 'Transferencia Bancaria', label: 'Transferencia', helper: 'Registra una transferencia bancaria.' },
+    { value: 'Efectivo', label: 'Efectivo', helper: 'Pago manual recibido por vendedor.' },
+    { value: 'De Una', label: 'De Una', helper: 'Pago con QR para confirmar la compra.' },
+]
+
+const cargarLeaflet = () => new Promise((resolve, reject) => {
+    if (window.L) {
+        resolve(window.L)
+        return
+    }
+
+    if (!document.getElementById(LEAFLET_CSS_ID)) {
+        const link = document.createElement('link')
+        link.id = LEAFLET_CSS_ID
+        link.rel = 'stylesheet'
+        link.href = 'https://unpkg.com/leaflet@1.9.4/dist/leaflet.css'
+        document.head.appendChild(link)
+    }
+
+    const existingScript = document.getElementById(LEAFLET_SCRIPT_ID)
+    if (existingScript) {
+        existingScript.addEventListener('load', () => resolve(window.L), { once: true })
+        existingScript.addEventListener('error', reject, { once: true })
+        return
+    }
+
+    const script = document.createElement('script')
+    script.id = LEAFLET_SCRIPT_ID
+    script.src = 'https://unpkg.com/leaflet@1.9.4/dist/leaflet.js'
+    script.onload = () => resolve(window.L)
+    script.onerror = reject
+    document.body.appendChild(script)
+})
+
+const agregarCanvasPaginado = (pdf, canvas) => {
+    const pdfW = pdf.internal.pageSize.getWidth()
+    const pdfH = pdf.internal.pageSize.getHeight()
+    const imgH = canvas.height * (pdfW / canvas.width)
+    const imgData = canvas.toDataURL('image/png')
+
+    let remainingHeight = imgH
+    let position = 0
+
+    pdf.addImage(imgData, 'PNG', 0, position, pdfW, imgH)
+    remainingHeight -= pdfH
+
+    while (remainingHeight > 0) {
+        position -= pdfH
+        pdf.addPage()
+        pdf.addImage(imgData, 'PNG', 0, position, pdfW, imgH)
+        remainingHeight -= pdfH
+    }
+}
 
 const modalStyles = `
     @import url('https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;700&family=DM+Mono:wght@400;500&display=swap');
@@ -101,12 +172,19 @@ const modalStyles = `
     /* ── Scrollable body ── */
     .mop-body {
         flex: 1;
+        min-height: 0;
+        max-height: calc(92vh - 142px);
         overflow-y: auto;
+        overscroll-behavior: contain;
         padding: 1.25rem;
         display: flex;
         flex-direction: column;
         gap: 1rem;
     }
+    .mop-body::-webkit-scrollbar { width: 10px; }
+    .mop-body::-webkit-scrollbar-track { background: var(--gray-100); }
+    .mop-body::-webkit-scrollbar-thumb { background: #d1d5db; border-radius: 999px; border: 2px solid var(--gray-100); }
+    .mop-body::-webkit-scrollbar-thumb:hover { background: var(--gray-400); }
 
     /* ── Footer ── */
     .mop-footer {
@@ -172,6 +250,43 @@ const modalStyles = `
     }
     .op-input.error { border-color: #ef4444; }
     .op-error-msg { font-size: 0.68rem; color: #ef4444; }
+    .op-pay-grid {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+        gap: 0.75rem;
+        padding: 0.875rem 1.25rem;
+    }
+    .op-pay-card {
+        border: 1.5px solid var(--gray-200);
+        border-radius: 0.75rem;
+        background: var(--gray-50);
+        padding: 0.85rem;
+        cursor: pointer;
+        text-align: left;
+        transition: border-color 0.15s, box-shadow 0.15s, background 0.15s;
+    }
+    .op-pay-card:hover { border-color: var(--orange); background: #fff; }
+    .op-pay-card.active {
+        border-color: var(--orange);
+        background: #fff7ed;
+        box-shadow: 0 0 0 3px rgba(232,118,10,0.12);
+    }
+    .op-pay-title { display: block; font-size: 0.86rem; font-weight: 800; color: var(--gray-900); margin-bottom: 0.25rem; }
+    .op-pay-helper { display: block; font-size: 0.72rem; line-height: 1.35; color: var(--gray-600); }
+    .op-qr-box {
+        margin: 0 1.25rem 1rem;
+        border: 1.5px solid var(--gray-200);
+        border-radius: 0.875rem;
+        background: #fff;
+        padding: 1rem;
+        display: grid;
+        grid-template-columns: 140px 1fr;
+        gap: 1rem;
+        align-items: center;
+    }
+    .op-qr-box img { width: 140px; height: 140px; object-fit: contain; border-radius: 0.5rem; border: 1px solid var(--gray-100); }
+    .op-qr-box strong { display: block; color: var(--gray-900); margin-bottom: 0.35rem; }
+    .op-qr-box p { margin: 0; color: var(--gray-600); font-size: 0.8rem; line-height: 1.45; }
 
     /* ── Mapa collapsible ── */
     .mop-mapa-toggle {
@@ -212,6 +327,14 @@ const modalStyles = `
         border-radius: 0.625rem;
         display: block;
     }
+    .mop-map-canvas {
+        width: 100%;
+        height: 260px;
+        border: 1.5px solid var(--gray-200);
+        border-radius: 0.625rem;
+        overflow: hidden;
+        background: var(--gray-100);
+    }
 
     /* ── Items table ── */
     .mop-items-header {
@@ -240,6 +363,10 @@ const modalStyles = `
         font-size: 0.82rem;
     }
     .mop-item-row:last-child { border-bottom: none; }
+    .mop-items-scroll {
+        max-height: 260px;
+        overflow-y: auto;
+    }
 
     /* ── Totals ── */
     .op-totales {
@@ -380,14 +507,19 @@ const ModalOrdenPago = ({
     onNeedStripe,
 }) => {
     const { fetchDataBackend } = useFetch()
+    const { user } = storeProfile()
     const [form, setForm] = useState({ nombre: '', apellido: '', ruc: '', email: '', telefono: '', direccion: '' })
-    const [metodoPago, setMetodoPago] = useState('Transferencia Bancaria')
+    const isVendedor = user?.rol === 'vendedor'
+    const metodosPago = isVendedor ? metodosVendedor : metodosCliente
+    const [metodoPago, setMetodoPago] = useState(metodosPago[0].value)
     const [direccionDomicilio, setDireccionDomicilio] = useState('CAVA CORP — Almacenes Intex')
     const [mapaVisible, setMapaVisible] = useState(false)
     const [isCreating, setIsCreating] = useState(false)
     const [loadingPdf, setLoadingPdf] = useState(false)
     const [errors, setErrors] = useState({})
     const pdfRef = useRef(null)
+    const mapContainerRef = useRef(null)
+    const leafletMapRef = useRef(null)
 
     const iva = subtotalCart * IVA
     const total = subtotalCart + iva
@@ -395,18 +527,75 @@ const ModalOrdenPago = ({
     const numeroOrden = `OP-${String(Date.now()).slice(-6)}`
     const fechaHoy = new Date().toLocaleDateString('es-EC', { year: 'numeric', month: 'long', day: 'numeric' })
 
+    useEffect(() => {
+        if (!metodosPago.some((m) => m.value === metodoPago)) {
+            setMetodoPago(metodosPago[0].value)
+        }
+    }, [metodoPago, metodosPago])
+
     const handleForm = (e) => {
-        setForm(f => ({ ...f, [e.target.name]: e.target.value }))
-        setErrors(er => ({ ...er, [e.target.name]: '' }))
+        const { name, value } = e.target
+        const nextValue = ['ruc', 'telefono'].includes(name) ? soloDigitos(value) : String(value ?? '')
+        setForm(f => ({ ...f, [name]: nextValue }))
+        setErrors(er => ({ ...er, [name]: '' }))
     }
+
+    useEffect(() => {
+        if (!mapaVisible || !mapContainerRef.current) return
+
+        let cancelled = false
+
+        cargarLeaflet()
+            .then((L) => {
+                if (cancelled || !mapContainerRef.current) return
+
+                if (!leafletMapRef.current) {
+                    leafletMapRef.current = L.map(mapContainerRef.current, {
+                        scrollWheelZoom: false,
+                    }).setView(CAVA_COORDS, 17)
+
+                    L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+                        maxZoom: 19,
+                        attribution: '&copy; OpenStreetMap',
+                    }).addTo(leafletMapRef.current)
+
+                    L.marker(CAVA_COORDS)
+                        .addTo(leafletMapRef.current)
+                        .bindPopup('CAVA CORP - Almacenes Intex')
+                        .openPopup()
+                }
+
+                setTimeout(() => leafletMapRef.current?.invalidateSize(), 80)
+            })
+            .catch(() => {
+                toast.error('No se pudo cargar el mapa con Leaflet.')
+            })
+
+        return () => {
+            cancelled = true
+        }
+    }, [mapaVisible])
 
     const validate = () => {
         const errs = {}
-        if (!form.nombre.trim())   errs.nombre   = 'Requerido'
-        if (!form.apellido.trim()) errs.apellido  = 'Requerido'
-        if (!form.ruc.trim())      errs.ruc       = 'Requerido'
-        if (!form.email.trim())    errs.email     = 'Requerido'
+        const soloLetras = /^[A-Za-zÁÉÍÓÚáéíóúÑñ\s]{2,}$/
+        const emailValido = /^[^\s@]+@[^\s@]+\.[^\s@]+$/
+        const documentoValido = /^(\d{10}|\d{13})$/
+        const telefonoValido = /^0\d{8,9}$/
+        const itemsValidos = cartItems.every((it) => {
+            const cantidad = Number(it?.cantidad)
+            const precio = Number(it?.producto?.precio)
+            return Number.isInteger(cantidad) && cantidad > 0 && Number.isFinite(precio) && precio >= 0
+        })
+
+        if (!soloLetras.test(form.nombre.trim()))   errs.nombre   = 'Ingresa al menos 2 letras'
+        if (!soloLetras.test(form.apellido.trim())) errs.apellido  = 'Ingresa al menos 2 letras'
+        if (!documentoValido.test(form.ruc.trim())) errs.ruc       = 'Usa cédula de 10 dígitos o RUC de 13'
+        if (!emailValido.test(form.email.trim()))   errs.email     = 'Correo inválido'
+        if (form.telefono.trim() && !telefonoValido.test(form.telefono.trim())) errs.telefono = 'Teléfono inválido'
+        if (!form.direccion.trim()) errs.direccion = 'Ingresa la dirección de facturación'
         if (tipoEntrega === 'domicilio' && !direccionDomicilio) errs.mapaDireccion = 'Selecciona tu dirección en el mapa'
+        if (!itemsValidos) errs.items = 'Hay productos con cantidad o precio invalido'
         setErrors(errs)
         return Object.keys(errs).length === 0
     }
@@ -425,9 +614,7 @@ const ModalOrdenPago = ({
             el.style.left = '-9999px'
             el.style.visibility = 'visible'
             const pdf = new jsPDF({ unit: 'px', format: 'a4', orientation: 'portrait' })
-            const pdfW = pdf.internal.pageSize.getWidth()
-            const ratio = pdfW / canvas.width
-            pdf.addImage(canvas.toDataURL('image/png'), 'PNG', 0, 0, pdfW, canvas.height * ratio)
+            agregarCanvasPaginado(pdf, canvas)
             pdf.save(`orden-pago-${Date.now()}.pdf`)
         } catch (err) {
             console.error(err)
@@ -440,21 +627,28 @@ const ModalOrdenPago = ({
         if (!validate()) return
         setIsCreating(true)
 
+        const datosFacturacion = {
+            nombre: limpiarTexto(form.nombre),
+            apellido: limpiarTexto(form.apellido),
+            correo: limpiarTexto(form.email).toLowerCase(),
+            direccion: limpiarTexto(form.direccion || direccionDomicilio),
+            ruc: soloDigitos(form.ruc),
+            telefono: soloDigitos(form.telefono),
+        }
+
         const direccionEnvio = tipoEntrega === 'domicilio'
-            ? { direccion: direccionDomicilio, ciudad: 'N/A', provincia: 'N/A', codigoPostal: '000000', pais: 'Ecuador' }
+            ? { direccion: limpiarTexto(direccionDomicilio), ciudad: 'N/A', provincia: 'N/A', codigoPostal: '000000', pais: 'Ecuador' }
             : { direccion: 'Retiro en almacenes' + (form.direccion ? ' — ' + form.direccion : ''), ciudad: 'N/A', provincia: 'N/A', codigoPostal: '000000', pais: 'Ecuador' }
+
+        if (tipoEntrega === 'retiro') {
+            direccionEnvio.direccion = `Retiro en almacenes - ${datosFacturacion.direccion}`
+        }
 
         const orderData = {
             direccionEnvio,
-            metodoPago,
-            tipoEntrega,
-            datosFacturacion: {
-                nombre: form.nombre,
-                apellido: form.apellido,
-                correo: form.email,
-                direccion: form.direccion || direccionDomicilio,
-                ruc: form.ruc,
-            },
+            metodoPago: limpiarTexto(metodoPago),
+            tipoEntrega: limpiarTexto(tipoEntrega),
+            datosFacturacion,
         }
 
         const response = await fetchDataBackend(
@@ -495,6 +689,8 @@ const ModalOrdenPago = ({
                 apellido: form.apellido,
                 correo: form.email,
                 direccion: form.direccion || direccionDomicilio,
+                ruc: form.ruc,
+                telefono: form.telefono,
             })
         }
     }
@@ -546,12 +742,10 @@ const ModalOrdenPago = ({
                             </button>
                             <div className={`mop-mapa-body${mapaVisible ? ' open' : ''}`}>
                                 <div className="mop-mapa-iframe-wrap">
-                                    <iframe
-                                        src="https://www.google.com/maps/embed?pb=!1m18!1m12!1m3!1d568.8202055531095!2d-78.5384308610558!3d-0.28916521175994486!2m3!1f0!2f0!3f0!3m2!1i1024!2i768!4f13.1!3m3!1m2!1s0x91d599ed7b9ee87b%3A0xa46e64b94018ff10!2sCAVA%20CORP!5e1!3m2!1ses-419!2sec!4v1779147118384!5m2!1ses-419!2sec"
-                                        allowFullScreen=""
-                                        loading="lazy"
-                                        referrerPolicy="no-referrer-when-downgrade"
-                                        title="Ubicación CAVA CORP"
+                                    <div
+                                        ref={mapContainerRef}
+                                        className="mop-map-canvas"
+                                        aria-label="Ubicación CAVA CORP en Leaflet"
                                     />
                                 </div>
                             </div>
@@ -574,12 +768,13 @@ const ModalOrdenPago = ({
                             </div>
                             <div className="op-field">
                                 <label className="op-label">RUC / Cédula</label>
-                                <input className={`op-input${errors.ruc ? ' error' : ''}`} name="ruc" placeholder="1234567890001" value={form.ruc} onChange={handleForm} />
+                                <input className={`op-input${errors.ruc ? ' error' : ''}`} name="ruc" inputMode="numeric" maxLength={13} placeholder="1234567890001" value={form.ruc} onChange={handleForm} />
                                 {errors.ruc && <span className="op-error-msg">⚠ {errors.ruc}</span>}
                             </div>
                             <div className="op-field">
                                 <label className="op-label">Teléfono</label>
-                                <input className="op-input" name="telefono" placeholder="0987654321" value={form.telefono} onChange={handleForm} />
+                                <input className={`op-input${errors.telefono ? ' error' : ''}`} name="telefono" inputMode="tel" maxLength={10} placeholder="0987654321" value={form.telefono} onChange={handleForm} />
+                                {errors.telefono && <span className="op-error-msg">âš  {errors.telefono}</span>}
                             </div>
                             <div className="op-field full">
                                 <label className="op-label">Correo electrónico</label>
@@ -588,7 +783,8 @@ const ModalOrdenPago = ({
                             </div>
                             <div className="op-field full">
                                 <label className="op-label">Dirección de facturación</label>
-                                <input className="op-input" name="direccion" placeholder="Av. Principal 123, ciudad" value={form.direccion} onChange={handleForm} />
+                                <input className={`op-input${errors.direccion ? ' error' : ''}`} name="direccion" placeholder="Av. Principal 123, ciudad" value={form.direccion} onChange={handleForm} />
+                                {errors.direccion && <span className="op-error-msg">âš  {errors.direccion}</span>}
                             </div>
                         </div>
                     </div>
@@ -596,20 +792,23 @@ const ModalOrdenPago = ({
                     {/* Productos del carrito */}
                     <div className="op-card">
                         <div className="op-section-title">Productos del carrito</div>
+                        {errors.items && <span className="op-error-msg" style={{ display:'block', padding:'0.6rem 1.25rem 0' }}>âš  {errors.items}</span>}
                         <div className="mop-items-header">
                             <span>Producto</span>
                             <span style={{ textAlign:'center' }}>Cant.</span>
                             <span style={{ textAlign:'right' }}>P. unitario</span>
                             <span style={{ textAlign:'right' }}>Total</span>
                         </div>
-                        {cartItems.map((it, i) => (
-                            <div className="mop-item-row" key={i}>
-                                <span style={{ color:'#374151', fontWeight:600 }}>{it.producto?.nombre || 'Producto'}</span>
-                                <span style={{ textAlign:'center', color:'#6b7280' }}>{it.cantidad}</span>
-                                <span style={{ textAlign:'right', color:'#6b7280' }}>{fmt(it.producto?.precio || 0)}</span>
-                                <span style={{ textAlign:'right', color:'#111827', fontWeight:700 }}>{fmt((it.producto?.precio || 0) * it.cantidad)}</span>
-                            </div>
-                        ))}
+                        <div className="mop-items-scroll">
+                            {cartItems.map((it, i) => (
+                                <div className="mop-item-row" key={i}>
+                                    <span style={{ color:'#374151', fontWeight:600 }}>{it.producto?.nombre || 'Producto'}</span>
+                                    <span style={{ textAlign:'center', color:'#6b7280' }}>{Math.trunc(numeroSeguro(it.cantidad))}</span>
+                                    <span style={{ textAlign:'right', color:'#6b7280' }}>{fmt(numeroSeguro(it.producto?.precio))}</span>
+                                    <span style={{ textAlign:'right', color:'#111827', fontWeight:700 }}>{fmt(numeroSeguro(it.producto?.precio) * Math.trunc(numeroSeguro(it.cantidad)))}</span>
+                                </div>
+                            ))}
+                        </div>
                         <div className="op-totales">
                             <div className="op-total-row"><span>Subtotal</span><span>{fmt(subtotalCart)}</span></div>
                             <div className="op-total-row"><span>IVA (12%)</span><span>{fmt(iva)}</span></div>
@@ -620,16 +819,28 @@ const ModalOrdenPago = ({
                     {/* Método de pago */}
                     <div className="op-card">
                         <div className="op-section-title">Método de pago</div>
-                        <div style={{ padding: '0.875rem 1.25rem' }}>
-                            <select className="op-select" value={metodoPago} onChange={e => setMetodoPago(e.target.value)}>
-                                <option value="Stripe">Stripe (tarjeta)</option>
-                                <option value="Transferencia Bancaria">Transferencia Bancaria</option>
-                                <option value="Contra Entrega">Contra Entrega</option>
-                                <option value="Tarjeta de Crédito">Tarjeta de Crédito</option>
-                                <option value="PayPal">PayPal</option>
-                                <option value="Efectivo">Efectivo</option>
-                            </select>
+                        <div className="op-pay-grid">
+                            {metodosPago.map((metodo) => (
+                                <button
+                                    type="button"
+                                    key={metodo.value}
+                                    className={`op-pay-card${metodoPago === metodo.value ? ' active' : ''}`}
+                                    onClick={() => setMetodoPago(metodo.value)}
+                                >
+                                    <span className="op-pay-title">{metodo.label}</span>
+                                    <span className="op-pay-helper">{metodo.helper}</span>
+                                </button>
+                            ))}
                         </div>
+                        {metodoPago === 'De Una' && (
+                            <div className="op-qr-box">
+                                <img src={deUnaQr} alt="QR de pago De Una" />
+                                <div>
+                                    <strong>Pago con De Una</strong>
+                                    <p>Escanea el QR, realiza el pago por el total mostrado y conserva el comprobante para validación.</p>
+                                </div>
+                            </div>
+                        )}
                     </div>
 
                 </div>
@@ -706,9 +917,9 @@ const ModalOrdenPago = ({
                         {cartItems.map((it, i) => (
                             <tr key={i}>
                                 <td>{it.producto?.nombre || 'Producto'}</td>
-                                <td style={{ textAlign:'center' }}>{it.cantidad}</td>
-                                <td style={{ textAlign:'right' }}>{fmt(it.producto?.precio || 0)}</td>
-                                <td style={{ textAlign:'right' }}>{fmt((it.producto?.precio || 0) * it.cantidad)}</td>
+                                <td style={{ textAlign:'center' }}>{Math.trunc(numeroSeguro(it.cantidad))}</td>
+                                <td style={{ textAlign:'right' }}>{fmt(numeroSeguro(it.producto?.precio))}</td>
+                                <td style={{ textAlign:'right' }}>{fmt(numeroSeguro(it.producto?.precio) * Math.trunc(numeroSeguro(it.cantidad)))}</td>
                             </tr>
                         ))}
                     </tbody>

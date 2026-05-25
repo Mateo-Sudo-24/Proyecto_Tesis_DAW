@@ -24,6 +24,7 @@ const descargarImagenCloudinary = async (imagenUrl) => {
 
 // Umbral de stock crítico
 const STOCK_CRITICO = 5;
+const escapeRegex = (value = '') => String(value).replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
 
 // Función interna para centralizar la creación de notificaciones de stock.
 const crearNotificacionStockCritico = async (producto) => {
@@ -78,7 +79,7 @@ const crearNotificacionStockCritico = async (producto) => {
 // POST /api/productos
 // Crear un nuevo producto (con imagen opcional: archivo, URL de Cloudinary, o sin imagen)
 const registrarProducto = async (req, res) => {
-    const { nombre, descripcion, precio, stock, categoria, imagenUrl } = req.body;
+    const { nombre, descripcion, precio, stock, categoria, imagenUrl, imagenID } = req.body;
     
     // ✅ Solo campos obligatorios (imagen es OPCIONAL)
     if (!nombre || !descripcion || !precio || !stock || !categoria) {
@@ -86,6 +87,11 @@ const registrarProducto = async (req, res) => {
     }
 
     try {
+        const existeProducto = await Producto.findOne({ nombre: { $regex: `^${escapeRegex(nombre.trim())}$`, $options: 'i' } });
+        if (existeProducto) {
+            return res.status(400).json({ msg: "Ya existe un producto con ese nombre." });
+        }
+
         // Parsear campos que llegan como string desde FormData
         let etiquetas = [];
         if (req.body.etiquetas) {
@@ -124,6 +130,7 @@ const registrarProducto = async (req, res) => {
         // ✅ Opción 2: URL de Cloudinary directa en el body
         else if (imagenUrl && (imagenUrl.includes('cloudinary') || imagenUrl.includes('res.cloudinary'))) {
             nuevoProducto.imagenUrl = imagenUrl;
+            nuevoProducto.imagenID = imagenID || null;
             
             // ✅ Descargar y guardar como Buffer
             const imgData = await descargarImagenCloudinary(imagenUrl);
@@ -161,7 +168,16 @@ const actualizarProducto = async (req, res) => {
         const nuevoStock = req.body.stock !== undefined ? parseInt(req.body.stock) : stockAnterior;
 
         // Actualizar campos básicos (excepto imagen, que se maneja por separado)
-        const { imagenUrl: nuevaImagenUrl, ...restoDelBody } = req.body;
+        const { imagenUrl: nuevaImagenUrl, imagenID: nuevaImagenID, ...restoDelBody } = req.body;
+        if (restoDelBody.nombre) {
+            const duplicado = await Producto.findOne({
+                _id: { $ne: id },
+                nombre: { $regex: `^${escapeRegex(restoDelBody.nombre.trim())}$`, $options: 'i' }
+            });
+            if (duplicado) {
+                return res.status(400).json({ msg: "Ya existe otro producto con ese nombre." });
+            }
+        }
         Object.assign(producto, restoDelBody);
         producto.stock = nuevoStock;
         producto.ultimaModificacionPor = req.usuario._id;
@@ -195,7 +211,7 @@ const actualizarProducto = async (req, res) => {
             }
             
             producto.imagenUrl = nuevaImagenUrl;
-            producto.imagenID = null; // No tenemos el public_id si es URL externa
+            producto.imagenID = nuevaImagenID || null;
             
             // ✅ Descargar y guardar como Buffer
             const imgData = await descargarImagenCloudinary(nuevaImagenUrl);
@@ -297,6 +313,35 @@ const eliminarProducto = async (req, res) => {
   } catch (error) {
     console.error("Error al eliminar producto:", error);
     res.status(500).json({ msg: "Error en el servidor al eliminar el producto." });
+  }
+};
+
+const eliminarImagenProducto = async (req, res) => {
+  const { id } = req.params;
+  if (!mongoose.Types.ObjectId.isValid(id)) {
+    return res.status(400).json({ msg: "ID de producto no valido." });
+  }
+
+  try {
+    const producto = await Producto.findById(id);
+    if (!producto) {
+      return res.status(404).json({ msg: "Producto no encontrado." });
+    }
+
+    if (producto.imagenID) {
+      await cloudinary.uploader.destroy(producto.imagenID);
+    }
+
+    producto.imagenUrl = null;
+    producto.imagenID = null;
+    producto.imgData = undefined;
+    producto.ultimaModificacionPor = req.usuario._id;
+    await producto.save();
+
+    res.status(200).json({ msg: "Imagen eliminada correctamente.", producto });
+  } catch (error) {
+    console.error("Error al eliminar imagen del producto:", error);
+    res.status(500).json({ msg: "Error en el servidor al eliminar la imagen." });
   }
 };
 
@@ -409,6 +454,7 @@ export {
     actualizarProducto,
     listarProducto,
     eliminarProducto,
+    eliminarImagenProducto,
     detalleProducto,
     detalleProductoEditable,
     productosRecientes

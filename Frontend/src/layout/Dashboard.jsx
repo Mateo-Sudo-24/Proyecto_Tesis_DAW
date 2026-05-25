@@ -384,6 +384,9 @@ const Dashboard = () => {
                                 <Link to="/dashboard/notificaciones" className={lc('/dashboard/notificaciones')} onClick={closeSidebar}>
                                     <span className="dsb-icon">🔔</span> Notificaciones
                                 </Link>
+                                <Link to="/dashboard/ventas" className={lc('/dashboard/ventas')} onClick={closeSidebar}>
+                                    <span className="dsb-icon">📊</span> Ventas
+                                </Link>
                             </>
                         )}
 
@@ -393,8 +396,14 @@ const Dashboard = () => {
                                 <Link to="/dashboard/productos-admin" className={lc('/dashboard/productos-admin')} onClick={closeSidebar}>
                                     <span className="dsb-icon">🧵</span> Productos
                                 </Link>
+                                <Link to="/dashboard/carrito" className={lc('/dashboard/carrito')} onClick={closeSidebar}>
+                                    <span className="dsb-icon">🛒</span> Carrito
+                                </Link>
                                 <Link to="/dashboard/mis-pedidos" className={lc('/dashboard/mis-pedidos')} onClick={closeSidebar}>
                                     <span className="dsb-icon">📦</span> Pedidos en curso
+                                </Link>
+                                <Link to="/dashboard/ventas" className={lc('/dashboard/ventas')} onClick={closeSidebar}>
+                                    <span className="dsb-icon">📊</span> Ventas
                                 </Link>
                             </>
                         )}

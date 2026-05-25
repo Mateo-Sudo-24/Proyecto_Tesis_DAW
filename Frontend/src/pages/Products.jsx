@@ -242,13 +242,13 @@ const styles = `
         padding: 0.2rem 0.55rem; border-radius: 0.4rem;
     }
 
-    .prod-card-body { padding: 1rem; flex: 1; display: flex; flex-direction: column; }
-    .prod-card-name { font-size: 0.95rem; font-weight: 800; color: #111827; margin-bottom: 0.3rem; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+    .prod-card-body { padding: 1rem; flex: 1; display: flex; flex-direction: column; text-align: center; align-items: center; }
+    .prod-card-name { font-size: 0.95rem; font-weight: 800; color: #111827; margin-bottom: 0.3rem; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; width: 100%; }
     .prod-card-desc { font-size: 0.78rem; color: #9ca3af; margin-bottom: 0.5rem; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; }
     .prod-card-color { font-size: 0.75rem; color: #6b7280; margin-bottom: 0.75rem; }
     .prod-card-color span { font-weight: 700; color: #374151; }
 
-    .prod-card-footer { display: flex; align-items: center; justify-content: space-between; margin-bottom: 0.875rem; }
+    .prod-card-footer { display: flex; align-items: center; justify-content: center; margin-bottom: 0.875rem; gap: 0.75rem; flex-wrap: wrap; }
     .prod-price { font-size: 1.2rem; font-weight: 900; color: var(--orange-dark); }
     .prod-stock-badge {
         font-size: 0.7rem; font-weight: 700;
@@ -485,7 +485,7 @@ const Products = () => {
                                             {producto.stock > 0 ? `${producto.stock} en stock` : 'Agotado'}
                                         </span>
                                     </div>
-                                    <Link to={`/products/${producto._id}`} className="btn-ver-detalles">
+                                    <Link to="/login" className="btn-ver-detalles">
                                         Ver Detalles
                                     </Link>
                                 </div>

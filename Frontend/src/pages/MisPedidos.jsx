@@ -73,15 +73,14 @@ const pageStyles = `
     .mp-factura-row { display:flex; justify-content:flex-end; margin-top:0.875rem; padding-top:0.75rem; border-top:1px solid #f3f4f6; }
 `;
 
-const ORDER_STEPS_DOMICILIO = ['pendiente', 'procesando', 'enviado', 'entregado'];
-const ORDER_STEPS_RETIRO    = ['pendiente', 'procesando', 'listo', 'entregado'];
-const getSteps = (tipoEntrega) => tipoEntrega === 'retiro' ? ORDER_STEPS_RETIRO : ORDER_STEPS_DOMICILIO;
-const ITEMS_PER_PAGE = 4;
+const ORDER_STEPS = ['procesando', 'listo', 'entregado'];
+const getSteps = () => ORDER_STEPS;
+const ITEMS_PER_PAGE = 3;
 
 const estadoIcono = { pendiente:'⏳', procesando:'⚙️', enviado:'🚚', entregado:'✅', cancelado:'❌', pagado:'💰' };
 
 const ProgressBar = ({ estadoOrden, tipoEntrega, isVendedor, ordenId, token, onStatusUpdate }) => {
-    const ORDER_STEPS = getSteps(tipoEntrega);
+    const ORDER_STEPS = getSteps();
     const [updating, setUpdating] = useState(false);
 
     if (estadoOrden === 'cancelado') {
@@ -93,9 +92,9 @@ const ProgressBar = ({ estadoOrden, tipoEntrega, isVendedor, ordenId, token, onS
         );
     }
 
-    // Índice actual: si estadoOrden es 'pagado'/'listo' etc, mapeamos al índice correcto
+    // Si el estado es 'pendiente', lo tratamos como antes de 'procesando'
     const currentIdx = ORDER_STEPS.indexOf(estadoOrden);
-    const effectiveIdx = currentIdx === -1 ? 0 : currentIdx;
+    const effectiveIdx = currentIdx === -1 ? -1 : currentIdx;
 
     const handleStepClick = async (step, stepIdx) => {
         // Solo el paso siguiente al actual es clickeable
@@ -189,7 +188,8 @@ const OrdenCard = ({ orden: ordenInicial, index, isVendedor, token }) => {
     const [orden, setOrden] = useState(ordenInicial);
     const [open, setOpen] = useState(false);
     const fecha = new Date(orden.createdAt).toLocaleDateString('es-ES', { day:'2-digit', month:'short', year:'numeric' });
-    const total = orden.precioTotal ?? orden.total ?? orden.items?.reduce((s, it) => s + (it.precio * it.cantidad), 0) ?? 0;
+    const itemsOrden = orden.productoPedido ?? orden.items ?? [];
+    const total = orden.precioTotal ?? orden.total ?? itemsOrden.reduce((s, it) => s + ((it.precio ?? it.producto?.precio ?? 0) * (it.cantidad || 1)), 0) ?? 0;
 
     const pagoClass = {
         pendiente: 'pago-pendiente',
@@ -246,23 +246,23 @@ const OrdenCard = ({ orden: ordenInicial, index, isVendedor, token }) => {
                 )}
             </div>
 
-            {orden.items?.length > 0 && (
+            {itemsOrden.length > 0 && (
                 <>
                     <button
                         style={{ background:'none', border:'none', cursor:'pointer', fontSize:'0.8rem', color:'#6b7280', fontWeight:600, marginTop:'0.5rem', padding:0 }}
                         onClick={() => setOpen(o => !o)}
                     >
-                        {open ? '▲ Ocultar productos' : `▼ Ver ${orden.items.length} producto(s)`}
+                        {open ? '▲ Ocultar productos' : `▼ Ver ${itemsOrden.length} producto(s)`}
                     </button>
                     {open && (
                         <div className="mp-items-list">
-                            {orden.items.map((it, i) => (
+                            {itemsOrden.map((it, i) => (
                                 <div key={i} className="mp-item-row">
                                     <span className="mp-item-name">
                                         {it.producto?.nombre ?? it.nombre ?? 'Producto'}
                                         <span className="mp-item-qty">x{it.cantidad}</span>
                                     </span>
-                                    <span className="mp-item-price">${(it.precio * it.cantidad).toFixed(2)}</span>
+                                    <span className="mp-item-price">${((it.precio ?? it.producto?.precio ?? 0) * (it.cantidad || 1)).toFixed(2)}</span>
                                 </div>
                             ))}
                             <div className="mp-total-row">

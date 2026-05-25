@@ -26,7 +26,8 @@ import ChatbotBubble from './components/chatbot/ChatbotBubble';
 import ProductosAdmin from './pages/ProductosAdmin';
 import UpdateProducto from './pages/UpdateProducto';
 import Notificaciones from './pages/Notificaciones';
-import MisPedidos from './pages/MisPedidos';import Usuarios from './pages/Usuarios'
+import MisPedidos from './pages/MisPedidos';
+import Ventas from './pages/Ventas';import Usuarios from './pages/Usuarios'
 import PublicRoute from './routes/PublicRoute';
 import ProtectedRoute from './routes/ProtectedRoute';
 import useProfileStore from './context/storeProfile';
@@ -95,6 +96,7 @@ function AppContent() {
             <Route path="actualizar-producto/:id" element={<UpdateProducto />} />
             <Route path="notificaciones" element={<Notificaciones />} />
             <Route path="mis-pedidos" element={<MisPedidos />} />
+            <Route path="ventas" element={<Ventas />} />
           </Route>
 
           {/* 404 */}

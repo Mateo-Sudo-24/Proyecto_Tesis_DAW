@@ -1,6 +1,7 @@
 node_modules
 .env
 docs
+.env.local
 
 # Tests
 src/tests/
