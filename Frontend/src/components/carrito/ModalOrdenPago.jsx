@@ -108,6 +108,7 @@ const modalStyles = `
         left: 50%;
         transform: translate(-50%, -50%);
         width: min(740px, 96vw);
+        height: min(820px, 92dvh);
         max-height: 92vh;
         background: var(--gray-100);
         border-radius: 1.25rem;
@@ -173,7 +174,7 @@ const modalStyles = `
     .mop-body {
         flex: 1;
         min-height: 0;
-        max-height: calc(92vh - 142px);
+        max-height: none;
         overflow-y: auto;
         overscroll-behavior: contain;
         padding: 1.25rem;
@@ -748,6 +749,17 @@ const ModalOrdenPago = ({
                                         aria-label="Ubicación CAVA CORP en Leaflet"
                                     />
                                 </div>
+                            </div>
+                        </div>
+                    )}
+
+                    {tipoEntrega === 'retiro' && (
+                        <div className="op-card">
+                            <div className="op-section-title">🏪 Retiro en almacenes</div>
+                            <div style={{ padding: '0.875rem 1.25rem', display: 'grid', gap: '0.45rem', color: '#374151', fontSize: '0.875rem' }}>
+                                <strong style={{ color: '#111827' }}>CAVA CORP - Almacenes Intex</strong>
+                                <span>Tu pedido quedará registrado para retiro en almacenes. Usa la dirección de facturación para emitir la orden y confirmar la entrega.</span>
+                                <span style={{ color: '#6b7280' }}>Total a cancelar: <b style={{ color: '#e8760a' }}>{fmt(total)}</b></span>
                             </div>
                         </div>
                     )}

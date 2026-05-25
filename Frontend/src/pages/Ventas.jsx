@@ -45,6 +45,12 @@ const pageStyles = `
 `;
 
 const ITEMS_PER_PAGE = 10;
+const getOrderTotal = (orden) => Number(orden?.precioTotal ?? orden?.total ?? 0) || 0;
+const getPagoEstado = (estadoPago) => {
+    if (estadoPago === true || estadoPago === 'true' || estadoPago === 'completado' || estadoPago === 'pagado') return 'completado';
+    if (estadoPago === 'fallido') return 'fallido';
+    return 'pendiente';
+};
 
 const Ventas = () => {
     const { token } = storeAuth();
@@ -77,13 +83,12 @@ const Ventas = () => {
 
     const filtered = ordenes.filter(o => {
         if (filtroEstado && o.estadoOrden !== filtroEstado) return false;
-        if (filtroPago && o.estadoPago !== filtroPago) return false;
+        if (filtroPago && getPagoEstado(o.estadoPago) !== filtroPago) return false;
         return true;
     });
 
     const totalVentas = filtered.reduce((acc, o) => {
-        const total = o.precioTotal ?? o.total ?? 0;
-        return o.estadoPago === 'completado' ? acc + Number(total) : acc;
+        return o.estadoOrden === 'entregado' ? acc + getOrderTotal(o) : acc;
     }, 0);
 
     const totalPages = Math.ceil(filtered.length / ITEMS_PER_PAGE);
@@ -111,7 +116,7 @@ const Ventas = () => {
                         <p className="vt-metric-value">{filtered.length}</p>
                     </div>
                     <div className="vt-metric">
-                        <p className="vt-metric-label">Ingresos (pagados)</p>
+                        <p className="vt-metric-label">Ingresos entregados</p>
                         <p className="vt-metric-value orange">${totalVentas.toLocaleString('es-ES', { minimumFractionDigits: 2 })}</p>
                     </div>
                     <div className="vt-metric">
@@ -174,7 +179,8 @@ const Ventas = () => {
                             </thead>
                             <tbody>
                                 {paginated.map((orden, i) => {
-                                    const total = orden.precioTotal ?? orden.total ?? 0;
+                                    const total = getOrderTotal(orden);
+                                    const pagoEstado = getPagoEstado(orden.estadoPago);
                                     const fecha = new Date(orden.createdAt).toLocaleDateString('es-ES', { day:'2-digit', month:'short', year:'numeric' });
                                     const clienteNombre = orden.cliente
                                         ? `${orden.cliente.nombre ?? ''} ${orden.cliente.apellido ?? ''}`.trim()
@@ -188,7 +194,7 @@ const Ventas = () => {
                                             <td style={{ fontWeight:600 }}>{clienteNombre || '—'}</td>
                                             <td>{fecha}</td>
                                             <td><span className={`vt-badge ${orden.estadoOrden}`}>{orden.estadoOrden}</span></td>
-                                            <td><span className={`vt-badge ${orden.estadoPago ?? 'pendiente'}`}>{orden.estadoPago ?? 'pendiente'}</span></td>
+                                            <td><span className={`vt-badge ${pagoEstado}`}>{pagoEstado}</span></td>
                                             <td style={{ fontWeight:800, color:'#e8760a' }}>${Number(total).toFixed(2)}</td>
                                         </tr>
                                     );

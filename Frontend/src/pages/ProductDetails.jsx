@@ -2,12 +2,15 @@ import { useEffect, useState } from "react";
 import { useParams, Link } from "react-router-dom";
 import { toast } from "react-toastify";
 import { FaArrowLeft, FaShoppingCart, FaStar } from "react-icons/fa";
+import storeAuth from "../context/storeAuth";
 
 const ProductDetails = () => {
     const { id } = useParams();
     const [producto, setProducto] = useState(null);
     const [loading, setLoading] = useState(true);
     const [cantidad, setCantidad] = useState(1);
+    const [agregando, setAgregando] = useState(false);
+    const token = storeAuth(state => state.token);
 
     useEffect(() => {
         const fetchProducto = async () => {
@@ -26,13 +29,43 @@ const ProductDetails = () => {
         if (id) fetchProducto();
     }, [id]);
 
-    const handleAddToCart = () => {
+    const handleAddToCart = async () => {
+        if (!token) {
+            toast.info("Inicia sesión para agregar productos.");
+            return;
+        }
         if (cantidad > producto.stock) {
             toast.error("No hay suficiente stock disponible");
             return;
         }
-        toast.success(`Se agregaron ${cantidad} unidades al carrito`);
-        // Aquí iría la lógica para agregar al carrito
+        setAgregando(true);
+        const toastId = toast.loading(`${producto.nombre} se está agregando al carrito...`);
+        try {
+            const res = await fetch(`${import.meta.env.VITE_BACKEND_URL}/carrito/items`, {
+                method: "POST",
+                headers: { "Content-Type": "application/json", Authorization: `Bearer ${token}` },
+                body: JSON.stringify({ productoId: producto._id, cantidad }),
+            });
+            if (!res.ok) {
+                const data = await res.json().catch(() => ({}));
+                throw new Error(data.msg || "Error al agregar al carrito");
+            }
+            toast.update(toastId, {
+                render: `Se agregaron ${cantidad} unidades al carrito`,
+                type: "success",
+                isLoading: false,
+                autoClose: 2500,
+            });
+        } catch (error) {
+            toast.update(toastId, {
+                render: error.message,
+                type: "error",
+                isLoading: false,
+                autoClose: 3000,
+            });
+        } finally {
+            setAgregando(false);
+        }
     };
 
     if (loading) {
@@ -161,9 +194,10 @@ const ProductDetails = () => {
                                         </div>
                                         <button
                                             onClick={handleAddToCart}
+                                            disabled={agregando}
                                             className="flex-1 bg-gray-700 text-slate-300 font-bold py-3 px-6 rounded-xl hover:bg-gray-900 transition shadow-md hover:shadow-lg flex items-center justify-center gap-2"
                                         >
-                                            <FaShoppingCart /> Agregar al carrito
+                                            <FaShoppingCart /> {agregando ? "Agregando..." : "Agregar al carrito"}
                                         </button>
                                     </div>
                                 </div>

@@ -165,6 +165,7 @@ const Productos = () => {
         if (!token) { toast.info("Inicia sesión para agregar productos."); return; }
         if (!productoId) { toast.error("ID de producto inválido."); return; }
         setAgregando(productoId);
+        const toastId = toast.loading(`${nombreProducto || 'Producto'} se está agregando al carrito...`);
         try {
             const res = await fetch(`${import.meta.env.VITE_BACKEND_URL}/carrito/items`, {
                 method: "POST",
@@ -175,18 +176,28 @@ const Productos = () => {
                 const data = await res.json().catch(() => ({}));
                 throw new Error(data.msg || "Error al agregar al carrito");
             }
-            toast.success(
+            toast.update(toastId, {
+                render: (
                 <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
                     <span style={{ fontSize: '1.3rem' }}>🛒</span>
                     <div>
                         <div style={{ fontWeight: 700, fontSize: '0.9rem' }}>¡Producto añadido!</div>
                         <div style={{ fontSize: '0.78rem', opacity: 0.85 }}>{nombreProducto || 'Artículo'} agregado al carrito</div>
                     </div>
-                </div>,
-                { autoClose: 2500, icon: false }
-            );
+                </div>
+                ),
+                type: 'success',
+                isLoading: false,
+                autoClose: 2500,
+                icon: false,
+            });
         } catch (error) {
-            toast.error(error.message);
+            toast.update(toastId, {
+                render: error.message,
+                type: 'error',
+                isLoading: false,
+                autoClose: 3000,
+            });
         } finally {
             setAgregando(null);
         }
