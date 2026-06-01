@@ -11,6 +11,20 @@ import stripe from '../config/stripe.js';
 const limpiarTexto = (valor) => String(valor ?? '').trim();
 const soloDigitos = (valor) => String(valor ?? '').replace(/\D/g, '');
 const flujoManualOrden = ['pagado', 'procesando', 'listo', 'entregado'];
+const esPagoTarjetaOnline = (metodo = '') => {
+    const normalizado = String(metodo).toLowerCase();
+    return normalizado.includes('tarjeta en linea')
+        || normalizado.includes('tarjeta en l')
+        || normalizado === 'stripe';
+};
+
+const esPagoPresencial = (metodo = '') => {
+    const normalizado = String(metodo).toLowerCase();
+    return normalizado.includes('efectivo')
+        || normalizado.includes('debito')
+        || normalizado.includes('dÃ©bito');
+};
+
 const validarAvanceManualOrden = (estadoActualRaw, estadoSiguiente) => {
     const estadoActual = estadoActualRaw === 'pendiente' ? 'pagado' : estadoActualRaw;
     const indiceActual = flujoManualOrden.indexOf(estadoActual);
@@ -121,7 +135,7 @@ const crearNotificacionConfirmacionVendedores = async (orden) => {
 // Crear una nueva orden
 const registrarOrden = async (req, res) => {
     const clienteId = req.usuario._id;
-    const { direccionEnvio, metodoPago, tipoEntrega, datosFacturacion, desglose } = req.body;
+    const { direccionEnvio, metodoPago, tipoEntrega, datosFacturacion, desglose, vendedorId } = req.body;
 
     // Para venta_local o establecimiento, direccionEnvio puede ser null/vacío
     const tipoEntregaFinal = tipoEntrega || 'domicilio';
@@ -180,13 +194,13 @@ const registrarOrden = async (req, res) => {
         const descuentoTotal = desglose?.descuentoTotal ?? 0;
         const subtotal = desglose?.subtotal ?? subtotalBase;
         const iva = desglose?.iva ?? parseFloat((subtotal * IVA_RATE).toFixed(2));
-        const metodoPagoLower = (metodoPago || '').toLowerCase();
+        const envio = desglose?.envio ?? 0;
         const comisionPago = desglose?.comisionPago ?? (
-            metodoPagoLower.includes('tarjeta') || metodoPagoLower === 'stripe'
+            esPagoTarjetaOnline(metodoPago)
                 ? parseFloat(((subtotal + iva) * COMISION_STRIPE_PCT + COMISION_STRIPE_FIJA).toFixed(2))
                 : 0
         );
-        const totalFinal = desglose?.totalFinal ?? parseFloat((subtotal + iva + comisionPago).toFixed(2));
+        const totalFinal = desglose?.totalFinal ?? parseFloat((subtotal + iva + envio + comisionPago).toFixed(2));
 
         const datosFacturacionLimpios = datosFacturacion && typeof datosFacturacion === 'object'
             ? {
@@ -199,8 +213,15 @@ const registrarOrden = async (req, res) => {
             }
             : undefined;
 
+        let vendedorAsignado = req.usuario.rol === 'vendedor' ? req.usuario._id : vendedorId;
+        if (!vendedorAsignado) {
+            const vendedorActivo = await Vendedor.findOne({ status: 'activo' }).select('_id');
+            vendedorAsignado = vendedorActivo?._id;
+        }
+
         const orden = new Orden({
             cliente: clienteId,
+            vendedor: vendedorAsignado,
             productoPedido: productosPedido,
             direccionEnvio: requiereDireccion ? direccionEnvio : undefined,
             metodoPago,
@@ -208,6 +229,7 @@ const registrarOrden = async (req, res) => {
             subtotal,
             descuentoTotal,
             iva,
+            envio,
             comisionPago,
             totalFinal,
             tipoEntrega: tipoEntregaFinal,
@@ -266,6 +288,7 @@ const listarOrdenes = async (req, res) => {
 
     const ordenes = await Orden.find(filtro)
       .populate("cliente", "nombre apellido email")
+      .populate("vendedor", "nombre apellido nombrePropietario email")
       .populate("productoPedido.producto", "nombre")
       .sort({ createdAt: -1 });
 
@@ -539,8 +562,8 @@ const procesarPagoOrden = async (req, res) => {
 
         // ─── Métodos que no requieren pasarela externa ───────────────────────
         const metodosInmediatos = ['Transferencia Bancaria', 'Efectivo', 'Contra Entrega', 'PayPal', 'De Una',
-                                   'Pago contra entrega', 'Pago efectivo / tarjeta débito'];
-        if (metodosInmediatos.includes(orden.metodoPago)) {
+                                   'Pago contra entrega', 'Pago efectivo / tarjeta débito', 'Pago efectivo / tarjeta debito'];
+        if (metodosInmediatos.includes(orden.metodoPago) || esPagoPresencial(orden.metodoPago)) {
             orden.estadoPago = 'completado';
             orden.estadoOrden = 'pagado';
             orden.fechaPago = new Date();

@@ -15,11 +15,7 @@ const pageStyles = `
     .vt-metric-value { font-size:1.75rem; font-weight:900; color:#111827; margin:0; }
     .vt-metric-value.orange { color:var(--orange-main); }
     .vt-filters { display:flex; gap:0.75rem; flex-wrap:wrap; align-items:center; margin-bottom:1.25rem; }
-    .vt-select {
-        padding:0.55rem 0.9rem; border:1.5px solid #e5e7eb; border-radius:0.625rem;
-        font-size:0.875rem; color:#374151; background:#fff; outline:none;
-        transition:border-color 0.18s; cursor:pointer;
-    }
+    .vt-select { padding:0.55rem 0.9rem; border:1.5px solid #e5e7eb; border-radius:0.625rem; font-size:0.875rem; color:#374151; background:#fff; outline:none; cursor:pointer; }
     .vt-select:focus { border-color:var(--orange-main); }
     .vt-table-wrap { background:#fff; border:1px solid #e5e7eb; border-radius:1rem; overflow:hidden; box-shadow:0 1px 6px rgba(0,0,0,0.06); }
     .vt-table { width:100%; border-collapse:collapse; font-size:0.875rem; }
@@ -51,6 +47,8 @@ const getPagoEstado = (estadoPago) => {
     if (estadoPago === 'fallido') return 'fallido';
     return 'pendiente';
 };
+const cuentaComoIngreso = (orden) =>
+    orden.estadoOrden === 'entregado' || (orden.tipoEntrega === 'venta_local' && getPagoEstado(orden.estadoPago) === 'completado');
 
 const Ventas = () => {
     const { token } = storeAuth();
@@ -89,22 +87,15 @@ const Ventas = () => {
         return true;
     });
 
-    const totalVentas = filtered.reduce((acc, o) => {
-        return o.estadoOrden === 'entregado' ? acc + getOrderTotal(o) : acc;
-    }, 0);
-
+    const totalVentas = filtered.reduce((acc, o) => cuentaComoIngreso(o) ? acc + getOrderTotal(o) : acc, 0);
     const totalPages = Math.ceil(filtered.length / ITEMS_PER_PAGE);
     const paginated = filtered.slice((page - 1) * ITEMS_PER_PAGE, page * ITEMS_PER_PAGE);
 
-    const handleFiltroEstado = (v) => { setFiltroEstado(v); setPage(1); };
-    const handleFiltroPago = (v) => { setFiltroPago(v); setPage(1); };
-    const handleFiltroTipo = (v) => { setFiltroTipo(v); setPage(1); };
-
     const metricasPorTipo = {
-        domicilio:     filtered.filter(o => o.tipoEntrega === 'domicilio').length,
-        retiro:        filtered.filter(o => o.tipoEntrega === 'retiro').length,
+        domicilio: filtered.filter(o => o.tipoEntrega === 'domicilio').length,
+        retiro: filtered.filter(o => o.tipoEntrega === 'retiro').length,
         establecimiento: filtered.filter(o => o.tipoEntrega === 'establecimiento').length,
-        venta_local:   filtered.filter(o => o.tipoEntrega === 'venta_local').length,
+        venta_local: filtered.filter(o => o.tipoEntrega === 'venta_local').length,
     };
 
     return (
@@ -113,50 +104,24 @@ const Ventas = () => {
             <div className="vt-page">
                 <div className="vt-header">
                     <div>
-                        <h1 className="vt-title">📊 Reporte de Ventas</h1>
-                        <p className="vt-sub">Historial de pedidos y facturación</p>
+                        <h1 className="vt-title">Reporte de Ventas</h1>
+                        <p className="vt-sub">Historial de pedidos y facturacion</p>
                     </div>
                 </div>
 
-                {/* Métricas */}
                 <div className="vt-metrics">
-                    <div className="vt-metric">
-                        <p className="vt-metric-label">Total pedidos</p>
-                        <p className="vt-metric-value">{filtered.length}</p>
-                    </div>
-                    <div className="vt-metric">
-                        <p className="vt-metric-label">Ingresos entregados</p>
-                        <p className="vt-metric-value orange">${totalVentas.toLocaleString('es-ES', { minimumFractionDigits: 2 })}</p>
-                    </div>
-                    <div className="vt-metric">
-                        <p className="vt-metric-label">Entregados</p>
-                        <p className="vt-metric-value">{filtered.filter(o => o.estadoOrden === 'entregado').length}</p>
-                    </div>
-                    <div className="vt-metric">
-                        <p className="vt-metric-label">Pendientes / En curso</p>
-                        <p className="vt-metric-value">{filtered.filter(o => ['pendiente','procesando','listo'].includes(o.estadoOrden)).length}</p>
-                    </div>
-                    <div className="vt-metric">
-                        <p className="vt-metric-label">🛵 Domicilio</p>
-                        <p className="vt-metric-value">{metricasPorTipo.domicilio}</p>
-                    </div>
-                    <div className="vt-metric">
-                        <p className="vt-metric-label">🏪 Retiro</p>
-                        <p className="vt-metric-value">{metricasPorTipo.retiro}</p>
-                    </div>
-                    <div className="vt-metric">
-                        <p className="vt-metric-label">🏢 Establecimiento</p>
-                        <p className="vt-metric-value">{metricasPorTipo.establecimiento}</p>
-                    </div>
-                    <div className="vt-metric">
-                        <p className="vt-metric-label">💰 Venta local</p>
-                        <p className="vt-metric-value">{metricasPorTipo.venta_local}</p>
-                    </div>
+                    <div className="vt-metric"><p className="vt-metric-label">Total pedidos</p><p className="vt-metric-value">{filtered.length}</p></div>
+                    <div className="vt-metric"><p className="vt-metric-label">Ingresos pagados</p><p className="vt-metric-value orange">${totalVentas.toLocaleString('es-ES', { minimumFractionDigits: 2 })}</p></div>
+                    <div className="vt-metric"><p className="vt-metric-label">Entregados</p><p className="vt-metric-value">{filtered.filter(o => o.estadoOrden === 'entregado').length}</p></div>
+                    <div className="vt-metric"><p className="vt-metric-label">Pendientes / En curso</p><p className="vt-metric-value">{filtered.filter(o => ['pendiente','procesando','listo'].includes(o.estadoOrden)).length}</p></div>
+                    <div className="vt-metric"><p className="vt-metric-label">Domicilio</p><p className="vt-metric-value">{metricasPorTipo.domicilio}</p></div>
+                    <div className="vt-metric"><p className="vt-metric-label">Retiro</p><p className="vt-metric-value">{metricasPorTipo.retiro}</p></div>
+                    <div className="vt-metric"><p className="vt-metric-label">Establecimiento</p><p className="vt-metric-value">{metricasPorTipo.establecimiento}</p></div>
+                    <div className="vt-metric"><p className="vt-metric-label">Venta local</p><p className="vt-metric-value">{metricasPorTipo.venta_local}</p></div>
                 </div>
 
-                {/* Filtros */}
                 <div className="vt-filters">
-                    <select className="vt-select" value={filtroEstado} onChange={e => handleFiltroEstado(e.target.value)}>
+                    <select className="vt-select" value={filtroEstado} onChange={e => { setFiltroEstado(e.target.value); setPage(1); }}>
                         <option value="">Todos los estados</option>
                         <option value="pendiente">Pendiente</option>
                         <option value="procesando">Procesando</option>
@@ -164,13 +129,13 @@ const Ventas = () => {
                         <option value="entregado">Entregado</option>
                         <option value="cancelado">Cancelado</option>
                     </select>
-                    <select className="vt-select" value={filtroPago} onChange={e => handleFiltroPago(e.target.value)}>
+                    <select className="vt-select" value={filtroPago} onChange={e => { setFiltroPago(e.target.value); setPage(1); }}>
                         <option value="">Todos los pagos</option>
                         <option value="pendiente">Pago pendiente</option>
                         <option value="completado">Pago completado</option>
                         <option value="fallido">Pago fallido</option>
                     </select>
-                    <select className="vt-select" value={filtroTipo} onChange={e => handleFiltroTipo(e.target.value)}>
+                    <select className="vt-select" value={filtroTipo} onChange={e => { setFiltroTipo(e.target.value); setPage(1); }}>
                         <option value="">Todos los tipos</option>
                         <option value="domicilio">Domicilio</option>
                         <option value="retiro">Retiro</option>
@@ -178,23 +143,16 @@ const Ventas = () => {
                         <option value="venta_local">Venta local</option>
                     </select>
                     {(filtroEstado || filtroPago || filtroTipo) && (
-                        <button
-                            className="vt-page-btn"
-                            onClick={() => { setFiltroEstado(''); setFiltroPago(''); setFiltroTipo(''); setPage(1); }}
-                        >
+                        <button className="vt-page-btn" onClick={() => { setFiltroEstado(''); setFiltroPago(''); setFiltroTipo(''); setPage(1); }}>
                             Limpiar filtros
                         </button>
                     )}
                 </div>
 
-                {/* Tabla */}
                 {loading ? (
-                    <div className="vt-spinner">⏳ Cargando ventas...</div>
+                    <div className="vt-spinner">Cargando ventas...</div>
                 ) : filtered.length === 0 ? (
-                    <div className="vt-empty">
-                        <p style={{ fontSize:'2rem', marginBottom:'0.5rem' }}>📭</p>
-                        <p style={{ fontWeight:700 }}>No hay pedidos con ese filtro</p>
-                    </div>
+                    <div className="vt-empty"><p style={{ fontWeight:700 }}>No hay pedidos con ese filtro</p></div>
                 ) : (
                     <div className="vt-table-wrap">
                         <table className="vt-table">
@@ -217,16 +175,14 @@ const Ventas = () => {
                                     const fecha = new Date(orden.createdAt).toLocaleDateString('es-ES', { day:'2-digit', month:'short', year:'numeric' });
                                     const clienteNombre = orden.cliente
                                         ? `${orden.cliente.nombre ?? ''} ${orden.cliente.apellido ?? ''}`.trim()
-                                        : orden.cliente?.email ?? '—';
+                                        : 'Sin cliente';
                                     return (
                                         <tr key={orden._id}>
                                             <td style={{ color:'#9ca3af', fontWeight:600 }}>{(page - 1) * ITEMS_PER_PAGE + i + 1}</td>
-                                            <td style={{ fontFamily:'monospace', fontSize:'0.78rem', color:'#6b7280' }}>
-                                                {orden._id?.slice(-8).toUpperCase()}
-                                            </td>
-                                            <td style={{ fontWeight:600 }}>{clienteNombre || '—'}</td>
+                                            <td style={{ fontFamily:'monospace', fontSize:'0.78rem', color:'#6b7280' }}>{orden._id?.slice(-8).toUpperCase()}</td>
+                                            <td style={{ fontWeight:600 }}>{clienteNombre || 'Sin cliente'}</td>
                                             <td>{fecha}</td>
-                                            <td><span style={{ fontSize:'0.75rem', color:'#6b7280', fontWeight:600 }}>{orden.tipoEntrega || '—'}</span></td>
+                                            <td><span style={{ fontSize:'0.75rem', color:'#6b7280', fontWeight:600 }}>{orden.tipoEntrega || 'N/D'}</span></td>
                                             <td><span className={`vt-badge ${orden.estadoOrden}`}>{orden.estadoOrden}</span></td>
                                             <td><span className={`vt-badge ${pagoEstado}`}>{pagoEstado}</span></td>
                                             <td style={{ fontWeight:800, color:'#e8760a' }}>${Number(total).toFixed(2)}</td>
@@ -237,64 +193,16 @@ const Ventas = () => {
                         </table>
                         {totalPages > 1 && (
                             <div className="vt-pagination">
-                                <button className="vt-page-btn" onClick={() => setPage(p => p - 1)} disabled={page === 1}>← Anterior</button>
+                                <button className="vt-page-btn" onClick={() => setPage(p => p - 1)} disabled={page === 1}>Anterior</button>
                                 {Array.from({ length: totalPages }, (_, i) => (
-                                    <button
-                                        key={i + 1}
-                                        className={`vt-page-btn${page === i + 1 ? ' current' : ''}`}
-                                        onClick={() => setPage(i + 1)}
-                                    >{i + 1}</button>
+                                    <button key={i + 1} className={`vt-page-btn${page === i + 1 ? ' current' : ''}`} onClick={() => setPage(i + 1)}>{i + 1}</button>
                                 ))}
-                                <button className="vt-page-btn" onClick={() => setPage(p => p + 1)} disabled={page === totalPages}>Siguiente →</button>
+                                <button className="vt-page-btn" onClick={() => setPage(p => p + 1)} disabled={page === totalPages}>Siguiente</button>
                             </div>
                         )}
                     </div>
                 )}
             </div>
-
-            {/* ── ÚLTIMAS 5 VENTAS ──────────────────────────────────── */}
-            {!loading && ordenes.length > 0 && (
-                <div style={{ marginTop: '2rem' }}>
-                    <h2 style={{ fontSize: '1.05rem', fontWeight: 800, color: '#374151', marginBottom: '0.75rem' }}>
-                        🕐 Últimas 5 ventas
-                    </h2>
-                    <div style={{ background: '#fff', borderRadius: '0.75rem', border: '1px solid #e5e7eb', overflow: 'hidden' }}>
-                        <table className="vt-table">
-                            <thead>
-                                <tr>
-                                    <th>ID Pedido</th>
-                                    <th>Cliente</th>
-                                    <th>Fecha</th>
-                                    <th>Tipo entrega</th>
-                                    <th>Estado</th>
-                                    <th>Total</th>
-                                </tr>
-                            </thead>
-                            <tbody>
-                                {ordenes.slice(0, 5).map((orden) => {
-                                    const total = getOrderTotal(orden);
-                                    const fecha = new Date(orden.createdAt).toLocaleDateString('es-ES', { day:'2-digit', month:'short', year:'numeric' });
-                                    const clienteNombre = orden.cliente
-                                        ? `${orden.cliente.nombre ?? ''} ${orden.cliente.apellido ?? ''}`.trim()
-                                        : '—';
-                                    return (
-                                        <tr key={`last5-${orden._id}`}>
-                                            <td style={{ fontFamily:'monospace', fontSize:'0.78rem', color:'#6b7280' }}>
-                                                {orden._id?.slice(-8).toUpperCase()}
-                                            </td>
-                                            <td style={{ fontWeight:600 }}>{clienteNombre || '—'}</td>
-                                            <td>{fecha}</td>
-                                            <td><span style={{ fontSize:'0.75rem', color:'#6b7280', fontWeight:600 }}>{orden.tipoEntrega || '—'}</span></td>
-                                            <td><span className={`vt-badge ${orden.estadoOrden}`}>{orden.estadoOrden}</span></td>
-                                            <td style={{ fontWeight:800, color:'#e8760a' }}>${Number(total).toFixed(2)}</td>
-                                        </tr>
-                                    );
-                                })}
-                            </tbody>
-                        </table>
-                    </div>
-                </div>
-            )}
         </>
     );
 };

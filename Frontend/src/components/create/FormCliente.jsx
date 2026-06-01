@@ -1,3 +1,4 @@
+/* eslint-disable react/prop-types */
 import { useState, useEffect } from "react";
 import useFetch from "../../hooks/useFetch";
 import { useNavigate } from "react-router-dom";
@@ -139,24 +140,11 @@ const styles = `
         transition: background 0.18s;
     }
     .btn-ux-secondary:hover { background: #e5e7eb; }
-    .ux-info-banner {
-        background: var(--orange-light);
-        border: 1px solid var(--orange-border);
-        border-radius: 0.625rem;
-        padding: 0.75rem 1rem;
-        font-size: 0.82rem;
-        color: var(--orange-dark);
-        font-weight: 600;
-        margin-bottom: 1.5rem;
-        display: flex;
-        align-items: flex-start;
-        gap: 0.5rem;
-    }
 `;
 
 /**
- * ✅ FORMULARIO DE USUARIO
- * Crea o edita CLIENTE o VENDEDOR a través de un selector de tipo
+ * âœ… FORMULARIO DE USUARIO
+ * Crea o edita CLIENTE o VENDEDOR a travÃ©s de un selector de tipo
  */
 const FormCliente = ({ clienteToUpdate, onSuccess, tipoInicial }) => {
     const navigate = useNavigate();
@@ -198,11 +186,11 @@ const FormCliente = ({ clienteToUpdate, onSuccess, tipoInicial }) => {
             const response = await fetchDataBackend(url, data, method);
             if (response) {
                 const tipoNombre = tipo === "cliente" ? "Cliente" : "Vendedor";
-                toast.success(clienteToUpdate ? `${tipoNombre} actualizado correctamente` : `Invitación enviada a ${data.email}`);
+                toast.success(clienteToUpdate ? `${tipoNombre} actualizado correctamente` : `InvitaciÃ³n enviada a ${data.email}`);
                 setTimeout(() => { if (onSuccess) onSuccess(); else navigate("/dashboard/listar"); }, 1500);
             }
         } catch (error) {
-            toast.error(error.message || "Ocurrió un error al guardar.");
+            toast.error(error.message || "OcurriÃ³ un error al guardar.");
         } finally {
             setIsSubmitting(false);
         }
@@ -222,7 +210,7 @@ const FormCliente = ({ clienteToUpdate, onSuccess, tipoInicial }) => {
                     <p>
                         {isEditing
                             ? "Modifica los datos del usuario y guarda los cambios."
-                            : "Completa el formulario. Se enviará un correo de activación al usuario."}
+                            : "Completa el formulario. Se enviarÃ¡ un correo de activaciÃ³n al usuario."}
                     </p>
                 </div>
 
@@ -235,27 +223,18 @@ const FormCliente = ({ clienteToUpdate, onSuccess, tipoInicial }) => {
                                 className={`ux-type-btn${tipoUsuario === "cliente" ? " active" : ""}`}
                                 onClick={() => setTipoUsuario("cliente")}
                             >
-                                👤 Cliente
+                                ðŸ‘¤ Cliente
                             </button>
                             <button
                                 type="button"
                                 className={`ux-type-btn${tipoUsuario === "vendedor" ? " active" : ""}`}
                                 onClick={() => setTipoUsuario("vendedor")}
                             >
-                                🏪 Vendedor
+                                ðŸª Vendedor
                             </button>
                         </div>
                     )}
 
-                    {/* Banner informativo */}
-                    {!isEditing && (
-                        <div className="ux-info-banner">
-                            <span>📧</span>
-                            <span>
-                                Se enviará un correo automático a la dirección indicada para que el {tipoLabel.toLowerCase()} active su cuenta y establezca su contraseña.
-                            </span>
-                        </div>
-                    )}
 
                     <form onSubmit={handleSubmit(onSubmit)} noValidate>
                         {/* Nombre */}
@@ -267,74 +246,74 @@ const FormCliente = ({ clienteToUpdate, onSuccess, tipoInicial }) => {
                                 className="ux-input"
                                 {...register("nombre", { required: "El nombre es obligatorio" })}
                             />
-                            {errors.nombre && <p className="ux-error">⚠ {errors.nombre.message}</p>}
+                            {errors.nombre && <p className="ux-error">âš  {errors.nombre.message}</p>}
                         </div>
 
-                        {/* Apellido — siempre visible para vendedor; opcional para cliente */}
+                        {/* Apellido â€” siempre visible para vendedor; opcional para cliente */}
                         {(tipoUsuario === "vendedor" || isEditing) && (
                             <div className="ux-field">
                                 <label className="ux-label">Apellido {tipoUsuario === "vendedor" ? "*" : ""}</label>
                                 <input
                                     type="text"
-                                    placeholder="Ej: García"
+                                    placeholder="Ej: GarcÃ­a"
                                     className="ux-input"
                                     {...register("apellido", tipoUsuario === "vendedor"
                                         ? { required: "El apellido es obligatorio para vendedores" }
                                         : {}
                                     )}
                                 />
-                                {errors.apellido && <p className="ux-error">⚠ {errors.apellido.message}</p>}
+                                {errors.apellido && <p className="ux-error">âš  {errors.apellido.message}</p>}
                             </div>
                         )}
 
                         {/* Email */}
                         <div className="ux-field">
-                            <label className="ux-label">Correo electrónico *</label>
+                            <label className="ux-label">Correo electrÃ³nico *</label>
                             <input
                                 type="email"
                                 placeholder="ejemplo@correo.com"
                                 className="ux-input"
                                 {...register("email", {
-                                    required: "El correo electrónico es obligatorio",
+                                    required: "El correo electrÃ³nico es obligatorio",
                                     pattern: {
                                         value: /^[A-Z0-9._%+-]+@[A-Z0-9.-]+\.[A-Z]{2,}$/i,
-                                        message: "Correo inválido"
+                                        message: "Correo invÃ¡lido"
                                     }
                                 })}
                             />
-                            {errors.email && <p className="ux-error">⚠ {errors.email.message}</p>}
+                            {errors.email && <p className="ux-error">âš  {errors.email.message}</p>}
                         </div>
 
                         <div className="ux-divider" />
 
-                        {/* Dirección */}
+                        {/* DirecciÃ³n */}
                         <div className="ux-field">
-                            <label className="ux-label">Dirección *</label>
+                            <label className="ux-label">DirecciÃ³n *</label>
                             <input
                                 type="text"
-                                placeholder="Calle, número, ciudad"
+                                placeholder="Calle, nÃºmero, ciudad"
                                 className="ux-input"
-                                {...register("direccion", { required: "La dirección es obligatoria" })}
+                                {...register("direccion", { required: "La direcciÃ³n es obligatoria" })}
                             />
-                            {errors.direccion && <p className="ux-error">⚠ {errors.direccion.message}</p>}
+                            {errors.direccion && <p className="ux-error">âš  {errors.direccion.message}</p>}
                         </div>
 
-                        {/* Teléfono */}
+                        {/* TelÃ©fono */}
                         <div className="ux-field">
-                            <label className="ux-label">Teléfono *</label>
+                            <label className="ux-label">TelÃ©fono *</label>
                             <input
                                 type="tel"
                                 placeholder="Ej: 0987654321"
                                 className="ux-input"
                                 {...register("telefono", {
-                                    required: "El teléfono es obligatorio",
+                                    required: "El telÃ©fono es obligatorio",
                                     pattern: {
                                         value: /^[0-9]{7,15}$/,
-                                        message: "Debe tener entre 7 y 15 dígitos"
+                                        message: "Debe tener entre 7 y 15 dÃ­gitos"
                                     }
                                 })}
                             />
-                            {errors.telefono && <p className="ux-error">⚠ {errors.telefono.message}</p>}
+                            {errors.telefono && <p className="ux-error">âš  {errors.telefono.message}</p>}
                         </div>
 
                         {/* Acciones */}
@@ -344,7 +323,7 @@ const FormCliente = ({ clienteToUpdate, onSuccess, tipoInicial }) => {
                                     ? "Guardando..."
                                     : isEditing
                                         ? `Actualizar ${tipoLabel}`
-                                        : `Enviar invitación`}
+                                        : `Enviar invitaciÃ³n`}
                             </button>
                             <button
                                 type="button"
@@ -362,4 +341,3 @@ const FormCliente = ({ clienteToUpdate, onSuccess, tipoInicial }) => {
 };
 
 export default FormCliente;
-

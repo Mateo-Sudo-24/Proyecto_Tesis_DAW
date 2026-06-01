@@ -1,9 +1,16 @@
+/* eslint-disable react/prop-types */
 import { useRef, useState } from 'react';
 import jsPDF from 'jspdf';
-import html2canvas from 'html2canvas';
 
 const IVA = 0.15;
 const fmt = (n) => `$${Number(n || 0).toFixed(2)}`;
+const canalPago = (metodo = '') => {
+    const value = String(metodo).toLowerCase();
+    if (value.includes('de una')) return 'Canal: De Una (QR)';
+    if (value.includes('tarjeta en linea') || value.includes('stripe')) return 'Canal: Stripe / tarjeta en linea';
+    if (value.includes('efectivo') || value.includes('debito')) return 'Canal: efectivo / tarjeta debito';
+    return 'Canal: N/D';
+};
 
 const normalizarItemsOrden = (orden) => {
     const source = orden?.productoPedido ?? orden?.items ?? [];
@@ -14,26 +21,6 @@ const normalizarItemsOrden = (orden) => {
         unidad: it.unidadSeleccionada ?? null,
         subtotal: Number(it.subtotal ?? 0),
     }));
-};
-
-const agregarCanvasPaginado = (pdf, canvas) => {
-    const pdfW = pdf.internal.pageSize.getWidth();
-    const pdfH = pdf.internal.pageSize.getHeight();
-    const imgH = canvas.height * (pdfW / canvas.width);
-    const imgData = canvas.toDataURL('image/png');
-
-    let remainingHeight = imgH;
-    let position = 0;
-
-    pdf.addImage(imgData, 'PNG', 0, position, pdfW, imgH);
-    remainingHeight -= pdfH;
-
-    while (remainingHeight > 0) {
-        position -= pdfH;
-        pdf.addPage();
-        pdf.addImage(imgData, 'PNG', 0, position, pdfW, imgH);
-        remainingHeight -= pdfH;
-    }
 };
 
 const tplStyles = `
@@ -119,15 +106,18 @@ const tplStyles = `
     }
 `;
 
-const FacturaPDF = ({ orden, facturacion, label = '📄 Descargar factura' }) => {
+const FacturaPDF = ({ orden, facturacion, label = 'Descargar factura' }) => {
     const [loading, setLoading] = useState(false);
     const pdfRef = useRef(null);
 
     const items = normalizarItemsOrden(orden);
     const subtotal = orden?.subtotal ?? items.reduce((s, it) => s + (it.subtotal || (it.precio * it.cantidad)), 0);
+    const descuentoTotal = orden?.descuentoTotal ?? 0;
+    const subtotalBruto = subtotal + descuentoTotal;
     const iva = orden?.iva ?? subtotal * IVA;
+    const envio = orden?.envio ?? 0;
     const comisionPago = orden?.comisionPago ?? 0;
-    const total = orden?.totalFinal ?? (subtotal + iva + comisionPago);
+    const total = orden?.totalFinal ?? (subtotal + iva + envio + comisionPago);
 
     const nombreCliente = facturacion
         ? `${facturacion.nombre || ''} ${facturacion.apellido || ''}`.trim()
@@ -150,19 +140,110 @@ const FacturaPDF = ({ orden, facturacion, label = '📄 Descargar factura' }) =>
     const generarPDF = async () => {
         setLoading(true);
         try {
-            const el = pdfRef.current;
-            el.style.left = '0px';
-            el.style.top = '0px';
-            el.style.visibility = 'hidden';
-            await new Promise(r => requestAnimationFrame(r));
+            const pdf = new jsPDF({ unit: 'pt', format: 'a4', orientation: 'portrait' });
+            const pageW = pdf.internal.pageSize.getWidth();
+            let y = 48;
 
-            const canvas = await html2canvas(el, { scale: 2, useCORS: true, backgroundColor: '#ffffff' });
+            pdf.setFont('helvetica', 'bold');
+            pdf.setFontSize(24);
+            pdf.setTextColor(17, 24, 39);
+            pdf.text('INTEX', 48, y);
+            pdf.setFontSize(16);
+            pdf.text('Factura', pageW - 48, y, { align: 'right' });
+            y += 18;
+            pdf.setFont('helvetica', 'normal');
+            pdf.setFontSize(10);
+            pdf.setTextColor(107, 114, 128);
+            pdf.text('Textiles', 48, y);
+            pdf.text(`#${numeroOrden}`, pageW - 48, y, { align: 'right' });
+            y += 10;
+            pdf.text(fechaDoc, pageW - 48, y, { align: 'right' });
+            y += 24;
+            pdf.setDrawColor(232, 118, 10);
+            pdf.setLineWidth(2);
+            pdf.line(48, y, pageW - 48, y);
+            y += 28;
 
-            el.style.left = '-9999px';
-            el.style.visibility = 'visible';
+            pdf.setTextColor(17, 24, 39);
+            pdf.setFont('helvetica', 'bold');
+            pdf.setFontSize(11);
+            pdf.text('Emisor', 48, y);
+            pdf.text('Facturar a', 310, y);
+            y += 16;
+            pdf.setFont('helvetica', 'normal');
+            pdf.setFontSize(10);
+            pdf.setTextColor(75, 85, 99);
+            pdf.text(['Intex Textiles', 'RUC: 1791234560001', 'Ecuador'], 48, y);
+            pdf.text([
+                nombreCliente || 'Sin cliente',
+                rucCliente ? `RUC/CI: ${rucCliente}` : '',
+                correoCliente,
+                telefonoCliente,
+                direccionCliente,
+            ].filter(Boolean), 310, y);
+            y += 78;
 
-            const pdf = new jsPDF({ unit: 'px', format: 'a4', orientation: 'portrait' });
-            agregarCanvasPaginado(pdf, canvas);
+            pdf.setFillColor(31, 41, 55);
+            pdf.rect(48, y, pageW - 96, 24, 'F');
+            pdf.setFont('helvetica', 'bold');
+            pdf.setFontSize(9);
+            pdf.setTextColor(255, 255, 255);
+            pdf.text('Descripcion', 60, y + 16);
+            pdf.text('Cant.', 300, y + 16, { align: 'center' });
+            pdf.text('P. unitario', 410, y + 16, { align: 'right' });
+            pdf.text('Total', pageW - 60, y + 16, { align: 'right' });
+            y += 24;
+
+            pdf.setFont('helvetica', 'normal');
+            pdf.setFontSize(9);
+            pdf.setTextColor(55, 65, 81);
+            const rows = items.length ? items : [{ nombre: 'Sin items', cantidad: 0, precio: 0, subtotal: 0 }];
+            rows.forEach((it, idx) => {
+                if (y > 730) {
+                    pdf.addPage();
+                    y = 48;
+                }
+                if (idx % 2 === 0) {
+                    pdf.setFillColor(249, 250, 251);
+                    pdf.rect(48, y, pageW - 96, 22, 'F');
+                }
+                pdf.text(String(it.nombre).slice(0, 42), 60, y + 15);
+                pdf.text(`${it.cantidad}${it.unidad ? ` ${it.unidad}` : ''}`, 300, y + 15, { align: 'center' });
+                pdf.text(fmt(it.precio), 410, y + 15, { align: 'right' });
+                pdf.text(fmt(it.subtotal || it.precio * it.cantidad), pageW - 60, y + 15, { align: 'right' });
+                y += 22;
+            });
+            y += 24;
+
+            const totalRows = [
+                ['Subtotal bruto', subtotalBruto],
+                ...(descuentoTotal > 0 ? [['Descuentos', -descuentoTotal]] : []),
+                ['Subtotal', subtotal],
+                ['IVA (15%)', iva],
+                ...(envio > 0 ? [['Envio', envio]] : []),
+                ...(comisionPago > 0 ? [['Comision pago', comisionPago]] : []),
+                ['Total a pagar', total],
+            ];
+            totalRows.forEach(([labelRow, value], idx) => {
+                pdf.setFont('helvetica', idx === totalRows.length - 1 ? 'bold' : 'normal');
+                pdf.setFontSize(idx === totalRows.length - 1 ? 12 : 10);
+                pdf.setTextColor(idx === totalRows.length - 1 ? 17 : 75, idx === totalRows.length - 1 ? 24 : 85, idx === totalRows.length - 1 ? 39 : 99);
+                pdf.text(labelRow, pageW - 190, y, { align: 'left' });
+                pdf.text(fmt(value), pageW - 60, y, { align: 'right' });
+                y += 18;
+            });
+            y += 18;
+            pdf.setFont('helvetica', 'normal');
+            pdf.setFontSize(9);
+            pdf.setTextColor(107, 114, 128);
+            pdf.text(`Metodo de pago: ${orden?.metodoPago || 'N/D'}`, 48, y);
+            pdf.text(canalPago(orden?.metodoPago), 48, y + 14);
+            pdf.text(`Vendedor asignado: ${
+                orden?.vendedor
+                    ? `${orden.vendedor.nombrePropietario || orden.vendedor.nombre || ''} ${orden.vendedor.apellido || ''}`.trim()
+                    : 'Pendiente'
+            }`, 48, y + 28);
+            pdf.text(`Estado: ${estadoLabel(orden?.estadoOrden)}`, 48, y + 42);
             pdf.save(`factura-${numeroOrden}.pdf`);
         } catch (err) {
             console.error('Error generando PDF:', err);

@@ -261,11 +261,6 @@ const Profile = () => {
                     <div className='flex justify-around gap-x-8 flex-wrap gap-y-8 md:flex-nowrap'>
                         <div className='w-full md:w-1/2'>
                             <FormProfile />
-                            <div className="prf-action-bar">
-                                <button className="prf-action-btn primary" onClick={() => setShowEmailModal(true)}>
-                                    ✉️ Cambiar correo
-                                </button>
-                            </div>
                         </div>
                         <div className='w-full md:w-1/2' style={{ display: 'flex', flexDirection: 'column', gap: '1.25rem' }}>
                             <CardProfile />

@@ -94,14 +94,16 @@ export const CardProfile = () => {
                 <div className="cp-header">
                     <div className="cp-avatar">{initial}</div>
                     <p className="cp-header-name">{user?.nombre} {user?.apellido}</p>
-                    <p className="cp-header-email">{user?.email}</p>
+                    {user?.rol !== 'administrador' && <p className="cp-header-email">{user?.email}</p>}
                 </div>
-                <div className="cp-body">
-                    <div className="cp-row">
-                        <span className="cp-row-label">Correo</span>
-                        <p className="cp-row-value">{user?.email}</p>
+                {user?.rol !== 'administrador' && (
+                    <div className="cp-body">
+                        <div className="cp-row">
+                            <span className="cp-row-label">Correo</span>
+                            <p className="cp-row-value">{user?.email}</p>
+                        </div>
                     </div>
-                </div>
+                )}
             </div>
         </>
     )

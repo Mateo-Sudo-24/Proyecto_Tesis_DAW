@@ -34,7 +34,7 @@ const convId = (a, b) => [String(a), String(b)].sort().join('_');
 const getListaCompletaUsuarios = async () => {
     const [clientes, vendedores, admins] = await Promise.all([
         Cliente.find({ status: true }).select('_id nombre email').lean(),
-        Vendedor.find({ status: true }).select('_id nombre email').lean(),
+        Vendedor.find({ status: 'activo' }).select('_id nombre email').lean(),
         Administrador.find({}).select('_id nombre email').lean(),
     ]);
     const todos = [

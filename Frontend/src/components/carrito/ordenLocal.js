@@ -35,7 +35,7 @@ export function getSubtotalItem(producto, cantidad, unidad = 'metro') {
  * @param {string} metodoPago - nombre del método de pago seleccionado
  * @returns {{ subtotal, descuentoTotal, iva, comisionPago, totalFinal }}
  */
-export function calcularDesglose(items = [], metodoPago = '') {
+export function calcularDesglose(items = [], metodoPago = '', envio = 0) {
     let subtotalSinDesc = 0;
     let subtotalConDesc = 0;
 
@@ -59,9 +59,10 @@ export function calcularDesglose(items = [], metodoPago = '') {
         ? parseFloat(((subtotal + iva) * COMISION_STRIPE_PCT + COMISION_STRIPE_FIJA).toFixed(2))
         : 0;
 
-    const totalFinal = parseFloat((subtotal + iva + comisionPago).toFixed(2));
+    const envioTotal = parseFloat((Number(envio) || 0).toFixed(2));
+    const totalFinal = parseFloat((subtotal + iva + comisionPago + envioTotal).toFixed(2));
 
-    return { subtotal, descuentoTotal, iva, comisionPago, totalFinal };
+    return { subtotal, descuentoTotal, iva, comisionPago, envio: envioTotal, totalFinal };
 }
 
 /**

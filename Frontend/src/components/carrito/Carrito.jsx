@@ -4,6 +4,10 @@ import useFetch from "../../hooks/useFetch";
 import ModalPago from "./ModalPago.jsx";
 import ModalOrdenPago from "./ModalOrdenPago.jsx";
 import ConfirmDialog from "../ui/ConfirmDialog.jsx";
+import { calcularDesglose } from "./ordenLocal.js";
+import storeProfile from "../../context/storeProfile";
+
+const ENVIO_BASE = 2.5;
 
 const getUnidadItem = (item) => {
     const unidadProducto = item?.producto?.unidadVenta;
@@ -30,7 +34,7 @@ const cartStyles = `
         --orange-border: #f0943a;
     }
 
-    /* ── Contenedor principal ── */
+    /* â”€â”€ Contenedor principal â”€â”€ */
     .cart-wrapper {
         max-width: 1100px;
         margin: 0 auto;
@@ -57,7 +61,7 @@ const cartStyles = `
         font-size: 1.1rem;
     }
 
-    /* ── Spinner ── */
+    /* â”€â”€ Spinner â”€â”€ */
     .cart-spinner-wrap {
         display: flex;
         justify-content: center;
@@ -73,7 +77,7 @@ const cartStyles = `
     }
     @keyframes cart-spin { to { transform: rotate(360deg); } }
 
-    /* ── Estado vacío ── */
+    /* â”€â”€ Estado vacÃ­o â”€â”€ */
     .cart-empty {
         text-align: center;
         padding: 5rem 2rem;
@@ -86,7 +90,7 @@ const cartStyles = `
     .cart-empty h3 { font-size: 1.2rem; font-weight: 700; color: #374151; margin-bottom: 0.5rem; }
     .cart-empty p { font-size: 0.875rem; color: #9ca3af; margin-bottom: 1.75rem; }
 
-    /* ── Grid ── */
+    /* â”€â”€ Grid â”€â”€ */
     .cart-grid {
         display: grid;
         grid-template-columns: 1fr;
@@ -96,7 +100,7 @@ const cartStyles = `
         .cart-grid { grid-template-columns: 1fr 340px; }
     }
 
-    /* ── Card base ── */
+    /* â”€â”€ Card base â”€â”€ */
     .cart-card {
         background: #fff;
         border-radius: 1.25rem;
@@ -105,7 +109,7 @@ const cartStyles = `
         overflow: hidden;
     }
 
-    /* ── Tabla ── */
+    /* â”€â”€ Tabla â”€â”€ */
     .cart-table-wrap { overflow-x: auto; }
     .cart-table {
         width: 100%;
@@ -174,7 +178,7 @@ const cartStyles = `
     }
     .cart-delete-btn:hover { background: #fee2e2; color: #dc2626; }
 
-    /* ── Footer tabla ── */
+    /* â”€â”€ Footer tabla â”€â”€ */
     .cart-table-footer {
         display: flex;
         justify-content: space-between;
@@ -208,10 +212,10 @@ const cartStyles = `
     }
     .cart-continue-link:hover { color: var(--orange-main); }
 
-    /* ── Panel lateral ── */
+    /* â”€â”€ Panel lateral â”€â”€ */
     .cart-sidebar { display: flex; flex-direction: column; gap: 1rem; }
 
-    /* ── Resumen ── */
+    /* â”€â”€ Resumen â”€â”€ */
     .cart-summary { padding: 1.25rem 1.5rem; }
     .cart-summary h3 {
         font-size: 0.95rem;
@@ -240,7 +244,7 @@ const cartStyles = `
     }
     .cart-summary-total-amount { color: var(--orange-main); }
 
-    /* ── Selector tipo entrega ── */
+    /* â”€â”€ Selector tipo entrega â”€â”€ */
     .cart-delivery-section { padding: 1.25rem 1.5rem; }
     .cart-delivery-section h3 {
         font-size: 0.95rem;
@@ -285,7 +289,7 @@ const cartStyles = `
     }
     .cart-delivery-opt.selected .cart-delivery-opt-label { color: #c4620a; }
 
-    /* ── Dirección domicilio ── */
+    /* â”€â”€ DirecciÃ³n domicilio â”€â”€ */
     .cart-addr-btn {
         width: 100%;
         padding: 0.75rem 1rem;
@@ -329,7 +333,7 @@ const cartStyles = `
         text-decoration: underline;
     }
 
-    /* ── Formulario envío ── */
+    /* â”€â”€ Formulario envÃ­o â”€â”€ */
     .cart-form { padding: 1.25rem 1.5rem; }
     .cart-form h3 {
         font-size: 0.95rem;
@@ -369,7 +373,7 @@ const cartStyles = `
     }
     .cart-input::placeholder { color: #d1d5db; }
 
-    /* ── Botón confirmar ── */
+    /* â”€â”€ BotÃ³n confirmar â”€â”€ */
     .cart-submit-btn {
         width: 100%;
         padding: 0.9rem 1.5rem;
@@ -397,7 +401,7 @@ const cartStyles = `
     .cart-submit-btn:active:not(:disabled) { transform: scale(0.97); }
     .cart-submit-btn:disabled { opacity: 0.55; cursor: not-allowed; }
 
-    /* ── Link vaciar/tienda (empty state) ── */
+    /* â”€â”€ Link vaciar/tienda (empty state) â”€â”€ */
     .cart-shop-link {
         display: inline-block;
         background: #111827;
@@ -415,6 +419,8 @@ const cartStyles = `
 const Carrito = () => {
     const [carrito, setCarrito] = useState(null);
     const [confirmVaciar, setConfirmVaciar] = useState(false);
+    const [vendedorAsignado, setVendedorAsignado] = useState(null);
+    const { user } = storeProfile();
 
     // Rol del usuario
     const getRol = () => { try { return JSON.parse(localStorage.getItem('auth-token'))?.state?.rol ?? null; } catch { return null; } };
@@ -432,6 +438,11 @@ const Carrito = () => {
     const [pedidoExitoso, setPedidoExitoso] = useState(null); // { orden, facturacion }
     const { fetchDataBackend } = useFetch();
 
+    const getNombreVendedor = (vendedor) => {
+        if (!vendedor) return "Asignacion automatica";
+        return `${vendedor.nombrePropietario || vendedor.nombre || ""} ${vendedor.apellido || ""}`.trim() || "Asignacion automatica";
+    };
+
     // Obtener carrito al montar
     useEffect(() => {
         const fetchCarrito = async () => {
@@ -442,6 +453,27 @@ const Carrito = () => {
         };
         fetchCarrito();
     }, []);
+
+    useEffect(() => {
+        const cargarVendedorAsignado = async () => {
+            if (isVendedor && user?._id) {
+                setVendedorAsignado({
+                    id: user._id,
+                    nombre: user.nombre,
+                    apellido: user.apellido,
+                    nombrePropietario: user.nombrePropietario,
+                });
+                return;
+            }
+
+            const vendedores = await fetchDataBackend(`${import.meta.env.VITE_BACKEND_URL}/vendedores/publicos`);
+            if (Array.isArray(vendedores) && vendedores.length > 0) {
+                setVendedorAsignado(vendedores[0]);
+            }
+        };
+
+        cargarVendedorAsignado();
+    }, [isVendedor, user?._id]);
 
     // Cambiar cantidad o unidad
     const cambiarCantidad = async (productoId, cantidad, unidadSeleccionada) => {
@@ -476,16 +508,17 @@ const Carrito = () => {
         setConfirmVaciar(false);
     };
 
-    // Función para cerrar el modal
+    // FunciÃ³n para cerrar el modal
     const closeModalPago = () => {
         setShowModalPago(false);
         setOrdenCreada(null);
     };
 
-    const subtotal = carrito?.items?.reduce(
+    const subtotalSinDescuento = carrito?.items?.reduce(
         (acc, item) => acc + getPrecioUnidad(item) * item.cantidad,
         0
     ) || 0;
+    const desglosePreview = calcularDesglose(carrito?.items || [], '', 0);
 
     if (pedidoExitoso) {
         return (
@@ -521,20 +554,21 @@ const Carrito = () => {
                 `}</style>
                 <div className="cart-wrapper">
                     <div className="cart-success-card">
-                        <div className="cart-success-icon">✅</div>
-                        <div className="cart-success-title">¡Pedido confirmado!</div>
+                        <div className="cart-success-icon">âœ…</div>
+                        <div className="cart-success-title">Â¡Pedido confirmado!</div>
                         <div className="cart-success-sub">
                             Tu orden ha sido creada exitosamente.
                         </div>
                         <div className="cart-success-info">
-                            <strong>Método de pago:</strong> {pedidoExitoso.orden.metodoPago}<br />
-                            <strong>Entrega:</strong> {pedidoExitoso.orden.tipoEntrega === 'domicilio' ? 'Envío a domicilio' : 'Retiro en almacenes'}<br />
+                            <strong>MÃ©todo de pago:</strong> {pedidoExitoso.orden.metodoPago}<br />
+                            <strong>Entrega:</strong> {pedidoExitoso.orden.tipoEntrega === 'domicilio' ? 'EnvÃ­o a domicilio' : 'Retiro en almacenes'}<br />
+                            <strong>Vendedor asignado:</strong> {getNombreVendedor(pedidoExitoso.facturacion.vendedorAsignado)}<br />
                             <strong>A nombre de:</strong> {pedidoExitoso.facturacion.nombre} {pedidoExitoso.facturacion.apellido}<br />
                             <span style={{ color: '#6b7280', fontSize: '0.85rem' }}>Puedes ver y descargar tu factura en <strong>Mis pedidos</strong>.</span>
                         </div>
                         <div className="cart-success-actions">
                             <Link to="/dashboard/mis-pedidos" className="cart-success-link" style={{ background: '#e8760a', color: '#fff' }}>
-                                Ver mis pedidos →
+                                Ver mis pedidos â†’
                             </Link>
                             <Link to="/dashboard/productos" className="cart-success-link">
                                 Seguir comprando
@@ -551,15 +585,15 @@ const Carrito = () => {
             <style>{cartStyles}</style>
             <ConfirmDialog
                 open={confirmVaciar}
-                title="¿Vaciar carrito?"
-                message="Se eliminarán todos los productos del carrito. Esta acción no se puede deshacer."
+                title="Â¿Vaciar carrito?"
+                message="Se eliminarÃ¡n todos los productos del carrito. Esta acciÃ³n no se puede deshacer."
                 confirmLabel="Vaciar"
                 onConfirm={vaciarCarrito}
                 onCancel={() => setConfirmVaciar(false)}
             />
             <div className="cart-wrapper">
                 <h2 className="cart-title">
-                    <span className="cart-title-icon">🛒</span>
+                    <span className="cart-title-icon">ðŸ›’</span>
                     Mi Carrito
                 </h2>
 
@@ -569,16 +603,16 @@ const Carrito = () => {
                     </div>
                 ) : !carrito || carrito.items.length === 0 ? (
                     <div className="cart-empty">
-                        <div className="cart-empty-icon">🛍️</div>
-                        <h3>Tu carrito está vacío</h3>
-                        <p>Explora nuestros productos y agrega lo que más te guste</p>
+                        <div className="cart-empty-icon">ðŸ›ï¸</div>
+                        <h3>Tu carrito estÃ¡ vacÃ­o</h3>
+                        <p>Explora nuestros productos y agrega lo que mÃ¡s te guste</p>
                         <Link to="/dashboard/productos" className="cart-shop-link">
                             Ver productos
                         </Link>
                     </div>
                 ) : (
                     <div className="cart-grid">
-                        {/* ── Tabla de items ── */}
+                        {/* â”€â”€ Tabla de items â”€â”€ */}
                         <div className="cart-card">
                             <div className="cart-table-wrap">
                                 <table className="cart-table">
@@ -596,6 +630,8 @@ const Carrito = () => {
                                         {carrito.items.map((item) => {
                                             const unidad = getUnidadItem(item);
                                             const precioUnidad = getPrecioUnidad(item);
+                                            const descuento = Number(item.producto?.descuento ?? 0) || 0;
+                                            const precioConDescuento = precioUnidad * (1 - descuento / 100);
                                             const permiteAmbos = item.producto?.unidadVenta === 'ambos';
                                             const stepCantidad = unidad === 'rollo' ? 1 : 0.01;
                                             return (
@@ -641,7 +677,7 @@ const Carrito = () => {
                                                     />
                                                 </td>
                                                 <td className="cart-subtotal">
-                                                    ${(precioUnidad * item.cantidad).toFixed(2)}
+                                                    ${(precioConDescuento * item.cantidad).toFixed(2)}
                                                 </td>
                                                 <td style={{textAlign:'center'}}>
                                                     <button
@@ -658,51 +694,68 @@ const Carrito = () => {
                             </div>
                             <div className="cart-table-footer">
                                 <button className="cart-clear-btn" onClick={() => setConfirmVaciar(true)}>
-                                    🗑️ Vaciar carrito
+                                    ðŸ—‘ï¸ Vaciar carrito
                                 </button>
                                 <Link to="/dashboard/productos" className="cart-continue-link">
-                                    ← Seguir comprando
+                                    â† Seguir comprando
                                 </Link>
                             </div>
                         </div>
 
-                        {/* ── Panel lateral ── */}
+                        {/* â”€â”€ Panel lateral â”€â”€ */}
                         <div className="cart-sidebar">
                             {/* Resumen */}
                             <div className="cart-card cart-summary">
-                                <h3>📋 Resumen del pedido</h3>
+                                <h3>ðŸ“‹ Resumen del pedido</h3>
                                 <div className="cart-summary-row">
                                     <span>Subtotal</span>
-                                    <span>${subtotal.toFixed(2)}</span>
+                                    <span>${subtotalSinDescuento.toFixed(2)}</span>
+                                </div>
+                                {desglosePreview.descuentoTotal > 0 && (
+                                    <div className="cart-summary-row">
+                                        <span>Descuentos</span>
+                                        <span>-${desglosePreview.descuentoTotal.toFixed(2)}</span>
+                                    </div>
+                                )}
+                                <div className="cart-summary-row">
+                                    <span>IVA (15%)</span>
+                                    <span>${desglosePreview.iva.toFixed(2)}</span>
                                 </div>
                                 <div className="cart-summary-row">
-                                    <span>Envío</span>
-                                    <span className="cart-summary-free">Gratis</span>
+                                    <span>EnvÃ­o</span>
+                                    <span>Desde ${ENVIO_BASE.toFixed(2)}</span>
                                 </div>
                                 <hr className="cart-summary-divider" />
                                 <div className="cart-summary-total">
-                                    <span>Total</span>
-                                    <span className="cart-summary-total-amount">${subtotal.toFixed(2)}</span>
+                                    <span>Total sin envÃ­o</span>
+                                    <span className="cart-summary-total-amount">${desglosePreview.totalFinal.toFixed(2)}</span>
+                                </div>
+                                <hr className="cart-summary-divider" />
+                                <div className="cart-summary-row">
+                                    <span>Vendedor asignado</span>
+                                    <span style={{ fontWeight: 800, color: '#111827', textAlign: 'right' }}>
+                                        {getNombreVendedor(vendedorAsignado)}
+                                    </span>
                                 </div>
                             </div>
 
                             {/* Selector de entrega */}
                             <div className="cart-card">
                                 <div className="cart-delivery-section">
-                                    <h3>🚚 Método de entrega</h3>
+                                    <h3>ðŸšš MÃ©todo de entrega</h3>
                                     <div className="cart-delivery-options">
                                         <div
                                             className={`cart-delivery-opt${tipoEntrega === 'domicilio' ? ' selected' : ''}`}
                                             onClick={() => { setTipoEntrega('domicilio'); setShowModalOP(true); }}
                                         >
-                                            <span className="cart-delivery-opt-icon">🛵</span>
-                                            <span className="cart-delivery-opt-label">Envío a domicilio</span>
+                                            <span className="cart-delivery-opt-icon">ðŸ›µ</span>
+                                            <span className="cart-delivery-opt-label">EnvÃ­o a domicilio</span>
                                         </div>
                                         <div
                                             className={`cart-delivery-opt${tipoEntrega === 'retiro' ? ' selected' : ''}`}
                                             onClick={() => { setTipoEntrega('retiro'); setShowModalOP(true); }}
                                         >
-                                            <span className="cart-delivery-opt-icon">🏪</span>
+                                            <span className="cart-delivery-opt-icon">ðŸª</span>
                                             <span className="cart-delivery-opt-label">Retiro en almacenes</span>
                                         </div>
                                         {isVendedor && (
@@ -711,14 +764,14 @@ const Carrito = () => {
                                                     className={`cart-delivery-opt${tipoEntrega === 'establecimiento' ? ' selected' : ''}`}
                                                     onClick={() => { setTipoEntrega('establecimiento'); setShowModalOP(true); }}
                                                 >
-                                                    <span className="cart-delivery-opt-icon">🏢</span>
+                                                    <span className="cart-delivery-opt-icon">ðŸ¢</span>
                                                     <span className="cart-delivery-opt-label">Entrega en establecimiento</span>
                                                 </div>
                                                 <div
                                                     className={`cart-delivery-opt${tipoEntrega === 'venta_local' ? ' selected' : ''}`}
                                                     onClick={() => { setTipoEntrega('venta_local'); setShowModalOP(true); }}
                                                 >
-                                                    <span className="cart-delivery-opt-icon">💰</span>
+                                                    <span className="cart-delivery-opt-icon">ðŸ’°</span>
                                                     <span className="cart-delivery-opt-label">Venta local</span>
                                                 </div>
                                             </>
@@ -739,11 +792,15 @@ const Carrito = () => {
                 <ModalOrdenPago
                     tipoEntrega={tipoEntrega}
                     cartItems={carrito?.items || []}
-                    subtotalCart={subtotal}
+                    subtotalCart={desglosePreview.subtotal}
+                    subtotalSinDescuento={subtotalSinDescuento}
+                    descuentoTotal={desglosePreview.descuentoTotal}
+                    envioBase={ENVIO_BASE}
+                    vendedorAsignado={vendedorAsignado}
                     onClose={() => { setShowModalOP(false); setTipoEntrega(''); }}
                     onOrdenCreada={(orden, fac) => {
                         setShowModalOP(false);
-                        setPedidoExitoso({ orden, facturacion: fac });
+                        setPedidoExitoso({ orden, facturacion: { ...fac, vendedorAsignado } });
                     }}
                     onNeedCardPayment={(orden) => {
                         setShowModalOP(false);

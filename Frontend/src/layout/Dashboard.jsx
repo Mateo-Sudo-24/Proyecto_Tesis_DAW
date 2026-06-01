@@ -16,7 +16,7 @@ const styles = `
         display: flex;
         min-height: 100vh;
     }
-    /* ── Sidebar ── */
+    /* â”€â”€ Sidebar â”€â”€ */
     .dsb-sidebar {
         width: 240px;
         min-width: 240px;
@@ -60,7 +60,7 @@ const styles = `
         text-transform: uppercase;
         letter-spacing: 0.08em;
     }
-    /* ── User Card ── */
+    /* â”€â”€ User Card â”€â”€ */
     .dsb-user-card {
         padding: 1rem 1.25rem;
         border-bottom: 1px solid rgba(255,255,255,0.07);
@@ -99,7 +99,7 @@ const styles = `
         text-transform: capitalize;
         font-weight: 600;
     }
-    /* ── Nav ── */
+    /* â”€â”€ Nav â”€â”€ */
     .dsb-nav {
         flex: 1;
         padding: 0.75rem 0.625rem;
@@ -160,7 +160,7 @@ const styles = `
         transition: transform 0.2s;
     }
     .dsb-chevron.open { transform: rotate(180deg); }
-    /* ── Dropdown submenu ── */
+    /* â”€â”€ Dropdown submenu â”€â”€ */
     .dsb-submenu {
         overflow: hidden;
         max-height: 0;
@@ -170,7 +170,7 @@ const styles = `
         margin-left: 1.1rem;
     }
     .dsb-submenu.open { max-height: 200px; }
-    /* ── Footer ── */
+    /* â”€â”€ Footer â”€â”€ */
     .dsb-sidebar-footer {
         padding: 0.875rem 0.625rem;
         border-top: 1px solid rgba(255,255,255,0.07);
@@ -195,7 +195,7 @@ const styles = `
         background: rgba(220,38,38,0.18);
         color: #fca5a5;
     }
-    /* ── Main area ── */
+    /* â”€â”€ Main area â”€â”€ */
     .dsb-main {
         flex: 1;
         display: flex;
@@ -259,7 +259,7 @@ const styles = `
         letter-spacing: 0.03em;
         border-top: 1px solid rgba(255,255,255,0.06);
     }
-    /* ── Mobile sidebar ── */
+    /* â”€â”€ Mobile sidebar â”€â”€ */
     .dsb-sidebar-overlay {
         display: none;
         position: fixed;
@@ -284,7 +284,7 @@ const styles = `
         .dsb-content { padding: 1rem; }
         .dsb-topbar { justify-content: space-between; padding: 0.7rem 1rem; }
     }
-    /* ── Hamburger button ── */
+    /* â”€â”€ Hamburger button â”€â”€ */
     .dsb-hamburger {
         display: none;
         background: none;
@@ -319,20 +319,19 @@ const Dashboard = () => {
     const isAdmin = user?.rol === "administrador"
 
     const lc = (path) => `dsb-nav-link${urlActual === path ? ' active' : ''}`
-    const lcMobile = (path) => { closeSidebar(); return lc(path); }
 
     return (
         <>
             <style>{styles}</style>
             <div className="dsb-layout">
 
-                {/* ── Overlay móvil ── */}
+                {/* â”€â”€ Overlay mÃ³vil â”€â”€ */}
                 <div
                     className={`dsb-sidebar-overlay${sidebarOpen ? ' open' : ''}`}
                     onClick={closeSidebar}
                 />
 
-                {/* ── Sidebar ── */}
+                {/* â”€â”€ Sidebar â”€â”€ */}
                 <aside className={`dsb-sidebar${sidebarOpen ? ' mobile-open' : ''}`}>
 
                     {/* Brand */}
@@ -358,68 +357,68 @@ const Dashboard = () => {
                         <span className="dsb-nav-section">Principal</span>
 
                         <Link to="/dashboard/perfil" className={lc('/dashboard/perfil')} onClick={closeSidebar}>
-                            <span className="dsb-icon">👤</span> Perfil
+                            <span className="dsb-icon">ðŸ‘¤</span> Perfil
                         </Link>
 
                         <Link to="/dashboard/chat" className={lc('/dashboard/chat')} onClick={closeSidebar}>
-                            <span className="dsb-icon">💬</span> Chat
+                            <span className="dsb-icon">ðŸ’¬</span> Chat
                         </Link>
 
-                        {/* Gestión (admin + vendedor) */}
+                        {/* GestiÃ³n (admin + vendedor) */}
                         {(isVendedor || isAdmin) && (
                             <>
-                                <span className="dsb-nav-section">Gestión</span>
+                                <span className="dsb-nav-section">GestiÃ³n</span>
                                 <Link to="/dashboard/usuarios" className={lc('/dashboard/usuarios')} onClick={closeSidebar}>
-                                    <span className="dsb-icon">🗂️</span> Usuarios
+                                    <span className="dsb-icon">ðŸ—‚ï¸</span> Usuarios
                                 </Link>
                             </>
                         )}
 
-                        {/* Admin específico */}
+                        {/* Admin especÃ­fico */}
                         {isAdmin && (
                             <>
                                 <Link to="/dashboard/productos-admin" className={lc('/dashboard/productos-admin')} onClick={closeSidebar}>
-                                    <span className="dsb-icon">📦</span> Productos
+                                    <span className="dsb-icon">ðŸ“¦</span> Productos
                                 </Link>
                                 <Link to="/dashboard/notificaciones" className={lc('/dashboard/notificaciones')} onClick={closeSidebar}>
-                                    <span className="dsb-icon">🔔</span> Notificaciones
+                                    <span className="dsb-icon">ðŸ””</span> Notificaciones
                                 </Link>
                                 <Link to="/dashboard/ventas" className={lc('/dashboard/ventas')} onClick={closeSidebar}>
-                                    <span className="dsb-icon">📊</span> Ventas
+                                    <span className="dsb-icon">ðŸ“Š</span> Ventas
                                 </Link>
                             </>
                         )}
 
-                        {/* Vendedor — productos + pedidos */}
+                        {/* Vendedor â€” productos + pedidos */}
                         {isVendedor && (
                             <>
                                 <Link to="/dashboard/productos-admin" className={lc('/dashboard/productos-admin')} onClick={closeSidebar}>
-                                    <span className="dsb-icon">🧵</span> Productos
+                                    <span className="dsb-icon">ðŸ§µ</span> Productos
                                 </Link>
                                 <Link to="/dashboard/carrito" className={lc('/dashboard/carrito')} onClick={closeSidebar}>
-                                    <span className="dsb-icon">🛒</span> Carrito
+                                    <span className="dsb-icon">ðŸ›’</span> Carrito
                                 </Link>
                                 <Link to="/dashboard/mis-pedidos" className={lc('/dashboard/mis-pedidos')} onClick={closeSidebar}>
-                                    <span className="dsb-icon">📦</span> Pedidos en curso
+                                    <span className="dsb-icon">ðŸ“¦</span> Gestion de pedidos
                                 </Link>
                                 <Link to="/dashboard/ventas" className={lc('/dashboard/ventas')} onClick={closeSidebar}>
-                                    <span className="dsb-icon">📊</span> Ventas
+                                    <span className="dsb-icon">ðŸ“Š</span> Ventas
                                 </Link>
                             </>
                         )}
 
-                        {/* Cliente específico */}
+                        {/* Cliente especÃ­fico */}
                         {isCliente && (
                             <>
                                 <span className="dsb-nav-section">Tienda</span>
                                 <Link to="/dashboard/productos" className={lc('/dashboard/productos')} onClick={closeSidebar}>
-                                    <span className="dsb-icon">🧵</span> Productos
+                                    <span className="dsb-icon">ðŸ§µ</span> Productos
                                 </Link>
                                 <Link to="/dashboard/carrito" className={lc('/dashboard/carrito')} onClick={closeSidebar}>
-                                    <span className="dsb-icon">🛒</span> Carrito
+                                    <span className="dsb-icon">ðŸ›’</span> Carrito
                                 </Link>
                                 <Link to="/dashboard/mis-pedidos" className={lc('/dashboard/mis-pedidos')} onClick={closeSidebar}>
-                                    <span className="dsb-icon">📦</span> Mis pedidos
+                                    <span className="dsb-icon">ðŸ“¦</span> Mis pedidos
                                 </Link>
                             </>
                         )}
@@ -431,19 +430,19 @@ const Dashboard = () => {
                             className="btn-dsb-logout"
                             onClick={() => { clearToken(); navigate('/login'); }}
                         >
-                            🚪 Cerrar sesión
+                            ðŸšª Cerrar sesiÃ³n
                         </button>
                     </div>
                 </aside>
 
-                {/* ── Main ── */}
+                {/* â”€â”€ Main â”€â”€ */}
                 <div className="dsb-main">
                     <header className="dsb-topbar">
-                        {/* Botón hamburguesa (solo móvil) */}
+                        {/* BotÃ³n hamburguesa (solo mÃ³vil) */}
                         <button
                             className="dsb-hamburger"
                             onClick={() => setSidebarOpen(o => !o)}
-                            aria-label="Abrir menú"
+                            aria-label="Abrir menÃº"
                         >
                             <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round">
                                 {sidebarOpen ? (
@@ -474,7 +473,7 @@ const Dashboard = () => {
                         <Outlet />
                     </main>
                     <footer className="dsb-footer">
-                        © {new Date().getFullYear()} Intex Textiles — Todos los derechos reservados
+                        Â© {new Date().getFullYear()} Intex Textiles â€” Todos los derechos reservados
                     </footer>
                 </div>
 

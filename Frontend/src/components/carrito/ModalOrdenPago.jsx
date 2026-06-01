@@ -3,11 +3,13 @@ import PropTypes from 'prop-types'
 import { toast } from 'react-toastify'
 import useFetch from '../../hooks/useFetch.js'
 import storeProfile from '../../context/storeProfile'
-import deUnaQr from '../../assets/qr.jpeg'
+import deUnaQr from '../../assets/deuna.jpg'
+import { calcularDesglose } from './ordenLocal.js'
 
 const IVA = 0.15
 const fmt = (n) => `$${Number(n).toFixed(2)}`
 const CAVA_COORDS = [-0.28916521175994486, -78.5384308610558]
+const DISTANCIA_ENVIO_KM = 10
 const LEAFLET_CSS_ID = 'leaflet-css'
 const LEAFLET_SCRIPT_ID = 'leaflet-js'
 const limpiarTexto = (value) => String(value ?? '').trim()
@@ -18,16 +20,12 @@ const numeroSeguro = (value) => {
 }
 
 const metodosCliente = [
-        { value: 'Pago por tarjeta en línea', label: 'Pago por tarjeta en línea', helper: 'Pago seguro con tarjeta de crédito o débito. Serás redirigido a completar el pago.' },
-    { value: 'Pago contra entrega', label: 'Contra entrega', helper: 'Pagas en el momento de la entrega.' },
+    { value: 'Pago por tarjeta en linea', label: 'Tarjeta en linea', helper: 'Pago con Stripe para tarjeta de credito o debito.' },
+    { value: 'De Una', label: 'De Una', helper: 'Pago por QR. Conserva el comprobante para validacion.' },
+    { value: 'Pago efectivo / tarjeta debito', label: 'Efectivo / tarjeta debito', helper: 'Pago presencial en efectivo o tarjeta de debito.' },
 ]
 
-const metodosVendedor = [
-    { value: 'Pago por tarjeta en línea', label: 'Tarjeta en línea', helper: 'Cobro con tarjeta al cliente.' },
-    { value: 'De Una', label: 'De Una', helper: 'Pago con QR para confirmar la compra.' },
-    { value: 'Pago contra entrega', label: 'Contra entrega', helper: 'Pago al recibir el pedido.' },
-    { value: 'Pago efectivo / tarjeta débito', label: 'Efectivo / Débito', helper: 'Pago en efectivo o tarjeta débito presencial.' },
-]
+const metodosVendedor = metodosCliente
 
 const cargarLeaflet = () => new Promise((resolve, reject) => {
     if (window.L) {
@@ -74,7 +72,7 @@ const modalStyles = `
         --gray-900: #111827;
     }
 
-    /* ── Overlay ── */
+    /* â”€â”€ Overlay â”€â”€ */
     .mop-overlay {
         position: fixed;
         inset: 0;
@@ -83,7 +81,7 @@ const modalStyles = `
         backdrop-filter: blur(2px);
     }
 
-    /* ── Modal container ── */
+    /* â”€â”€ Modal container â”€â”€ */
     .mop-modal {
         position: fixed;
         top: 50%;
@@ -102,7 +100,7 @@ const modalStyles = `
         font-family: 'DM Sans', system-ui, sans-serif;
     }
 
-    /* ── Modal header ── */
+    /* â”€â”€ Modal header â”€â”€ */
     .mop-header {
         display: flex;
         align-items: center;
@@ -152,7 +150,7 @@ const modalStyles = `
     }
     .mop-close:hover { background: rgba(255,255,255,0.16); color: #fff; }
 
-    /* ── Scrollable body ── */
+    /* â”€â”€ Scrollable body â”€â”€ */
     .mop-body {
         flex: 1;
         min-height: 0;
@@ -170,7 +168,7 @@ const modalStyles = `
     .mop-body::-webkit-scrollbar-thumb { background: #d1d5db; border-radius: 999px; border: 2px solid var(--gray-100); }
     .mop-body::-webkit-scrollbar-thumb:hover { background: var(--gray-400); }
 
-    /* ── Footer ── */
+    /* â”€â”€ Footer â”€â”€ */
     .mop-footer {
         padding: 0.875rem 1.25rem;
         background: var(--gray-50);
@@ -271,7 +269,7 @@ const modalStyles = `
     .op-qr-box strong { display: block; color: var(--gray-900); margin-bottom: 0.35rem; }
     .op-qr-box p { margin: 0; color: var(--gray-600); font-size: 0.8rem; line-height: 1.45; }
 
-    /* ── Mapa collapsible ── */
+    /* â”€â”€ Mapa collapsible â”€â”€ */
     .mop-mapa-toggle {
         display: flex;
         align-items: center;
@@ -319,7 +317,7 @@ const modalStyles = `
         background: var(--gray-100);
     }
 
-    /* ── Items table ── */
+    /* â”€â”€ Items table â”€â”€ */
     .mop-items-header {
         display: grid;
         grid-template-columns: 1fr 64px 86px 86px;
@@ -351,7 +349,7 @@ const modalStyles = `
         overflow-y: auto;
     }
 
-    /* ── Totals ── */
+    /* â”€â”€ Totals â”€â”€ */
     .op-totales {
         padding: 0.875rem 1.25rem;
         border-top: 1px solid var(--gray-200);
@@ -380,7 +378,7 @@ const modalStyles = `
         margin-top: 0.2rem;
     }
 
-    /* ── Action buttons ── */
+    /* â”€â”€ Action buttons â”€â”€ */
     .op-btn-reset {
         padding: 0.6rem 1.1rem;
         background: none;
@@ -414,7 +412,7 @@ const modalStyles = `
     .op-btn-pdf:hover { background: var(--orange-dark); transform: translateY(-1px); }
     .op-btn-pdf:disabled { opacity: 0.6; cursor: not-allowed; transform: none; }
 
-    /* ── PDF template (removed) ── */
+    /* â”€â”€ PDF template (removed) â”€â”€ */
     .pdf-template { display: none; }
     .pdf-top {
         display: flex;
@@ -475,6 +473,10 @@ const ModalOrdenPago = ({
     tipoEntrega,
     cartItems = [],
     subtotalCart = 0,
+    subtotalSinDescuento = 0,
+    descuentoTotal = 0,
+    envioBase = 2.5,
+    vendedorAsignado,
     onClose,
     onOrdenCreada,
     onNeedCardPayment,
@@ -491,9 +493,18 @@ const ModalOrdenPago = ({
     const [errors, setErrors] = useState({})
     const mapContainerRef = useRef(null)
     const leafletMapRef = useRef(null)
+    const nombreVendedor = vendedorAsignado
+        ? `${vendedorAsignado.nombrePropietario || vendedorAsignado.nombre || ''} ${vendedorAsignado.apellido || ''}`.trim()
+        : 'Asignacion automatica'
 
-    const iva = subtotalCart * IVA
-    const total = subtotalCart + iva
+    const costoEnvio = tipoEntrega === 'domicilio'
+        ? envioBase + Math.max(0, Math.ceil((DISTANCIA_ENVIO_KM - 10) / 5)) * 1
+        : 0
+    const desglose = calcularDesglose(cartItems, metodoPago, costoEnvio)
+    const subtotalVisible = desglose.subtotal || subtotalCart
+    const descuentoVisible = desglose.descuentoTotal || descuentoTotal
+    const iva = desglose.iva || subtotalVisible * IVA
+    const total = desglose.totalFinal || subtotalVisible + iva + costoEnvio
 
     useEffect(() => {
         if (!metodosPago.some((m) => m.value === metodoPago)) {
@@ -546,24 +557,24 @@ const ModalOrdenPago = ({
 
     const validate = () => {
         const errs = {}
-        const soloLetras = /^[A-Za-zÁÉÍÓÚáéíóúÑñ\s]{2,}$/
+        const soloLetras = /^[A-Za-zÃÃ‰ÃÃ“ÃšÃ¡Ã©Ã­Ã³ÃºÃ‘Ã±\s]{2,}$/
         const emailValido = /^[^\s@]+@[^\s@]+\.[^\s@]+$/
         const documentoValido = /^(\d{10}|\d{13})$/
         const telefonoValido = /^0\d{8,9}$/
         const itemsValidos = cartItems.every((it) => {
             const cantidad = Number(it?.cantidad)
-            const precio = Number(it?.producto?.precio)
+            const precio = Number(it?.producto?.precioPorMetro ?? it?.producto?.precioPorRollo ?? it?.producto?.precio)
             return cantidad > 0 && Number.isFinite(precio) && precio >= 0
         })
 
         if (!soloLetras.test(form.nombre.trim()))   errs.nombre   = 'Ingresa al menos 2 letras'
         if (!soloLetras.test(form.apellido.trim())) errs.apellido  = 'Ingresa al menos 2 letras'
-        if (!documentoValido.test(form.ruc.trim())) errs.ruc       = 'Usa cédula de 10 dígitos o RUC de 13'
-        if (!emailValido.test(form.email.trim()))   errs.email     = 'Correo inválido'
-        if (form.telefono.trim() && !telefonoValido.test(form.telefono.trim())) errs.telefono = 'Teléfono inválido'
-        if (!form.direccion.trim()) errs.direccion = 'Ingresa la dirección de facturación'
-        if (tipoEntrega === 'domicilio' && !direccionDomicilio) errs.mapaDireccion = 'Selecciona tu dirección en el mapa'
-        if (!itemsValidos) errs.items = 'Hay productos con cantidad o precio inválido'
+        if (!documentoValido.test(form.ruc.trim())) errs.ruc       = 'Usa cÃ©dula de 10 dÃ­gitos o RUC de 13'
+        if (!emailValido.test(form.email.trim()))   errs.email     = 'Correo invÃ¡lido'
+        if (form.telefono.trim() && !telefonoValido.test(form.telefono.trim())) errs.telefono = 'TelÃ©fono invÃ¡lido'
+        if (!form.direccion.trim()) errs.direccion = 'Ingresa la direcciÃ³n de facturaciÃ³n'
+        if (tipoEntrega === 'domicilio' && !direccionDomicilio) errs.mapaDireccion = 'Selecciona tu direcciÃ³n en el mapa'
+        if (!itemsValidos) errs.items = 'Hay productos con cantidad o precio invÃ¡lido'
         setErrors(errs)
         return Object.keys(errs).length === 0
     }
@@ -596,6 +607,8 @@ const ModalOrdenPago = ({
             metodoPago: limpiarTexto(metodoPago),
             tipoEntrega: limpiarTexto(tipoEntrega),
             datosFacturacion,
+            desglose,
+            vendedorId: vendedorAsignado?.id || vendedorAsignado?._id,
         }
 
         const response = await fetchDataBackend(
@@ -611,7 +624,7 @@ const ModalOrdenPago = ({
 
         const ordenRecien = response.orden
 
-        if (metodoPago === 'Pago por tarjeta en línea') {
+        if (metodoPago === 'Pago por tarjeta en linea') {
             setIsCreating(false)
             toast.success('Orden creada. Completa el pago con tarjeta.')
             onNeedCardPayment(ordenRecien)
@@ -628,12 +641,12 @@ const ModalOrdenPago = ({
 
         if (pagoRes) {
             const msg = ['domicilio'].includes(tipoEntrega)
-                ? '🚚 ¡Pedido enviado! Tu pedido está en camino.'
+                ? 'Pedido enviado. Tu pedido esta en camino.'
                 : tipoEntrega === 'venta_local'
-                ? '🏪 ¡Venta registrada exitosamente!'
-                : '🏪 ¡Pedido listo! Pasa a retirarlo en nuestros almacenes.'
+                ? 'Venta registrada exitosamente.'
+                : 'Pedido listo. Pasa a retirarlo en nuestros almacenes.'
             toast.success(msg)
-            onOrdenCreada(ordenRecien, {
+            onOrdenCreada(pagoRes.orden ?? ordenRecien, {
                 nombre: form.nombre,
                 apellido: form.apellido,
                 correo: form.email,
@@ -656,29 +669,29 @@ const ModalOrdenPago = ({
 
                 {/* Header */}
                 <div className="mop-header">
-                    <div className="mop-header-icon">🧾</div>
+                    <div className="mop-header-icon">ðŸ§¾</div>
                     <div>
                         <h2 className="mop-header-title">Orden de pago</h2>
                         <p className="mop-header-sub">
-                            {tipoEntrega === 'domicilio' ? '🛵 Envío a domicilio' : tipoEntrega === 'establecimiento' ? '🏢 Entrega en establecimiento' : tipoEntrega === 'venta_local' ? '🏪 Venta local' : '🏪 Retiro en almacenes'}
+                            {tipoEntrega === 'domicilio' ? 'ðŸ›µ EnvÃ­o a domicilio' : tipoEntrega === 'establecimiento' ? 'ðŸ¢ Entrega en establecimiento' : tipoEntrega === 'venta_local' ? 'ðŸª Venta local' : 'ðŸª Retiro en almacenes'}
                         </p>
                     </div>
-                    <button className="mop-close" onClick={onClose} type="button">✕</button>
+                    <button className="mop-close" onClick={onClose} type="button">âœ•</button>
                 </div>
 
                 {/* Scrollable body */}
                 <div className="mop-body">
 
-                    {/* Dirección de entrega (solo domicilio) */}
+                    {/* DirecciÃ³n de entrega (solo domicilio) */}
                     {tipoEntrega === 'domicilio' && (
                         <div className="op-section">
-                            <div className="op-section-title">📍 Dirección de entrega</div>
+                            <div className="op-section-title">ðŸ“ DirecciÃ³n de entrega</div>
                             <div style={{ padding: '0.875rem 1.25rem 0.5rem' }}>
                                 <div style={{ background:'#f0fdf4', border:'1.5px solid #86efac', borderRadius:'0.6rem', padding:'0.6rem 1rem', fontSize:'0.875rem', color:'#166534', fontWeight:600, display:'flex', alignItems:'center', gap:'0.5rem' }}>
-                                    📍 <span style={{ flex:1 }}>{direccionDomicilio}</span>
+                                    ðŸ“ <span style={{ flex:1 }}>{direccionDomicilio}</span>
                                 </div>
                                 {errors.mapaDireccion && (
-                                    <span className="op-error-msg" style={{ display:'block', marginTop:'0.4rem' }}>⚠ {errors.mapaDireccion}</span>
+                                    <span className="op-error-msg" style={{ display:'block', marginTop:'0.4rem' }}>âš  {errors.mapaDireccion}</span>
                                 )}
                             </div>
                             <button
@@ -686,15 +699,15 @@ const ModalOrdenPago = ({
                                 className="mop-mapa-toggle"
                                 onClick={() => setMapaVisible(v => !v)}
                             >
-                                🗺 Ver ubicación en el mapa
-                                <span className={`mop-mapa-chevron${mapaVisible ? ' open' : ''}`}>▼</span>
+                                ðŸ—º Ver ubicaciÃ³n en el mapa
+                                <span className={`mop-mapa-chevron${mapaVisible ? ' open' : ''}`}>â–¼</span>
                             </button>
                             <div className={`mop-mapa-body${mapaVisible ? ' open' : ''}`}>
                                 <div className="mop-mapa-iframe-wrap">
                                     <div
                                         ref={mapContainerRef}
                                         className="mop-map-canvas"
-                                        aria-label="Ubicación CAVA CORP en Leaflet"
+                                        aria-label="UbicaciÃ³n CAVA CORP en Leaflet"
                                     />
                                 </div>
                             </div>
@@ -703,52 +716,52 @@ const ModalOrdenPago = ({
 
                     {(tipoEntrega === 'retiro' || tipoEntrega === 'establecimiento' || tipoEntrega === 'venta_local') && (
                         <div className="op-section">
-                            <div className="op-section-title">🏪 Retiro en almacenes</div>
+                            <div className="op-section-title">ðŸª Retiro en almacenes</div>
                             <div style={{ padding: '0.875rem 1.25rem', display: 'grid', gap: '0.45rem', color: '#374151', fontSize: '0.875rem' }}>
                                 <strong style={{ color: '#111827' }}>CAVA CORP - Almacenes Intex</strong>
                                 <span>{
                                     tipoEntrega === 'venta_local'
                                         ? 'Venta registrada en el local. El cliente paga y se lleva el producto.'
                                         : tipoEntrega === 'establecimiento'
-                                        ? 'El pedido se entregará en el establecimiento del cliente.'
-                                        : 'Tu pedido quedará registrado para retiro en almacenes. Usa la dirección de facturación para emitir la orden y confirmar la entrega.'
+                                        ? 'El pedido se entregarÃ¡ en el establecimiento del cliente.'
+                                        : 'Tu pedido quedarÃ¡ registrado para retiro en almacenes. Usa la direcciÃ³n de facturaciÃ³n para emitir la orden y confirmar la entrega.'
                                 }</span>
                                 <span style={{ color: '#6b7280' }}>Total a cancelar: <b style={{ color: '#e8760a' }}>{fmt(total)}</b></span>
                             </div>
                         </div>
                     )}
 
-                    {/* Datos de facturación */}
+                    {/* Datos de facturaciÃ³n */}
                     <div className="op-section">
-                        <div className="op-section-title">Datos de facturación</div>
+                        <div className="op-section-title">Datos de facturaciÃ³n</div>
                         <div className="op-grid">
                             <div className="op-field">
                                 <label className="op-label">Nombre</label>
                                 <input className={`op-input${errors.nombre ? ' error' : ''}`} name="nombre" placeholder="Juan" value={form.nombre} onChange={handleForm} />
-                                {errors.nombre && <span className="op-error-msg">⚠ {errors.nombre}</span>}
+                                {errors.nombre && <span className="op-error-msg">âš  {errors.nombre}</span>}
                             </div>
                             <div className="op-field">
                                 <label className="op-label">Apellido</label>
-                                <input className={`op-input${errors.apellido ? ' error' : ''}`} name="apellido" placeholder="García" value={form.apellido} onChange={handleForm} />
-                                {errors.apellido && <span className="op-error-msg">⚠ {errors.apellido}</span>}
+                                <input className={`op-input${errors.apellido ? ' error' : ''}`} name="apellido" placeholder="GarcÃ­a" value={form.apellido} onChange={handleForm} />
+                                {errors.apellido && <span className="op-error-msg">âš  {errors.apellido}</span>}
                             </div>
                             <div className="op-field">
-                                <label className="op-label">RUC / Cédula</label>
+                                <label className="op-label">RUC / CÃ©dula</label>
                                 <input className={`op-input${errors.ruc ? ' error' : ''}`} name="ruc" inputMode="numeric" maxLength={13} placeholder="1234567890001" value={form.ruc} onChange={handleForm} />
-                                {errors.ruc && <span className="op-error-msg">⚠ {errors.ruc}</span>}
+                                {errors.ruc && <span className="op-error-msg">âš  {errors.ruc}</span>}
                             </div>
                             <div className="op-field">
-                                <label className="op-label">Teléfono</label>
+                                <label className="op-label">TelÃ©fono</label>
                                 <input className={`op-input${errors.telefono ? ' error' : ''}`} name="telefono" inputMode="tel" maxLength={10} placeholder="0987654321" value={form.telefono} onChange={handleForm} />
                                 {errors.telefono && <span className="op-error-msg">! {errors.telefono}</span>}
                             </div>
                             <div className="op-field full">
-                                <label className="op-label">Correo electrónico</label>
+                                <label className="op-label">Correo electrÃ³nico</label>
                                 <input className={`op-input${errors.email ? ' error' : ''}`} name="email" type="email" placeholder="correo@ejemplo.com" value={form.email} onChange={handleForm} />
-                                {errors.email && <span className="op-error-msg">⚠ {errors.email}</span>}
+                                {errors.email && <span className="op-error-msg">âš  {errors.email}</span>}
                             </div>
                             <div className="op-field full">
-                                <label className="op-label">Dirección de facturación</label>
+                                <label className="op-label">DirecciÃ³n de facturaciÃ³n</label>
                                 <input className={`op-input${errors.direccion ? ' error' : ''}`} name="direccion" placeholder="Av. Principal 123, ciudad" value={form.direccion} onChange={handleForm} />
                                 {errors.direccion && <span className="op-error-msg">! {errors.direccion}</span>}
                             </div>
@@ -766,25 +779,46 @@ const ModalOrdenPago = ({
                             <span style={{ textAlign:'right' }}>Total</span>
                         </div>
                         <div className="mop-items-scroll">
-                            {cartItems.map((it, i) => (
-                                <div className="mop-item-row" key={i}>
-                                    <span style={{ color:'#374151', fontWeight:600 }}>{it.producto?.nombre || 'Producto'}</span>
-                                    <span style={{ textAlign:'center', color:'#6b7280' }}>{numeroSeguro(it.cantidad)}</span>
-                                    <span style={{ textAlign:'right', color:'#6b7280' }}>{fmt(numeroSeguro(it.producto?.precio))}</span>
-                                    <span style={{ textAlign:'right', color:'#111827', fontWeight:700 }}>{fmt(numeroSeguro(it.producto?.precio) * numeroSeguro(it.cantidad))}</span>
-                                </div>
-                            ))}
+                            {cartItems.map((it, i) => {
+                                const unidad = it.unidadSeleccionada || 'metro'
+                                const precioBase = unidad === 'rollo'
+                                    ? numeroSeguro(it.producto?.precioPorRollo ?? it.producto?.precio)
+                                    : numeroSeguro(it.producto?.precioPorMetro ?? it.producto?.precio)
+                                const precioFinal = precioBase * (1 - numeroSeguro(it.producto?.descuento) / 100)
+                                return (
+                                    <div className="mop-item-row" key={i}>
+                                        <span style={{ color:'#374151', fontWeight:600 }}>{it.producto?.nombre || 'Producto'}</span>
+                                        <span style={{ textAlign:'center', color:'#6b7280' }}>{numeroSeguro(it.cantidad)} {unidad}</span>
+                                        <span style={{ textAlign:'right', color:'#6b7280' }}>{fmt(precioFinal)}</span>
+                                        <span style={{ textAlign:'right', color:'#111827', fontWeight:700 }}>{fmt(precioFinal * numeroSeguro(it.cantidad))}</span>
+                                    </div>
+                                )
+                            })}
                         </div>
                         <div className="op-totales">
-                            <div className="op-total-row"><span>Subtotal</span><span>{fmt(subtotalCart)}</span></div>
+                            <div className="op-total-row"><span>Subtotal bruto</span><span>{fmt(subtotalSinDescuento || subtotalVisible + descuentoVisible)}</span></div>
+                            {descuentoVisible > 0 && <div className="op-total-row"><span>Descuentos</span><span>-{fmt(descuentoVisible)}</span></div>}
+                            <div className="op-total-row"><span>Subtotal</span><span>{fmt(subtotalVisible)}</span></div>
                             <div className="op-total-row"><span>IVA (15%)</span><span>{fmt(iva)}</span></div>
+                            {costoEnvio > 0 && <div className="op-total-row"><span>Envio ({DISTANCIA_ENVIO_KM} km)</span><span>{fmt(costoEnvio)}</span></div>}
+                            {desglose.comisionPago > 0 && <div className="op-total-row"><span>Comision tarjeta</span><span>{fmt(desglose.comisionPago)}</span></div>}
                             <div className="op-total-row grand"><span>Total</span><span>{fmt(total)}</span></div>
                         </div>
                     </div>
 
-                    {/* Método de pago */}
                     <div className="op-section">
-                        <div className="op-section-title">Método de pago</div>
+                        <div className="op-section-title">Vendedor asignado</div>
+                        <div style={{ padding: '0.875rem 1.25rem', color: '#374151', fontSize: '0.875rem' }}>
+                            <strong style={{ color: '#111827' }}>{nombreVendedor}</strong>
+                            <div style={{ color: '#6b7280', marginTop: '0.25rem' }}>
+                                Este vendedor gestionara la orden y la confirmacion del pedido.
+                            </div>
+                        </div>
+                    </div>
+
+                    {/* MÃ©todo de pago */}
+                    <div className="op-section">
+                        <div className="op-section-title">MÃ©todo de pago</div>
                         <div className="op-pay-grid">
                             {metodosPago.map((metodo) => (
                                 <button
@@ -803,7 +837,7 @@ const ModalOrdenPago = ({
                                 <img src={deUnaQr} alt="QR de pago De Una" />
                                 <div>
                                     <strong>Pago con De Una</strong>
-                                    <p>Escanea el QR, realiza el pago por el total mostrado y conserva el comprobante para validación.</p>
+                                    <p>Escanea el QR, realiza el pago por el total mostrado y conserva el comprobante para validaciÃ³n.</p>
                                 </div>
                             </div>
                         )}
@@ -811,7 +845,7 @@ const ModalOrdenPago = ({
 
                 </div>
 
-                {/* Footer — acciones */}
+                {/* Footer â€” acciones */}
                 <div className="mop-footer">
                     <button className="op-btn-reset" onClick={onClose} type="button">Cancelar</button>
                     <button className="op-btn-pdf" onClick={handleConfirmar} disabled={isCreating} type="button">
@@ -820,7 +854,7 @@ const ModalOrdenPago = ({
                                 <span style={{ width:'13px', height:'13px', border:'2px solid rgba(255,255,255,0.35)', borderTopColor:'#fff', borderRadius:'50%', display:'inline-block', animation:'mop-spin 0.7s linear infinite' }} />
                                 Procesando...
                             </>
-                        ) : '✅ Confirmar pedido'}
+                        ) : 'âœ… Confirmar pedido'}
                     </button>
                 </div>
             </div>
@@ -836,6 +870,10 @@ ModalOrdenPago.propTypes = {
     tipoEntrega: PropTypes.string,
     cartItems: PropTypes.array,
     subtotalCart: PropTypes.number,
+    subtotalSinDescuento: PropTypes.number,
+    descuentoTotal: PropTypes.number,
+    envioBase: PropTypes.number,
+    vendedorAsignado: PropTypes.object,
     onClose: PropTypes.func,
     onOrdenCreada: PropTypes.func,
     onNeedCardPayment: PropTypes.func,

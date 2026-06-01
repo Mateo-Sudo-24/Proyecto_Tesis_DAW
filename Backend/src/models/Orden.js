@@ -55,9 +55,9 @@ const ordenSchema = new Schema({
     metodoPago: {
         type: String,
         required: true,
-        enum: ['Pago por tarjeta en línea', 'De Una', 'Pago contra entrega', 'Pago efectivo / tarjeta débito',
-               // legacy compat
-               'Tarjeta de Crédito', 'Transferencia Bancaria', 'PayPal', 'Contra Entrega', 'Efectivo', 'Stripe']
+        enum: ['Pago por tarjeta en linea', 'De Una', 'Pago efectivo / tarjeta debito',
+               'Pago por tarjeta en línea', 'Pago por tarjeta en lÃ­nea', 'Pago contra entrega', 'Pago efectivo / tarjeta dÃ©bito',
+               'Tarjeta de CrÃ©dito', 'Transferencia Bancaria', 'PayPal', 'Contra Entrega', 'Efectivo', 'Stripe']
     },
     metodoPagoInterno: { type: String }, // 'stripe' | 'de_una' | 'contra_entrega' | 'efectivo'
     pagoStripeId: { type: String },
@@ -65,6 +65,7 @@ const ordenSchema = new Schema({
     subtotal: { type: Number, default: 0 },
     descuentoTotal: { type: Number, default: 0 },
     iva: { type: Number, default: 0 },
+    envio: { type: Number, default: 0 },
     comisionPago: { type: Number, default: 0 },
     totalFinal: { type: Number, default: 0 },
     // Legacy compat

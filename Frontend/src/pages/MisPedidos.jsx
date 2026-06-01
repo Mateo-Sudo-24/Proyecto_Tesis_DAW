@@ -1,3 +1,4 @@
+/* eslint-disable react/prop-types */
 import { useEffect, useState } from "react";
 import { toast } from "react-toastify";
 import storeProfile from "../context/storeProfile";
@@ -217,7 +218,7 @@ const OrdenCard = ({ orden: ordenInicial, index, isVendedor, token }) => {
     const [open, setOpen] = useState(false);
     const fecha = new Date(orden.createdAt).toLocaleDateString('es-ES', { day:'2-digit', month:'short', year:'numeric' });
     const itemsOrden = orden.productoPedido ?? orden.items ?? [];
-    const total = orden.precioTotal ?? orden.total ?? itemsOrden.reduce((s, it) => s + ((it.precio ?? it.producto?.precio ?? 0) * (it.cantidad || 1)), 0) ?? 0;
+    const total = orden.totalFinal ?? orden.precioTotal ?? orden.total ?? itemsOrden.reduce((s, it) => s + (it.subtotal ?? ((it.precio ?? it.producto?.precio ?? 0) * (it.cantidad || 1))), 0) ?? 0;
 
     const pagoClass = {
         pendiente: 'pago-pendiente',
@@ -228,6 +229,10 @@ const OrdenCard = ({ orden: ordenInicial, index, isVendedor, token }) => {
     const handleStatusUpdate = (ordenActualizada) => {
         setOrden(prev => ({ ...prev, ...ordenActualizada }));
     };
+
+    const vendedorNombre = orden.vendedor
+        ? `${orden.vendedor.nombrePropietario || orden.vendedor.nombre || ''} ${orden.vendedor.apellido || ''}`.trim()
+        : '';
 
     return (
         <div className="mp-card">
@@ -272,6 +277,10 @@ const OrdenCard = ({ orden: ordenInicial, index, isVendedor, token }) => {
                         <p className="mp-info-value">{orden.cliente.nombre} {orden.cliente.apellido ?? ''}</p>
                     </div>
                 )}
+                <div className="mp-info">
+                    <p className="mp-info-label">Vendedor asignado</p>
+                    <p className="mp-info-value">{vendedorNombre || 'Pendiente'}</p>
+                </div>
             </div>
 
             {itemsOrden.length > 0 && (
@@ -290,7 +299,7 @@ const OrdenCard = ({ orden: ordenInicial, index, isVendedor, token }) => {
                                         {it.producto?.nombre ?? it.nombre ?? 'Producto'}
                                         <span className="mp-item-qty">x{it.cantidad}</span>
                                     </span>
-                                    <span className="mp-item-price">${((it.precio ?? it.producto?.precio ?? 0) * (it.cantidad || 1)).toFixed(2)}</span>
+                                    <span className="mp-item-price">${Number(it.subtotal ?? ((it.precio ?? it.producto?.precio ?? 0) * (it.cantidad || 1))).toFixed(2)}</span>
                                 </div>
                             ))}
                             <div className="mp-total-row">
@@ -313,7 +322,7 @@ const OrdenCard = ({ orden: ordenInicial, index, isVendedor, token }) => {
                             direccion: orden.direccionEnvio?.direccion ?? '',
                         } : undefined)
                     }
-                    label="📄 Factura PDF"
+                    label="Factura PDF"
                 />
             </div>
         </div>
@@ -356,7 +365,7 @@ const MisPedidos = () => {
     const totalPages = Math.ceil(ordenes.length / ITEMS_PER_PAGE);
     const paginatedOrdenes = ordenes.slice((page - 1) * ITEMS_PER_PAGE, page * ITEMS_PER_PAGE);
 
-    const titulo = isVendedor ? 'Pedidos en curso' : 'Mis pedidos';
+    const titulo = isVendedor ? 'Gestion de pedidos' : 'Mis pedidos';
     const subtitulo = isVendedor
         ? 'Gestiona manualmente el estado de cada pedido: haz clic en el siguiente paso para avanzarlo.'
         : 'Consulta el estado de tus pedidos realizados.';
