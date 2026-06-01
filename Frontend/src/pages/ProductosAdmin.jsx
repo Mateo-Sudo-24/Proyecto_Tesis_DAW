@@ -1,6 +1,6 @@
 ﻿import { useEffect, useState } from 'react';
 import { toast } from 'react-toastify';
-import { MdEdit, MdDelete, MdAdd, MdSave, MdClose, MdSearch } from 'react-icons/md';
+import { MdEdit, MdDelete, MdAdd, MdClose, MdSearch } from 'react-icons/md';
 import FormProducto from '../components/create/FormProducto';
 import ConfirmDialog from '../components/ui/ConfirmDialog';
 
@@ -429,8 +429,7 @@ const ProductosAdmin = () => {
     const [productos, setProductos] = useState([]);
     const [loading, setLoading] = useState(true);
     const [busqueda, setBusqueda] = useState('');
-    const [editandoId, setEditandoId] = useState(null);
-    const [formularioEdicion, setFormularioEdicion] = useState({});
+    const [productoEditando, setProductoEditando] = useState(null);
     const [showEditModal, setShowEditModal] = useState(false);
     const [showNuevoModal, setShowNuevoModal] = useState(false);
     const [confirmEliminarId, setConfirmEliminarId] = useState(null);
@@ -475,52 +474,13 @@ const ProductosAdmin = () => {
     };
 
     const abrirEdicion = (producto) => {
-        setEditandoId(producto._id);
-        setFormularioEdicion({ ...producto });
+        setProductoEditando(producto);
         setShowEditModal(true);
     };
 
     const cerrarEdicion = () => {
-        setEditandoId(null);
-        setFormularioEdicion({});
+        setProductoEditando(null);
         setShowEditModal(false);
-    };
-
-    const actualizarProducto = async (id) => {
-        try {
-            const body = {
-                nombre: formularioEdicion.nombre,
-                descripcion: formularioEdicion.descripcion,
-                precio: parseFloat(formularioEdicion.precio),
-                stock: parseInt(formularioEdicion.stock),
-                descuento: parseFloat(formularioEdicion.descuento || 0),
-                estado: formularioEdicion.estado,
-                color: formularioEdicion.color || ''
-            };
-            const res = await fetch(`${import.meta.env.VITE_BACKEND_URL}/productos/${id}`, {
-                method: 'PUT',
-                headers: { Authorization: `Bearer ${token}`, 'Content-Type': 'application/json' },
-                body: JSON.stringify(body)
-            });
-            if (!res.ok) {
-                const err = await res.json();
-                throw new Error(err.msg || 'Error al actualizar');
-            }
-            const data = await res.json();
-            setProductos(prev => prev.map(p => p._id === id ? data.producto : p));
-            toast.success('Producto actualizado');
-            if (data.stockCritico) {
-                toast.warning(`Stock crítico: ${data.producto.stock} unidades`);
-            }
-            cerrarEdicion();
-        } catch (error) {
-            toast.error(error.message || 'Error al actualizar el producto');
-        }
-    };
-
-    const handleInputChange = (e) => {
-        const { name, value } = e.target;
-        setFormularioEdicion(prev => ({ ...prev, [name]: value }));
     };
 
     // Busca en nombre, descripción y color
@@ -664,7 +624,7 @@ const ProductosAdmin = () => {
             )}
 
             {/* Modal edición */}
-            {showEditModal && (
+            {showEditModal && productoEditando && (
                 <div className="pa-modal-overlay" onClick={e => e.target === e.currentTarget && cerrarEdicion()}>
                     <div className="pa-modal">
                         <div className="pa-modal-header">
@@ -674,49 +634,15 @@ const ProductosAdmin = () => {
                             </button>
                         </div>
                         <div className="pa-modal-body">
-                            <div className="pa-modal-grid">
-                                <div className="pa-modal-field">
-                                    <label className="pa-modal-label">Nombre</label>
-                                    <input className="pa-modal-input" type="text" name="nombre" value={formularioEdicion.nombre ?? ''} onChange={handleInputChange} />
-                                </div>
-                                <div className="pa-modal-field">
-                                    <label className="pa-modal-label">Color</label>
-                                    <input className="pa-modal-input" type="text" name="color" value={formularioEdicion.color ?? ''} onChange={handleInputChange} />
-                                </div>
-                                <div className="pa-modal-field">
-                                    <label className="pa-modal-label">Precio</label>
-                                    <input className="pa-modal-input" type="number" name="precio" step="0.01" value={formularioEdicion.precio ?? ''} onChange={handleInputChange} />
-                                </div>
-                                <div className="pa-modal-field">
-                                    <label className="pa-modal-label">Descuento (%)</label>
-                                    <input className="pa-modal-input" type="number" name="descuento" step="0.01" value={formularioEdicion.descuento ?? ''} onChange={handleInputChange} />
-                                </div>
-                                <div className="pa-modal-field">
-                                    <label className="pa-modal-label">Stock</label>
-                                    <input className="pa-modal-input" type="number" name="stock" value={formularioEdicion.stock ?? ''} onChange={handleInputChange} />
-                                    {Number(formularioEdicion.stock) <= STOCK_CRITICO && (
-                                        <p className="pa-modal-warn">⚠ Stock crítico (umbral: {STOCK_CRITICO})</p>
-                                    )}
-                                </div>
-                                <div className="pa-modal-field">
-                                    <label className="pa-modal-label">Estado</label>
-                                    <select className="pa-modal-select" name="estado" value={formularioEdicion.estado || 'activo'} onChange={handleInputChange}>
-                                        <option value="activo">Activo</option>
-                                        <option value="agotado">Agotado</option>
-                                        <option value="inactivo">Inactivo</option>
-                                    </select>
-                                </div>
-                                <div className="pa-modal-field full">
-                                    <label className="pa-modal-label">Descripción</label>
-                                    <textarea className="pa-modal-textarea" name="descripcion" rows={3} value={formularioEdicion.descripcion ?? ''} onChange={handleInputChange} />
-                                </div>
-                            </div>
-                        </div>
-                        <div className="pa-modal-footer">
-                            <button className="btn-pa-cancel" onClick={cerrarEdicion}>Cancelar</button>
-                            <button className="btn-pa-save" onClick={() => actualizarProducto(editandoId)}>
-                                <MdSave size={16} /> Guardar cambios
-                            </button>
+                            <FormProducto
+                                productoToUpdate={productoEditando}
+                                onSuccess={(updatedProduct) => {
+                                    setProductos(prev => prev.map(p => p._id === productoEditando._id ? updatedProduct : p));
+                                    cerrarEdicion();
+                                    toast.success('Producto actualizado correctamente');
+                                }}
+                                onCancel={cerrarEdicion}
+                            />
                         </div>
                     </div>
                 </div>

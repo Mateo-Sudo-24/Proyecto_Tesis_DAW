@@ -1,4 +1,6 @@
 import Cliente from "../models/Cliente.js";
+import Administrador from "../models/Administrador.js";
+import Vendedor from "../models/Vendedor.js";
 import { sendMailToRegister, sendMailToRecoveryPassword, sendMailToInviteCliente } from "../config/nodemailer.js";
 import crypto from 'crypto';
 import { crearTokenJWT } from '../middlewares/JWT.js';
@@ -12,10 +14,15 @@ const registro = async (req, res) => {
     const { email } = req.body;
     if (Object.values(req.body).includes("")) return res.status(400).json({ msg: "Todos los campos son obligatorios." });
     try {
-        const existeCliente = await Cliente.findOne({ email });
-        if (existeCliente) return res.status(400).json({ msg: "El email ya se encuentra registrado." });
+        const emailNormalizado = email.toLowerCase().trim();
+        const [existeCliente, existeAdmin, existeVendedor] = await Promise.all([
+            Cliente.findOne({ email: emailNormalizado }).lean(),
+            Administrador.findOne({ email: emailNormalizado }).lean(),
+            Vendedor.findOne({ email: emailNormalizado }).lean(),
+        ]);
+        if (existeCliente || existeAdmin || existeVendedor) return res.status(400).json({ msg: "Este correo ya esta registrado en el sistema." });
         
-        const nuevoCliente = new Cliente(req.body);
+        const nuevoCliente = new Cliente({ ...req.body, email: emailNormalizado });
         const token = nuevoCliente.crearToken();
 
         // Guardar primero
@@ -153,11 +160,18 @@ const perfil = async (req, res) => {
 
 const actualizarPerfil = async (req, res) => {
     const { _id } = req.usuario;
-    const { password, rol, ...datosActualizar } = req.body;
+    const { password, passwordActual, rol, ...datosActualizar } = req.body;
     try {
         // Validar unicidad de email entre todos los roles
         if (datosActualizar.email) {
             const emailNuevo = datosActualizar.email.toLowerCase().trim();
+            const clienteActual = await Cliente.findById(_id);
+            if (!passwordActual) {
+                return res.status(400).json({ msg: "Ingresa tu contrasena actual para cambiar el correo." });
+            }
+            if (!clienteActual || !await clienteActual.matchPassword(passwordActual)) {
+                return res.status(401).json({ msg: "La contrasena actual es incorrecta." });
+            }
             const [Administrador, Vendedor] = await Promise.all([
                 import('../models/Administrador.js').then(m => m.default),
                 import('../models/Vendedor.js').then(m => m.default),
@@ -208,7 +222,15 @@ const crearClientePorAdmin = async (req, res) => {
     const { email, nombre, telefono, direccion } = req.body;
     if (!email || !nombre) return res.status(400).json({ msg: "Nombre y email son obligatorios." });
     try {
-        const existeCliente = await Cliente.findOne({ email });
+        const emailNormalizado = email.toLowerCase().trim();
+        const [existeCliente, existeAdmin, existeVendedor] = await Promise.all([
+            Cliente.findOne({ email: emailNormalizado }),
+            Administrador.findOne({ email: emailNormalizado }).lean(),
+            Vendedor.findOne({ email: emailNormalizado }).lean(),
+        ]);
+        if (existeAdmin || existeVendedor) {
+            return res.status(400).json({ msg: "Este correo ya esta registrado en el sistema con otro rol." });
+        }
         if (existeCliente) {
             if (existeCliente.confirmEmail) {
                 return res.status(400).json({ msg: "Ya existe un cliente activo con ese correo electrónico." });
@@ -216,12 +238,12 @@ const crearClientePorAdmin = async (req, res) => {
             // Si está pendiente de activación, reenviar la invitación
             const token = existeCliente.crearToken();
             await existeCliente.save();
-            await sendMailToInviteCliente(email, token);
+            await sendMailToInviteCliente(emailNormalizado, token);
             return res.status(200).json({ msg: "La invitación fue reenviada. El cliente debe revisar su correo para activar la cuenta." });
         }
 
         const nuevoCliente = new Cliente({
-            email, nombre, telefono, direccion,
+            email: emailNormalizado, nombre, telefono, direccion,
             confirmEmail: false,
             creadoPor: req.usuario._id,
             // Contraseña temporal aleatoria (será reemplazada cuando el cliente active su cuenta)
@@ -229,7 +251,7 @@ const crearClientePorAdmin = async (req, res) => {
         });
         const token = nuevoCliente.crearToken();
         await nuevoCliente.save();
-        await sendMailToInviteCliente(email, token);
+        await sendMailToInviteCliente(emailNormalizado, token);
         res.status(201).json({ msg: "Invitación enviada al nuevo cliente. Debe revisar su correo para activar la cuenta." });
     } catch (error) {
         console.error('Error al crear cliente por admin:', error);

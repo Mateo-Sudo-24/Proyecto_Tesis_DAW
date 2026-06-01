@@ -358,7 +358,7 @@ const actualizarEstadoOrden = async (req, res) => {
     const ordenActualizada = await orden.save();
 
     // Notificar a vendedores cuando admin confirma pago
-    if (rol === 'administrador' && estadoPago === true) {
+    if (rol === 'administrador' && (estadoPago === true || estadoPago === 'completado')) {
       crearNotificacionConfirmacionVendedores(ordenActualizada).catch(() => {});
     }
 

@@ -107,7 +107,7 @@ const bmStyles = `
         transition: background 0.15s;
     }
     .bm-item:last-child { border-bottom: none; }
-    .bm-item.unread  { background: #fff; border-left: 3px solid #e8760a; }
+    .bm-item.unread  { background: #fff; border-left: 3px solid transparent; }
     .bm-item.pending { background: #fff;  border-left: 3px solid #3b82f6; }
     .bm-item.aprobado{ background: #fff;  border-left: 3px solid #16a34a; }
     .bm-item.rechazado{ background: #fff; border-left: 3px solid #ef4444; }
@@ -135,7 +135,7 @@ const bmStyles = `
         padding: 0.1rem 0.45rem;
         border-radius: 999px;
     }
-    .bm-tag-nueva      { background: #fef3c7; color: #92400e; }
+    .bm-tag-nueva      { background: #fff; color: #374151; border: 1px solid #e5e7eb; }
     .bm-tag-accion     { background: #fee2e2; color: #991b1b; }
     .bm-tag-aprobado   { background: #d1fae5; color: #065f46; }
     .bm-tag-rechazado  { background: #fee2e2; color: #991b1b; }
@@ -415,7 +415,7 @@ export default function BandejaMensajes() {
     };
 
     // ── Badge: total de notificaciones no leídas ──
-    const totalBadge = notifs.filter(n => !n.leida).length;
+    const totalBadge = notifs.length;
 
     // Mostrar todas las notificaciones sin filtros en la burbuja.
     const notifsFiltradas = notifs;

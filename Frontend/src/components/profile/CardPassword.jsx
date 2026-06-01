@@ -1,6 +1,8 @@
+import { useState } from "react";
 import { useForm } from "react-hook-form"
 import storeProfile from "../../context/storeProfile";
 import storeAuth from "../../context/storeAuth";
+import ConfirmDialog from "../ui/ConfirmDialog";
 
 const styles = `
     :root {
@@ -114,13 +116,18 @@ const styles = `
 `;
 
 const CardPassword = () => {
-    const { register, handleSubmit, formState: { errors } } = useForm()
+    const { register, handleSubmit, formState: { errors }, watch } = useForm()
     const { user, updatePasswordProfile } = storeProfile()
     const { clearToken } = storeAuth()
+    const [pendingData, setPendingData] = useState(null)
 
-    const updatePassword = async (data) => {
-        const response = await updatePasswordProfile(data, user._id)
-        if (response) {
+    const updatePassword = async () => {
+        if (!pendingData) return;
+        const { passwordConfirmar, ...payload } = pendingData;
+        void passwordConfirmar;
+        const response = await updatePasswordProfile(payload, user._id)
+        setPendingData(null)
+        if (response && !response.error) {
             clearToken()
         }
     }
@@ -128,6 +135,15 @@ const CardPassword = () => {
     return (
         <>
             <style>{styles}</style>
+            <ConfirmDialog
+                open={!!pendingData}
+                title="¿Cambiar contraseña?"
+                message="Se cerrará tu sesión después de actualizar la contraseña."
+                confirmLabel="Cambiar"
+                variant="warning"
+                onConfirm={updatePassword}
+                onCancel={() => setPendingData(null)}
+            />
             <div className="pwd-card">
                 <div className="pwd-header">
                     <h2>Cambiar contraseña</h2>
@@ -137,7 +153,7 @@ const CardPassword = () => {
                     <div className="pwd-warning">
                         🔒 Por seguridad, deberás volver a iniciar sesión tras cambiar tu contraseña.
                     </div>
-                    <form onSubmit={handleSubmit(updatePassword)} noValidate>
+                    <form onSubmit={handleSubmit((data) => setPendingData(data))} noValidate>
                         <div className="pwd-field">
                             <label className="pwd-label">Contraseña actual</label>
                             <input
@@ -160,6 +176,19 @@ const CardPassword = () => {
                                 })}
                             />
                             {errors.passwordNuevo && <p className="pwd-error">⚠ {errors.passwordNuevo.message}</p>}
+                        </div>
+                        <div className="pwd-field">
+                            <label className="pwd-label">Confirmar nueva contraseña</label>
+                            <input
+                                type="password"
+                                placeholder="Repite la nueva contraseña"
+                                className="pwd-input"
+                                {...register("passwordConfirmar", {
+                                    required: "Confirma la nueva contraseña",
+                                    validate: v => v === watch("passwordNuevo") || "Las contraseñas no coinciden"
+                                })}
+                            />
+                            {errors.passwordConfirmar && <p className="pwd-error">⚠ {errors.passwordConfirmar.message}</p>}
                         </div>
                         <button type="submit" className="btn-pwd-submit">
                             Cambiar contraseña

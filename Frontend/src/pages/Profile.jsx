@@ -1,12 +1,12 @@
 import { useState } from 'react';
 import { useForm } from 'react-hook-form';
+import PropTypes from 'prop-types';
 import { toast } from 'react-toastify';
 import CardPassword from '../components/profile/CardPassword';
 import { CardProfile } from '../components/profile/CardProfile';
 import { CardProfileOwner } from '../components/profile/CardProfileOwner';
 import FormProfile from '../components/profile/FormProfile';
 import storeProfile from '../context/storeProfile';
-import storeAuth from '../context/storeAuth';
 
 const styles = `
     /* ── Título con barrita naranja ── */
@@ -154,7 +154,7 @@ const ModalCambiarEmail = ({ onClose }) => {
         }
         setLoading(true);
         try {
-            await updateProfile({ email: data.emailNuevo });
+            await updateProfile({ email: data.emailNuevo, passwordActual: data.passwordActual });
             toast.success("Correo actualizado correctamente.");
             onClose();
         } catch {
@@ -184,6 +184,18 @@ const ModalCambiarEmail = ({ onClose }) => {
                         {errors.emailNuevo && <p className="prf-modal-error">⚠ {errors.emailNuevo.message}</p>}
                     </div>
                     <div className="prf-modal-field">
+                        <label className="prf-modal-label">Contraseña actual</label>
+                        <input
+                            type="password"
+                            className="prf-modal-input"
+                            placeholder="Confirma tu contraseña"
+                            {...register("passwordActual", {
+                                required: "La contraseña actual es obligatoria."
+                            })}
+                        />
+                        {errors.passwordActual && <p className="prf-modal-error">⚠ {errors.passwordActual.message}</p>}
+                    </div>
+                    <div className="prf-modal-field">
                         <label className="prf-modal-label">Confirmar correo</label>
                         <input
                             type="email"
@@ -208,6 +220,10 @@ const ModalCambiarEmail = ({ onClose }) => {
             </div>
         </div>
     );
+};
+
+ModalCambiarEmail.propTypes = {
+    onClose: PropTypes.func.isRequired,
 };
 
 const Profile = () => {

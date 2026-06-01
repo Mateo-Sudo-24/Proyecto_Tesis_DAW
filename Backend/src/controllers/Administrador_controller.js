@@ -1,4 +1,6 @@
 import Administrador from "../models/Administrador.js";
+import Cliente from "../models/Cliente.js";
+import Vendedor from "../models/Vendedor.js";
 import { sendMailToRecoveryPassword } from "../config/nodemailer.js";
 import { crearTokenJWT } from "../middlewares/JWT.js";
 
@@ -8,14 +10,19 @@ const crearAdministrador = async (req, res) => {
         if (!email || !password || !nombre || !apellido) {
             return res.status(400).json({ msg: "Los campos nombre, apellido, email y password son obligatorios" });
         }
-        const existeAdmin = await Administrador.findOne({ email });
-        if (existeAdmin) {
-            return res.status(400).json({ msg: "El email ya se encuentra registrado para un administrador." });
+        const emailNormalizado = email.toLowerCase().trim();
+        const [existeAdmin, existeCliente, existeVendedor] = await Promise.all([
+            Administrador.findOne({ email: emailNormalizado }).lean(),
+            Cliente.findOne({ email: emailNormalizado }).lean(),
+            Vendedor.findOne({ email: emailNormalizado }).lean(),
+        ]);
+        if (existeAdmin || existeCliente || existeVendedor) {
+            return res.status(400).json({ msg: "Este correo ya esta registrado en el sistema." });
         }
         
         // Se crea la instancia pasando los datos del body.
         // La contraseña se queda en TEXTO PLANO aquí.
-        const nuevoAdmin = new Administrador(req.body);
+        const nuevoAdmin = new Administrador({ ...req.body, email: emailNormalizado });
         
         // Al ejecutar .save(), el middleware pre('save') de tu modelo
         // se encargará de hashear la contraseña automáticamente ANTES de que se guarde.
@@ -69,11 +76,18 @@ const obtenerAdministradores = async (req, res) => {
 // Actualizar el perfil del propio administrador
 const actualizar = async (req, res) => {
     const { _id } = req.usuario; // Se obtiene del token JWT
-    const { password, token, ...datosActualizar } = req.body;
+    const { password, passwordActual, token, ...datosActualizar } = req.body;
     try {
         // Validar unicidad de email entre todos los roles
         if (datosActualizar.email) {
             const emailNuevo = datosActualizar.email.toLowerCase().trim();
+            const adminActual = await Administrador.findById(_id);
+            if (!passwordActual) {
+                return res.status(400).json({ msg: "Ingresa tu contrasena actual para cambiar el correo." });
+            }
+            if (!adminActual || !await adminActual.matchPassword(passwordActual)) {
+                return res.status(401).json({ msg: "La contrasena actual es incorrecta." });
+            }
             const [Vendedor, Cliente] = await Promise.all([
                 import('../models/Vendedor.js').then(m => m.default),
                 import('../models/Cliente.js').then(m => m.default),

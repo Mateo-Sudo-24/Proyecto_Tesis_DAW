@@ -1,4 +1,6 @@
 import Vendedor from '../models/Vendedor.js';
+import Cliente from '../models/Cliente.js';
+import Administrador from '../models/Administrador.js';
 import { sendMailToRecoveryPassword, sendMailToInviteUser } from "../config/nodemailer.js";
 import { crearTokenJWT } from '../middlewares/JWT.js';
 import mongoose from 'mongoose';
@@ -27,11 +29,18 @@ const perfil = async (req, res) => {
 
 const actualizarPerfil = async (req, res) => {
     const { _id } = req.usuario;
-    const { password, rol, ...datosActualizar } = req.body;
+    const { password, passwordActual, rol, ...datosActualizar } = req.body;
     try {
         // Validar unicidad de email entre todos los roles
         if (datosActualizar.email) {
             const emailNuevo = datosActualizar.email.toLowerCase().trim();
+            const vendedorActual = await Vendedor.findById(_id);
+            if (!passwordActual) {
+                return res.status(400).json({ msg: "Ingresa tu contrasena actual para cambiar el correo." });
+            }
+            if (!vendedorActual || !await vendedorActual.matchPassword(passwordActual)) {
+                return res.status(401).json({ msg: "La contrasena actual es incorrecta." });
+            }
             const [Administrador, Cliente] = await Promise.all([
                 import('../models/Administrador.js').then(m => m.default),
                 import('../models/Cliente.js').then(m => m.default),
@@ -137,7 +146,15 @@ const crearVendedor = async (req, res) => {
     const { email, nombre, apellido, telefono, direccion, rol } = req.body;
     if (!email || !nombre || !apellido || !telefono || !direccion) return res.status(400).json({ msg: "Nombre, apellido, email, teléfono y dirección son obligatorios." });
     try {
-        const existeVendedor = await Vendedor.findOne({ email });
+        const emailNormalizado = email.toLowerCase().trim();
+        const [existeVendedor, existeCliente, existeAdmin] = await Promise.all([
+            Vendedor.findOne({ email: emailNormalizado }),
+            Cliente.findOne({ email: emailNormalizado }).lean(),
+            Administrador.findOne({ email: emailNormalizado }).lean(),
+        ]);
+        if (existeCliente || existeAdmin) {
+            return res.status(400).json({ msg: "Este correo ya esta registrado en el sistema con otro rol." });
+        }
         if (existeVendedor) {
             // Si ya está activo, no se puede volver a invitar
             if (existeVendedor.status === 'activo') {
@@ -147,7 +164,7 @@ const crearVendedor = async (req, res) => {
             const token = existeVendedor.crearToken();
             await existeVendedor.save();
             try {
-                await sendMailToInviteUser(email, token);
+                await sendMailToInviteUser(emailNormalizado, token);
             } catch (mailError) {
                 console.error('Error al reenviar correo de invitación:', mailError);
                 return res.status(500).json({ msg: `No se pudo reenviar el correo. Verifica la configuración SMTP. Error: ${mailError.message}` });
@@ -155,11 +172,11 @@ const crearVendedor = async (req, res) => {
             return res.status(200).json({ msg: "La invitación fue reenviada. El vendedor debe revisar su correo para activar la cuenta." });
         }
 
-        const nuevoVendedor = new Vendedor({ email, nombre, apellido, telefono, direccion, rol, status: 'pendiente' });
+        const nuevoVendedor = new Vendedor({ email: emailNormalizado, nombre, apellido, telefono, direccion, rol, status: 'pendiente' });
         const token = nuevoVendedor.crearToken();
         await nuevoVendedor.save();
         try {
-            await sendMailToInviteUser(email, token);
+            await sendMailToInviteUser(emailNormalizado, token);
         } catch (mailError) {
             console.error('Error al enviar correo de invitación al vendedor:', mailError);
             // El vendedor ya fue guardado, pero el correo no llegó

@@ -116,6 +116,34 @@ const styles = `
     }
     .dash-stock-badge.in  { background: #d1fae5; color: #065f46; }
     .dash-stock-badge.out { background: #fee2e2; color: #991b1b; }
+    .dash-buy-row {
+        display: grid;
+        grid-template-columns: 1fr auto;
+        gap: 0.5rem;
+        align-items: center;
+        margin: 0.25rem 0 0.75rem;
+    }
+    .dash-meter-input {
+        width: 100%;
+        border: 1.5px solid #e5e7eb;
+        border-radius: 0.55rem;
+        padding: 0.55rem 0.7rem;
+        font-size: 0.85rem;
+        color: #374151;
+        background: #f9fafb;
+        outline: none;
+    }
+    .dash-meter-input:focus {
+        border-color: var(--orange-main);
+        box-shadow: 0 0 0 3px rgba(232,118,10,0.1);
+        background: #fff;
+    }
+    .dash-unit-label {
+        font-size: 0.78rem;
+        font-weight: 800;
+        color: #6b7280;
+        white-space: nowrap;
+    }
     .btn-dash-add {
         width: 100%; padding: 0.65rem 1rem;
         background: var(--orange-main);
@@ -143,6 +171,7 @@ const Productos = () => {
     const [productos, setProductos] = useState([]);
     const [loading, setLoading] = useState(true);
     const [agregando, setAgregando] = useState(null);
+    const [cantidades, setCantidades] = useState({});
     const token = storeAuth(state => state.token);
 
     useEffect(() => {
@@ -161,17 +190,26 @@ const Productos = () => {
         fetchProductos();
     }, []);
 
-    const agregarAlCarrito = async (productoId, nombreProducto, unidadVenta) => {
+    const getCantidadProducto = (producto) => cantidades[producto._id] ?? (producto.unidadVenta === 'rollo' ? 1 : 1);
+
+    const agregarAlCarrito = async (producto) => {
+        const productoId = producto?._id;
+        const nombreProducto = producto?.nombre;
+        const unidadSeleccionada = producto?.unidadVenta === 'rollo' ? 'rollo' : 'metro';
+        const cantidad = Number(getCantidadProducto(producto));
         if (!token) { toast.info("Inicia sesión para agregar productos."); return; }
         if (!productoId) { toast.error("ID de producto inválido."); return; }
+        if (!Number.isFinite(cantidad) || cantidad <= 0) {
+            toast.error("Ingresa una cantidad valida.");
+            return;
+        }
         setAgregando(productoId);
         const toastId = toast.loading(`${nombreProducto || 'Producto'} se está agregando al carrito...`);
-        const unidadSeleccionada = unidadVenta === 'rollo' ? 'rollo' : 'metro';
         try {
             const res = await fetch(`${import.meta.env.VITE_BACKEND_URL}/carrito/items`, {
                 method: "POST",
                 headers: { "Content-Type": "application/json", Authorization: `Bearer ${token}` },
-                body: JSON.stringify({ productoId, cantidad: 1, unidadSeleccionada }),
+                body: JSON.stringify({ productoId, cantidad, unidadSeleccionada }),
             });
             if (!res.ok) {
                 const data = await res.json().catch(() => ({}));
@@ -265,9 +303,22 @@ const Productos = () => {
                                             })()}
                                         </span>
                                     </div>
+                                    <div className="dash-buy-row">
+                                        <input
+                                            type="number"
+                                            min={producto.unidadVenta === 'rollo' ? 1 : 0.01}
+                                            step={producto.unidadVenta === 'rollo' ? 1 : 0.01}
+                                            className="dash-meter-input"
+                                            value={getCantidadProducto(producto)}
+                                            onChange={(e) => setCantidades(prev => ({ ...prev, [producto._id]: e.target.value }))}
+                                        />
+                                        <span className="dash-unit-label">
+                                            {producto.unidadVenta === 'rollo' ? 'rollos' : 'metros'}
+                                        </span>
+                                    </div>
                                     <button
                                         className="btn-dash-add"
-                                        onClick={() => agregarAlCarrito(producto._id, producto.nombre, producto.unidadVenta)}
+                                        onClick={() => agregarAlCarrito(producto)}
                                         disabled={agregando === producto._id || (producto.metrosDisponibles ?? 0) <= 0}
                                     >
                                         {(producto.metrosDisponibles ?? 0) <= 0

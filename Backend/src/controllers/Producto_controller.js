@@ -25,6 +25,37 @@ const descargarImagenCloudinary = async (imagenUrl) => {
 // Umbral de stock crítico
 const STOCK_CRITICO = 5;
 const escapeRegex = (value = '') => String(value).replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+const toNumber = (value, fallback = 0) => {
+    const num = Number(value);
+    return Number.isFinite(num) ? num : fallback;
+};
+const normalizarProductoTextil = (body, productoActual = {}) => {
+    const metrosPorRollo = toNumber(body.metrosPorRollo, productoActual.metrosPorRollo || 100);
+    const metrosDisponibles = body.metrosDisponibles !== undefined
+        ? toNumber(body.metrosDisponibles, 0)
+        : body.stock !== undefined
+            ? toNumber(body.stock, 0) * metrosPorRollo
+            : toNumber(productoActual.metrosDisponibles, 0);
+    const unidadVenta = ['metro', 'rollo', 'ambos'].includes(body.unidadVenta)
+        ? body.unidadVenta
+        : productoActual.unidadVenta || 'metro';
+    const precioPorMetro = body.precioPorMetro !== undefined
+        ? toNumber(body.precioPorMetro, 0)
+        : toNumber(body.precio, productoActual.precioPorMetro || 0);
+    const precioPorRollo = body.precioPorRollo !== undefined
+        ? toNumber(body.precioPorRollo, 0)
+        : precioPorMetro * metrosPorRollo;
+
+    return {
+        unidadVenta,
+        metrosPorRollo,
+        metrosDisponibles,
+        precioPorMetro,
+        precioPorRollo,
+        stock: Math.floor(metrosDisponibles / metrosPorRollo),
+        precio: toNumber(body.precio, precioPorMetro)
+    };
+};
 
 // Función interna para centralizar la creación de notificaciones de stock.
 const crearNotificacionStockCritico = async (producto) => {
@@ -39,8 +70,8 @@ const crearNotificacionStockCritico = async (producto) => {
             await Notificacion.create({
                 administrador: admin._id,
                 tipo: 'stock_critico',
-                mensaje: `El producto "${producto.nombre}" tiene stock crítico (${producto.stock} unidades)`,
-                productos: [{ productId: producto._id, nombre: producto.nombre, stock: producto.stock, umbral: STOCK_CRITICO }],
+                mensaje: `El producto "${producto.nombre}" tiene stock critico (${producto.metrosDisponibles ?? producto.stock} metros disponibles)`,
+                productos: [{ productId: producto._id, nombre: producto.nombre, stock: producto.metrosDisponibles ?? producto.stock, umbral: STOCK_CRITICO }],
                 leida: false
             });
         }
@@ -53,7 +84,7 @@ const crearNotificacionStockCritico = async (producto) => {
                 const payloadN8N = {
                     tipo: 'stock_critico',
                     timestamp: new Date().toISOString(),
-                    producto: { id: producto._id, nombre: producto.nombre, stock: producto.stock, umbralCritico: STOCK_CRITICO, categoria: producto.categoria, precio: producto.precio },
+                    producto: { id: producto._id, nombre: producto.nombre, stock: producto.metrosDisponibles ?? producto.stock, umbralCritico: STOCK_CRITICO, categoria: producto.categoria, precio: producto.precio },
                     accion: 'notificar_administrador'
                 };
 
@@ -82,7 +113,7 @@ const registrarProducto = async (req, res) => {
     const { nombre, descripcion, precio, stock, categoria, imagenUrl, imagenID } = req.body;
     
     // ✅ Solo campos obligatorios (imagen es OPCIONAL)
-    if (!nombre || !descripcion || !precio || !stock || !categoria) {
+    if (!nombre || !descripcion || !precio || !categoria) {
         return res.status(400).json({ msg: "Todos los campos de texto son obligatorios." });
     }
 
@@ -98,11 +129,11 @@ const registrarProducto = async (req, res) => {
             try { etiquetas = JSON.parse(req.body.etiquetas); } catch { etiquetas = []; }
         }
 
+        const stockTextil = normalizarProductoTextil(req.body);
         const nuevoProducto = new Producto({
             nombre,
             descripcion,
-            precio: Number(precio),
-            stock: Number(stock),
+            ...stockTextil,
             categoria,
             descuento: Number(req.body.descuento) || 0,
             color: req.body.color || '',
@@ -128,7 +159,7 @@ const registrarProducto = async (req, res) => {
             await fs.unlink(req.files.imagen.tempFilePath);
         } 
         // ✅ Opción 2: URL de Cloudinary directa en el body
-        else if (imagenUrl && (imagenUrl.includes('cloudinary') || imagenUrl.includes('res.cloudinary'))) {
+        else if (imagenUrl && imagenID) {
             nuevoProducto.imagenUrl = imagenUrl;
             nuevoProducto.imagenID = imagenID || null;
             
@@ -164,8 +195,7 @@ const actualizarProducto = async (req, res) => {
             return res.status(404).json({ msg: "Producto no encontrado." });
         }
 
-        const stockAnterior = producto.stock;
-        const nuevoStock = req.body.stock !== undefined ? parseInt(req.body.stock) : stockAnterior;
+        const metrosAnterior = producto.metrosDisponibles ?? producto.stock ?? 0;
 
         // Actualizar campos básicos (excepto imagen, que se maneja por separado)
         const { imagenUrl: nuevaImagenUrl, imagenID: nuevaImagenID, ...restoDelBody } = req.body;
@@ -178,8 +208,8 @@ const actualizarProducto = async (req, res) => {
                 return res.status(400).json({ msg: "Ya existe otro producto con ese nombre." });
             }
         }
-        Object.assign(producto, restoDelBody);
-        producto.stock = nuevoStock;
+        const stockTextil = normalizarProductoTextil(req.body, producto);
+        Object.assign(producto, restoDelBody, stockTextil);
         producto.ultimaModificacionPor = req.usuario._id;
 
         // ✅ Opción 1: Archivo de imagen subido (multipart/form-data)
@@ -204,7 +234,7 @@ const actualizarProducto = async (req, res) => {
             await fs.unlink(req.files.imagen.tempFilePath);
         }
         // ✅ Opción 2: URL de Cloudinary directa en el body
-        else if (nuevaImagenUrl && (nuevaImagenUrl.includes('cloudinary') || nuevaImagenUrl.includes('res.cloudinary'))) {
+        else if (nuevaImagenUrl && nuevaImagenID) {
             // Eliminar imagen anterior de Cloudinary si existe
             if (producto.imagenID) {
                 await cloudinary.uploader.destroy(producto.imagenID);
@@ -225,9 +255,9 @@ const actualizarProducto = async (req, res) => {
         await producto.save();
 
         // Crear notificación si el stock ha cambiado y ahora es crítico.
-        const ahora_es_critico = nuevoStock <= STOCK_CRITICO;
+        const ahora_es_critico = producto.metrosDisponibles <= STOCK_CRITICO;
         
-        if (nuevoStock !== stockAnterior && ahora_es_critico) {
+        if (producto.metrosDisponibles !== metrosAnterior && ahora_es_critico) {
             await crearNotificacionStockCritico(producto);
         }
         
@@ -263,7 +293,7 @@ const listarProducto = async (req, res) => {
             if (precioMin) filtro.precio.$gte = parseFloat(precioMin);
             if (precioMax) filtro.precio.$lte = parseFloat(precioMax);
         }
-        if (enStock === 'true') filtro.stock = { $gt: 0 };
+        if (enStock === 'true') filtro.metrosDisponibles = { $gt: 0 };
         
         let sort = {};
         if (ordenarPor) {
@@ -405,7 +435,7 @@ const productosRecientes = async (req, res) => {
 export const getStockCritico = async (req, res) => {
   try {
     const umbral = parseInt(req.query.umbral) || 5;
-    const productos = await Producto.find({ stock: { $lte: umbral } });
+    const productos = await Producto.find({ metrosDisponibles: { $lte: umbral }, estado: { $ne: 'inactivo' } });
     res.json(productos);
   } catch (error) {
     res.status(500).json({ msg: 'Error al obtener productos con stock crítico' });

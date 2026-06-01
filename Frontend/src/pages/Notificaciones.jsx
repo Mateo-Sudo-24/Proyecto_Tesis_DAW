@@ -109,7 +109,7 @@ const styles = `
         transition: box-shadow 0.15s ease;
     }
     .notif-card:hover { box-shadow: 0 3px 10px rgba(0,0,0,0.08); }
-    .notif-card.no-leida   { border-left-color: #f59e0b; }
+    .notif-card.no-leida   { border-left-color: transparent; background: #fff; }
     .notif-card.pendiente  { border-left-color: #3b82f6; }
     .notif-card.aprobada   { border-left-color: #16a34a; }
     .notif-card.rechazada  { border-left-color: #ef4444; }
@@ -133,11 +133,11 @@ const styles = `
     .notif-mensaje { font-size: 0.82rem; font-weight: 600; color: #111827; margin: 0.1rem 0 0; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; max-width: 100%; }
     .notif-fecha   { font-size: 0.7rem; color: #9ca3af; margin-top: 0.08rem; }
 
-    .badge-nueva    { font-size: 0.7rem; font-weight: 800; padding: 0.15rem 0.5rem; border-radius: 9999px; background: #fef3c7; color: #92400e; }
+    .badge-nueva    { font-size: 0.7rem; font-weight: 800; padding: 0.15rem 0.5rem; border-radius: 9999px; background: #fff; color: #374151; border: 1px solid #e5e7eb; }
     .badge-aprobado { font-size: 0.7rem; font-weight: 800; padding: 0.15rem 0.5rem; border-radius: 9999px; background: #d1fae5; color: #065f46; }
     .badge-rechazado{ font-size: 0.7rem; font-weight: 800; padding: 0.15rem 0.5rem; border-radius: 9999px; background: #fee2e2; color: #991b1b; }
     .badge-completado{font-size: 0.7rem; font-weight: 800; padding: 0.15rem 0.5rem; border-radius: 9999px; background: #dbeafe; color: #1e40af; }
-    .badge-pendiente{ font-size: 0.7rem; font-weight: 800; padding: 0.15rem 0.5rem; border-radius: 9999px; background: #fef3c7; color: #92400e; }
+    .badge-pendiente{ font-size: 0.7rem; font-weight: 800; padding: 0.15rem 0.5rem; border-radius: 9999px; background: #dbeafe; color: #1e40af; }
 
     /* Acciones en cabecera */
     .notif-actions { display: flex; align-items: center; gap: 0.5rem; flex-shrink: 0; }
