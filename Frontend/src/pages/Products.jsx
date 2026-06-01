@@ -454,7 +454,7 @@ const Products = () => {
                 ) : filteredProductos.length === 0 ? (
                     <div className="prod-empty">
                         <div className="icon">🔍</div>
-                        <h3>Sin resultados</h3>
+                        <h3>Productos no encontrados</h3>
                         <p>No encontramos productos que coincidan con tu búsqueda.</p>
                     </div>
                 ) : (
@@ -469,7 +469,7 @@ const Products = () => {
                                     {producto.descuento > 0 && (
                                         <span className="badge-descuento">-{producto.descuento}%</span>
                                     )}
-                                    {producto.stock < 5 && producto.stock > 0 && (
+                                    {(producto.metrosDisponibles ?? 0) > 0 && (producto.metrosDisponibles ?? 0) < 50 && (
                                         <span className="badge-stock">¡Últimas unidades!</span>
                                     )}
                                 </div>
@@ -481,10 +481,17 @@ const Products = () => {
                                     )}
                                     <div className="prod-card-footer">
                                         <span className="prod-price">${producto.precio.toLocaleString()}</span>
-                                        <span className={`prod-stock-badge ${producto.stock > 0 ? 'in' : 'out'}`}>
-                                            {producto.stock > 0 ? `${producto.stock} en stock` : 'Agotado'}
+                                        <span className={`prod-stock-badge ${(producto.metrosDisponibles ?? 0) > 0 ? 'in' : 'out'}`}>
+                                            {(() => {
+                                                const metros = producto.metrosDisponibles ?? 0;
+                                                const rollos = Math.floor(metros / (producto.metrosPorRollo || 100));
+                                                return metros > 0 ? `${metros} m / ${rollos} rollos` : 'Agotado';
+                                            })()}
                                         </span>
                                     </div>
+                                    <p style={{ margin: '0 0 0.75rem', color: '#6b7280', fontSize: '0.78rem', fontWeight: 700 }}>
+                                        Unidad: {producto.unidadVenta || 'metro'}
+                                    </p>
                                     <Link to="/login" className="btn-ver-detalles">
                                         Ver Detalles
                                     </Link>

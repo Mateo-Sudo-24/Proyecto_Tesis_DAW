@@ -1,4 +1,3 @@
-import { useState } from "react"
 import { useForm } from "react-hook-form"
 import storeProfile from "../../context/storeProfile";
 import storeAuth from "../../context/storeAuth";
@@ -118,9 +117,6 @@ const CardPassword = () => {
     const { register, handleSubmit, formState: { errors } } = useForm()
     const { user, updatePasswordProfile } = storeProfile()
     const { clearToken } = storeAuth()
-    const [open, setOpen] = useState(false)
-
-    const isAdmin = user?.rol === 'administrador'
 
     const updatePassword = async (data) => {
         const response = await updatePasswordProfile(data, user._id)
@@ -134,59 +130,41 @@ const CardPassword = () => {
             <style>{styles}</style>
             <div className="pwd-card">
                 <div className="pwd-header">
-                    {isAdmin ? (
-                        <button
-                            type="button"
-                            className="pwd-toggle"
-                            onClick={() => setOpen(o => !o)}
-                        >
-                            <div>
-                                <h2>Cambiar contraseña</h2>
-                                <p>Al guardar, se cerrará tu sesión automáticamente.</p>
-                            </div>
-                            <span className={`pwd-toggle-chevron${open ? ' open' : ''}`}>▼</span>
-                        </button>
-                    ) : (
-                        <>
-                            <h2>Cambiar contraseña</h2>
-                            <p>Al guardar, se cerrará tu sesión automáticamente.</p>
-                        </>
-                    )}
+                    <h2>Cambiar contraseña</h2>
+                    <p>Al guardar, se cerrará tu sesión automáticamente.</p>
                 </div>
-                <div className={isAdmin ? `pwd-collapsible${open ? ' open' : ''}` : undefined}>
-                    <div className="pwd-body">
-                        <div className="pwd-warning">
-                            🔒 Por seguridad, deberás volver a iniciar sesión tras cambiar tu contraseña.
-                        </div>
-                        <form onSubmit={handleSubmit(updatePassword)} noValidate>
-                            <div className="pwd-field">
-                                <label className="pwd-label">Contraseña actual</label>
-                                <input
-                                    type="password"
-                                    placeholder="Ingresa tu contraseña actual"
-                                    className="pwd-input"
-                                    {...register("passwordActual", { required: "La contraseña actual es obligatoria" })}
-                                />
-                                {errors.passwordActual && <p className="pwd-error">⚠ {errors.passwordActual.message}</p>}
-                            </div>
-                            <div className="pwd-field">
-                                <label className="pwd-label">Nueva contraseña</label>
-                                <input
-                                    type="password"
-                                    placeholder="Mínimo 8 caracteres"
-                                    className="pwd-input"
-                                    {...register("passwordNuevo", {
-                                        required: "La nueva contraseña es obligatoria",
-                                        minLength: { value: 8, message: "Mínimo 8 caracteres" }
-                                    })}
-                                />
-                                {errors.passwordNuevo && <p className="pwd-error">⚠ {errors.passwordNuevo.message}</p>}
-                            </div>
-                            <button type="submit" className="btn-pwd-submit">
-                                Cambiar contraseña
-                            </button>
-                        </form>
+                <div className="pwd-body">
+                    <div className="pwd-warning">
+                        🔒 Por seguridad, deberás volver a iniciar sesión tras cambiar tu contraseña.
                     </div>
+                    <form onSubmit={handleSubmit(updatePassword)} noValidate>
+                        <div className="pwd-field">
+                            <label className="pwd-label">Contraseña actual</label>
+                            <input
+                                type="password"
+                                placeholder="Ingresa tu contraseña actual"
+                                className="pwd-input"
+                                {...register("passwordActual", { required: "La contraseña actual es obligatoria" })}
+                            />
+                            {errors.passwordActual && <p className="pwd-error">⚠ {errors.passwordActual.message}</p>}
+                        </div>
+                        <div className="pwd-field">
+                            <label className="pwd-label">Nueva contraseña</label>
+                            <input
+                                type="password"
+                                placeholder="Mínimo 8 caracteres"
+                                className="pwd-input"
+                                {...register("passwordNuevo", {
+                                    required: "La nueva contraseña es obligatoria",
+                                    minLength: { value: 8, message: "Mínimo 8 caracteres" }
+                                })}
+                            />
+                            {errors.passwordNuevo && <p className="pwd-error">⚠ {errors.passwordNuevo.message}</p>}
+                        </div>
+                        <button type="submit" className="btn-pwd-submit">
+                            Cambiar contraseña
+                        </button>
+                    </form>
                 </div>
             </div>
         </>

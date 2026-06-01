@@ -71,6 +71,23 @@ const actualizar = async (req, res) => {
     const { _id } = req.usuario; // Se obtiene del token JWT
     const { password, token, ...datosActualizar } = req.body;
     try {
+        // Validar unicidad de email entre todos los roles
+        if (datosActualizar.email) {
+            const emailNuevo = datosActualizar.email.toLowerCase().trim();
+            const [Vendedor, Cliente] = await Promise.all([
+                import('../models/Vendedor.js').then(m => m.default),
+                import('../models/Cliente.js').then(m => m.default),
+            ]);
+            const [adminConf, vendConf, cliConf] = await Promise.all([
+                Administrador.findOne({ email: emailNuevo, _id: { $ne: _id } }).lean(),
+                Vendedor.findOne({ email: emailNuevo }).lean(),
+                Cliente.findOne({ email: emailNuevo }).lean(),
+            ]);
+            if (adminConf || vendConf || cliConf) {
+                return res.status(400).json({ msg: "Este correo ya está registrado en el sistema." });
+            }
+            datosActualizar.email = emailNuevo;
+        }
         const adminActualizado = await Administrador.findByIdAndUpdate(_id, datosActualizar, { new: true }).select("-password -token -__v");
         res.status(200).json({ msg: "Perfil actualizado correctamente", admin: adminActualizado });
     } catch (error) {
@@ -170,15 +187,18 @@ const obtenerUsuariosChat = async (req, res) => {
     try {
         const Cliente  = (await import('../models/Cliente.js')).default;
         const Vendedor = (await import('../models/Vendedor.js')).default;
+        const miId = req.usuario?.id;
 
-        const [clientes, vendedores] = await Promise.all([
+        const [clientes, vendedores, admins] = await Promise.all([
             Cliente.find({ status: true, confirmEmail: true }).select('_id nombre apellido email').lean(),
             Vendedor.find({ status: 'activo' }).select('_id nombre apellido email').lean(),
+            Administrador.find({}).select('_id nombre apellido email').lean(),
         ]);
 
         const lista = [
+            ...admins.filter(u => String(u._id) !== miId).map(u => ({ id: String(u._id), nombre: `${u.nombre} ${u.apellido || ''}`.trim(), email: u.email, rol: 'administrador' })),
+            ...vendedores.filter(u => String(u._id) !== miId).map(u => ({ id: String(u._id), nombre: `${u.nombre} ${u.apellido || ''}`.trim(), email: u.email, rol: 'vendedor' })),
             ...clientes.map(u  => ({ id: String(u._id), nombre: `${u.nombre} ${u.apellido || ''}`.trim(), email: u.email, rol: 'cliente' })),
-            ...vendedores.map(u => ({ id: String(u._id), nombre: `${u.nombre} ${u.apellido || ''}`.trim(), email: u.email, rol: 'vendedor' })),
         ];
 
         res.status(200).json(lista);

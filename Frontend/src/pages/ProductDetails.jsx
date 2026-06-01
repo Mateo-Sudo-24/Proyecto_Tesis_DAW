@@ -9,8 +9,16 @@ const ProductDetails = () => {
     const [producto, setProducto] = useState(null);
     const [loading, setLoading] = useState(true);
     const [cantidad, setCantidad] = useState(1);
+    const [unidadSeleccionada, setUnidadSeleccionada] = useState('metro');
     const [agregando, setAgregando] = useState(false);
     const token = storeAuth(state => state.token);
+
+    useEffect(() => {
+        if (producto?.unidadVenta === 'rollo') setUnidadSeleccionada('rollo');
+        else setUnidadSeleccionada('metro');
+        setCantidad(unidadSeleccionada === 'rollo' ? 1 : 0.5);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    }, [producto]);
 
     useEffect(() => {
         const fetchProducto = async () => {
@@ -31,11 +39,16 @@ const ProductDetails = () => {
 
     const handleAddToCart = async () => {
         if (!token) {
-            toast.info("Inicia sesión para agregar productos.");
+            toast.info('Inicia sesión para agregar productos.');
             return;
         }
-        if (cantidad > producto.stock) {
-            toast.error("No hay suficiente stock disponible");
+        const metrosDisponibles = producto.metrosDisponibles ?? producto.stock ?? 0;
+        const metrosPorRollo = producto.metrosPorRollo || 100;
+        const metrosSolicitados = unidadSeleccionada === 'rollo'
+            ? Math.ceil(cantidad) * metrosPorRollo
+            : Number(cantidad);
+        if (metrosSolicitados > metrosDisponibles) {
+            toast.error('No hay suficiente stock disponible');
             return;
         }
         setAgregando(true);
@@ -44,18 +57,18 @@ const ProductDetails = () => {
             const res = await fetch(`${import.meta.env.VITE_BACKEND_URL}/carrito/items`, {
                 method: "POST",
                 headers: { "Content-Type": "application/json", Authorization: `Bearer ${token}` },
-                body: JSON.stringify({ productoId: producto._id, cantidad }),
+                body: JSON.stringify({ productoId: producto._id, cantidad, unidadSeleccionada }),
             });
             if (!res.ok) {
                 const data = await res.json().catch(() => ({}));
                 throw new Error(data.msg || "Error al agregar al carrito");
             }
-            toast.update(toastId, {
-                render: `Se agregaron ${cantidad} unidades al carrito`,
-                type: "success",
-                isLoading: false,
-                autoClose: 2500,
-            });
+                toast.update(toastId, {
+                    render: `Agregado: ${cantidad} ${unidadSeleccionada}${Number(cantidad) !== 1 ? 's' : ''} al carrito`,
+                    type: 'success',
+                    isLoading: false,
+                    autoClose: 2500,
+                });
         } catch (error) {
             toast.update(toastId, {
                 render: error.message,
@@ -154,13 +167,21 @@ const ProductDetails = () => {
 
                             {/* Details grid */}
                             <div className="grid grid-cols-2 gap-4 mb-6">
+                            {/* Disponibilidad con metros/rollos */}
                                 <div className="bg-gray-50 rounded-xl p-3">
                                     <p className="text-xs text-gray-500 mb-0.5">Disponibilidad</p>
-                                    <p className={`font-bold text-sm ${producto.stock > 0 ? 'text-green-600' : 'text-red-500'}`}>
-                                        {producto.stock > 0 ? `✅ En stock (${producto.stock})` : '❌ Agotado'}
-                                    </p>
-                                </div>
-                                {producto.color && (
+                                    {(() => {
+                                        const metros = producto.metrosDisponibles ?? producto.stock ?? 0;
+                                        const metrosPorRollo = producto.metrosPorRollo || 100;
+                                        const rollos = Math.floor(metros / metrosPorRollo);
+                                        return metros > 0 ? (
+                                            <p className="font-bold text-sm text-green-600">
+                                                ✅ {metros} m ({rollos} rollos)
+                                            </p>
+                                        ) : (
+                                            <p className="font-bold text-sm text-red-500">❌ Agotado</p>
+                                        );
+                                    })()}                                </div>                                {producto.color && (
                                     <div className="bg-gray-50 rounded-xl p-3">
                                         <p className="text-xs text-gray-500 mb-0.5">Color</p>
                                         <p className="font-bold text-sm text-gray-800">{producto.color}</p>
@@ -172,32 +193,48 @@ const ProductDetails = () => {
                                 </div>
                             </div>
 
-                            {/* Quantity & Add to Cart */}
-                            {producto.stock > 0 && (
+                            {/* Cantidad & unidad */}
+                            {(producto.metrosDisponibles ?? producto.stock ?? 0) > 0 && (
                                 <div>
-                                    <label className="block text-sm font-bold text-gray-700 mb-2">Cantidad</label>
-                                    <div className="flex gap-3 items-center">
-                                        <div className="flex items-center border-2 border-gray-200 rounded-xl overflow-hidden">
-                                            <button
-                                                onClick={() => setCantidad(Math.max(1, cantidad - 1))}
-                                                className="px-4 py-2.5 text-gray-600 hover:bg-gray-100 font-bold text-lg transition"
-                                            >
-                                                -
-                                            </button>
-                                            <span className="px-5 py-2.5 font-bold text-gray-800 border-x-2 border-gray-200">{cantidad}</span>
-                                            <button
-                                                onClick={() => setCantidad(Math.min(producto.stock, cantidad + 1))}
-                                                className="px-4 py-2.5 text-gray-600 hover:bg-gray-100 font-bold text-lg transition"
-                                            >
-                                                +
-                                            </button>
+                                    {/* Selector de unidad si tiene ambos */}
+                                    {producto.unidadVenta === 'ambos' && (
+                                        <div className="flex gap-2 mb-3">
+                                            {['metro', 'rollo'].map(u => (
+                                                <button
+                                                    key={u}
+                                                    onClick={() => { setUnidadSeleccionada(u); setCantidad(u === 'rollo' ? 1 : 0.5); }}
+                                                    className={`px-4 py-2 rounded-xl font-bold text-sm border-2 transition ${
+                                                        unidadSeleccionada === u
+                                                            ? 'border-gray-700 bg-gray-700 text-white'
+                                                            : 'border-gray-200 bg-white text-gray-600 hover:border-gray-400'
+                                                    }`}
+                                                >
+                                                    {u.charAt(0).toUpperCase() + u.slice(1)}
+                                                </button>
+                                            ))}
                                         </div>
+                                    )}
+                                    <label className="block text-sm font-bold text-gray-700 mb-2">
+                                        Cantidad ({unidadSeleccionada})
+                                    </label>
+                                    <div className="flex gap-3 items-center">
+                                        <input
+                                            type="number"
+                                            min={unidadSeleccionada === 'rollo' ? 1 : 0.01}
+                                            step={unidadSeleccionada === 'rollo' ? 1 : 0.01}
+                                            value={cantidad}
+                                            onChange={e => {
+                                                const v = Number(e.target.value);
+                                                if (v > 0) setCantidad(unidadSeleccionada === 'rollo' ? Math.ceil(v) : v);
+                                            }}
+                                            className="w-28 border-2 border-gray-200 rounded-xl px-3 py-2.5 font-bold text-gray-800 text-center focus:border-gray-700 outline-none"
+                                        />
                                         <button
                                             onClick={handleAddToCart}
                                             disabled={agregando}
                                             className="flex-1 bg-gray-700 text-slate-300 font-bold py-3 px-6 rounded-xl hover:bg-gray-900 transition shadow-md hover:shadow-lg flex items-center justify-center gap-2"
                                         >
-                                            <FaShoppingCart /> {agregando ? "Agregando..." : "Agregar al carrito"}
+                                            <FaShoppingCart /> {agregando ? 'Agregando...' : 'Agregar al carrito'}
                                         </button>
                                     </div>
                                 </div>

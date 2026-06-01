@@ -102,21 +102,21 @@ const styles = `
         background: #fff;
         border-radius: 0.5rem;
         border: 1px solid #e5e7eb;
+        border-left: 3px solid transparent;
         overflow: hidden;
         margin-bottom: 0.4rem;
         box-shadow: 0 1px 3px rgba(0,0,0,0.04);
         transition: box-shadow 0.15s ease;
     }
     .notif-card:hover { box-shadow: 0 3px 10px rgba(0,0,0,0.08); }
-    .notif-card.no-leida { background: #fffbeb; border-color: #fcd34d; }
-    .notif-card.pendiente { background: #fef2f2; border-color: #fca5a5; }
+    .notif-card.no-leida   { border-left-color: #f59e0b; }
+    .notif-card.pendiente  { border-left-color: #3b82f6; }
+    .notif-card.aprobada   { border-left-color: #16a34a; }
+    .notif-card.rechazada  { border-left-color: #ef4444; }
+    .notif-card.completada { border-left-color: #6b7280; }
+    .notif-card.en-pendiente { border-left-color: #3b82f6; }
 
-    .notif-card .stripe {
-        height: 3px; width: 100%;
-        background: #e5e7eb;
-    }
-    .notif-card.no-leida .stripe { background: #f59e0b; }
-    .notif-card.pendiente .stripe { background: #ef4444; }
+    .notif-card .stripe { display: none; }
 
     /* Cabecera clicable */
     .notif-card-head {
@@ -257,8 +257,7 @@ const styles = `
     .btn-paso2-ko.dejar  { background: #6b7280; }
     .btn-paso2-ko.dejar:hover  { background: #4b5563; }
     .btn-paso2-ok:disabled, .btn-paso2-ko:disabled { opacity: 0.5; cursor: not-allowed; }
-    .notif-card.en-pendiente { background: #eff6ff; border-color: #93c5fd; box-shadow: 0 2px 12px rgba(59,130,246,0.1); }
-    .notif-card.en-pendiente .stripe { background: #3b82f6; }
+    .notif-card.en-pendiente { border-left-color: #3b82f6; }
     .badge-en-pendiente { font-size: 0.7rem; font-weight: 800; padding: 0.15rem 0.5rem; border-radius: 9999px; background: #dbeafe; color: #1e40af; }
 
     /* ── Media queries móvil ── */
@@ -327,10 +326,6 @@ const estadoBadge = (estado) => {
     return null;
 };
 
-const necesitaGestion = (notif) =>
-    notif.tipo === 'stock_critico' &&
-    (!notif.estadoGestion || notif.estadoGestion === 'pendiente');
-
 const isN8n = (n) => n.tipo === 'stock_critico' || n.tipo === 'pago_completado';
 
 const ITEMS_POR_PAGINA = 5;
@@ -342,7 +337,6 @@ const Notificaciones = () => {
     const [filtro, setFiltro]                 = useState('todas');
     const [expandido, setExpandido]           = useState(null);
     const [gestionando, setGestionando]       = useState(null);
-    const [localEstado, setLocalEstado]       = useState({});  // { [id]: 'pendiente' }
     const [pagina, setPagina]                 = useState(1);
 
     const token      = JSON.parse(localStorage.getItem('auth-token'))?.state?.token;
@@ -382,7 +376,6 @@ const Notificaciones = () => {
             });
             if (res.ok) {
                 setNotificaciones(prev => prev.filter(n => n._id !== id));
-                setLocalEstado(prev => { const next = { ...prev }; delete next[id]; return next; });
                 if (expandido === id) setExpandido(null);
                 toast.success('Notificación eliminada');
             }
@@ -400,7 +393,6 @@ const Notificaciones = () => {
                 setNotificaciones(prev =>
                     prev.map(n => n._id === id ? { ...n, estadoGestion: nuevoEstado, leida: true } : n)
                 );
-                setLocalEstado(prev => { const next = { ...prev }; delete next[id]; return next; });
                 setExpandido(null);
                 toast.success(decision === 'aprobar' ? 'Notificación aprobada' : 'Notificación rechazada');
             } else {
@@ -410,36 +402,13 @@ const Notificaciones = () => {
         finally { setGestionando(null); }
     };
 
-    // Paso 1 — Confirmar desde "Sin leer" → mueve a "Pendientes" solo localmente
-    const moverAPendiente = (id) => {
-        setLocalEstado(prev => ({ ...prev, [id]: 'pendiente' }));
-        setExpandido(null);
-        toast.info('Notificación movida a Pendientes de aprobación');
-    };
-
-    // Paso 1 — Rechazar desde "Sin leer" → PATCH leida, desaparece de Sin leer
-    const rechazarDesdeUnread = async (id) => {
-        try {
-            const res = await fetch(`${backendUrl}/notificaciones/${id}/leida`, {
-                method: 'PATCH', headers: { Authorization: `Bearer ${token}` }
-            });
-            if (res.ok) {
-                setNotificaciones(prev => prev.map(n => n._id === id ? { ...n, leida: true } : n));
-                setExpandido(null);
-                toast.success('Notificación rechazada y marcada como leída');
-            }
-        } catch { toast.error('Error al rechazar'); }
-    };
-
     // ── Conteos ──
-    const sinLeerCount    = notificaciones.filter(n => !n.leida && !localEstado[n._id]).length;
-    const pendientesCount = notificaciones.filter(n => localEstado[n._id] === 'pendiente').length;
+    const pendientesCount = notificaciones.filter(n => n.estadoGestion === 'pendiente').length;
     const aprobadasCount  = notificaciones.filter(n => n.estadoGestion === 'aprobado').length;
 
-    // ── Filtrado ──
+    // Filtros visibles: Todas, Pendientes y Aprobadas.
     const notificacionesFiltradas = notificaciones.filter(n => {
-        if (filtro === 'sin-leer')   return !n.leida && !localEstado[n._id];
-        if (filtro === 'pendientes') return localEstado[n._id] === 'pendiente';
+        if (filtro === 'pendientes') return n.estadoGestion === 'pendiente';
         if (filtro === 'aprobadas')  return n.estadoGestion === 'aprobado';
         return true;
     });
@@ -453,9 +422,11 @@ const Notificaciones = () => {
     );
 
     const getCardClass = (n) => {
-        if (localEstado[n._id] === 'pendiente') return 'notif-card en-pendiente';
-        if (n.estadoGestion === 'aprobado')     return 'notif-card';
-        if (!n.leida && !localEstado[n._id])    return 'notif-card no-leida';
+        if (n.estadoGestion === 'aprobado')     return 'notif-card aprobada';
+        if (n.estadoGestion === 'rechazado')    return 'notif-card rechazada';
+        if (n.estadoGestion === 'completado')   return 'notif-card completada';
+        if (n.estadoGestion === 'pendiente')    return 'notif-card en-pendiente';
+        if (!n.leida)                           return 'notif-card no-leida';
         return 'notif-card';
     };
 
@@ -501,7 +472,6 @@ const Notificaciones = () => {
                     <div className="notif-filtros">
                         {[
                             { key: 'todas',      label: 'Todas',       count: notificaciones.length },
-                            { key: 'sin-leer',   label: 'Sin leer',    count: sinLeerCount,    alert: sinLeerCount > 0 },
                             { key: 'pendientes', label: 'Pendientes',  count: pendientesCount, alert: pendientesCount > 0 },
                             { key: 'aprobadas',  label: 'Aprobadas',   count: aprobadasCount },
                         ].map(({ key, label, count, alert }) => (
@@ -527,8 +497,8 @@ const Notificaciones = () => {
                         <div>
                             {notifsPagina.map(notif => {
                                 const estaExpandido    = expandido === notif._id;
-                                const enPendienteLocal = localEstado[notif._id] === 'pendiente';
-                                const esUnread         = !notif.leida && !localEstado[notif._id];
+                                const enPendienteLocal = notif.estadoGestion === 'pendiente';
+                                const esUnread         = !notif.leida && notif.estadoGestion !== 'pendiente';
                                 const label            = TIPO_LABELS[notif.tipo] || notif.tipo || 'Notificación';
 
                                 return (
@@ -590,24 +560,6 @@ const Notificaciones = () => {
                                                                 </div>
                                                             </div>
                                                         ))}
-                                                    </div>
-                                                )}
-
-                                                {/* ── Paso 1: Sin leer → Confirmar / Rechazar ── */}
-                                                {esUnread && (
-                                                    <div className="gestion-row">
-                                                        <button
-                                                            className="btn-confirmar-paso1"
-                                                            onClick={() => moverAPendiente(notif._id)}
-                                                        >
-                                                            ✓ Confirmar
-                                                        </button>
-                                                        <button
-                                                            className="btn-rechazar-paso1"
-                                                            onClick={() => rechazarDesdeUnread(notif._id)}
-                                                        >
-                                                            ✗ Rechazar
-                                                        </button>
                                                     </div>
                                                 )}
 

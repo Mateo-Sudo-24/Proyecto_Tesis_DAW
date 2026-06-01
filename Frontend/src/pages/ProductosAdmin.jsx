@@ -423,7 +423,7 @@ const styles = `
     .btn-pa-save:hover { background: var(--orange-dark); }
 `;
 
-const STOCK_CRITICO = 5;
+const STOCK_CRITICO = 50;
 
 const ProductosAdmin = () => {
     const [productos, setProductos] = useState([]);
@@ -614,8 +614,8 @@ const ProductosAdmin = () => {
                                     <p className="pa-card-desc">{producto.descripcion}</p>
                                     <div className="pa-card-meta">
                                         <span className="pa-price">${producto.precio?.toLocaleString()}</span>
-                                        <span className={`pa-stock-badge ${stockClass(producto.stock)}`}>
-                                            {producto.stock} unid.
+                                        <span className={`pa-stock-badge ${stockClass(producto.metrosDisponibles ?? 0)}`}>
+                                            {(producto.metrosDisponibles ?? 0)}m / {Math.floor((producto.metrosDisponibles ?? 0) / (producto.metrosPorRollo || 100))} rol.
                                         </span>
                                     </div>
                                     {producto.color && (

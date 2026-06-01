@@ -1,4 +1,3 @@
-import { useState } from 'react'
 import storeProfile from "../../context/storeProfile"
 
 const styles = `
@@ -108,28 +107,6 @@ const styles = `
         color: #d1d5db;
         font-style: italic;
     }
-    .cpo-toggle-btn {
-        display: flex;
-        align-items: center;
-        gap: 0.4rem;
-        padding: 0.4rem 0;
-        background: none;
-        border: none;
-        cursor: pointer;
-        font-size: 0.72rem;
-        font-weight: 700;
-        text-transform: uppercase;
-        letter-spacing: 0.06em;
-        color: var(--orange-main);
-        width: 100%;
-        border-bottom: 1px solid #f3f4f6;
-        transition: color 0.15s;
-    }
-    .cpo-toggle-btn:hover { color: var(--orange-dark); }
-    .cpo-toggle-chevron { font-size: 0.6rem; margin-left: auto; transition: transform 0.2s; }
-    .cpo-toggle-chevron.open { transform: rotate(180deg); }
-    .cpo-collapsible { overflow: hidden; transition: max-height 0.25s ease; max-height: 0; }
-    .cpo-collapsible.open { max-height: 200px; }
     @media (max-width: 560px) {
         .cpo-card { flex-direction: column; }
         .cpo-left { width: 100%; flex-direction: row; gap: 1rem; padding: 1.25rem; justify-content: flex-start; }
@@ -138,7 +115,6 @@ const styles = `
 
 export const CardProfileOwner = () => {
     const { user } = storeProfile()
-    const [showContact, setShowContact] = useState(false)
     const initial = user?.nombre ? user.nombre.charAt(0).toUpperCase() : 'U'
     const rol = user?.rol || 'cliente'
 
@@ -164,23 +140,13 @@ export const CardProfileOwner = () => {
                         <span className="cpo-row-label">Apellido</span>
                         <p className="cpo-row-value">{user?.apellido || <span className="cpo-empty">Sin datos</span>}</p>
                     </div>
-                    <button
-                        className="cpo-toggle-btn"
-                        onClick={() => setShowContact(o => !o)}
-                        type="button"
-                    >
-                        📍 Dirección y Teléfono
-                        <span className={`cpo-toggle-chevron${showContact ? ' open' : ''}`}>▼</span>
-                    </button>
-                    <div className={`cpo-collapsible${showContact ? ' open' : ''}`}>
-                        <div className="cpo-row">
-                            <span className="cpo-row-label">Dirección</span>
-                            <p className="cpo-row-value">{user?.direccion || <span className="cpo-empty">Sin datos</span>}</p>
-                        </div>
-                        <div className="cpo-row">
-                            <span className="cpo-row-label">Teléfono</span>
-                            <p className="cpo-row-value">{user?.telefono || <span className="cpo-empty">Sin datos</span>}</p>
-                        </div>
+                    <div className="cpo-row">
+                        <span className="cpo-row-label">Dirección</span>
+                        <p className="cpo-row-value">{user?.direccion || <span className="cpo-empty">Sin datos</span>}</p>
+                    </div>
+                    <div className="cpo-row">
+                        <span className="cpo-row-label">Teléfono</span>
+                        <p className="cpo-row-value">{user?.telefono || <span className="cpo-empty">Sin datos</span>}</p>
                     </div>
                     <div className="cpo-row">
                         <span className="cpo-row-label">Correo</span>

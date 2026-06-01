@@ -29,6 +29,23 @@ const actualizarPerfil = async (req, res) => {
     const { _id } = req.usuario;
     const { password, rol, ...datosActualizar } = req.body;
     try {
+        // Validar unicidad de email entre todos los roles
+        if (datosActualizar.email) {
+            const emailNuevo = datosActualizar.email.toLowerCase().trim();
+            const [Administrador, Cliente] = await Promise.all([
+                import('../models/Administrador.js').then(m => m.default),
+                import('../models/Cliente.js').then(m => m.default),
+            ]);
+            const [vendConf, adminConf, cliConf] = await Promise.all([
+                Vendedor.findOne({ email: emailNuevo, _id: { $ne: _id } }).lean(),
+                Administrador.findOne({ email: emailNuevo }).lean(),
+                Cliente.findOne({ email: emailNuevo }).lean(),
+            ]);
+            if (vendConf || adminConf || cliConf) {
+                return res.status(400).json({ msg: "Este correo ya está registrado en el sistema." });
+            }
+            datosActualizar.email = emailNuevo;
+        }
         const vendedorActualizado = await Vendedor.findByIdAndUpdate(_id, datosActualizar, { new: true }).select("-password -token -__v");
         res.status(200).json({ msg: "Perfil actualizado correctamente.", vendedor: vendedorActualizado });
     } catch (error) {
@@ -215,7 +232,7 @@ const eliminarVendedor = async (req, res) => {
     try {
         const Orden = (await import('../models/Orden.js')).default;
         const tieneOrdenes = await Orden.exists({ vendedor: id });
-        if (tieneOrdenes) return res.status(400).json({ msg: "No se puede eliminar: el vendedor tiene órdenes asociadas." });
+        if (tieneOrdenes) return res.status(400).json({ msg: "No se puede eliminar este vendedor porque tiene pedidos asignados." });
         const vendedorEliminado = await Vendedor.findByIdAndDelete(id);
         if (!vendedorEliminado) return res.status(404).json({ msg: "Vendedor no encontrado." });
         res.status(200).json({ msg: "Vendedor eliminado exitosamente." });

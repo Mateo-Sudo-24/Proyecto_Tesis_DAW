@@ -161,16 +161,17 @@ const Productos = () => {
         fetchProductos();
     }, []);
 
-    const agregarAlCarrito = async (productoId, nombreProducto) => {
+    const agregarAlCarrito = async (productoId, nombreProducto, unidadVenta) => {
         if (!token) { toast.info("Inicia sesión para agregar productos."); return; }
         if (!productoId) { toast.error("ID de producto inválido."); return; }
         setAgregando(productoId);
         const toastId = toast.loading(`${nombreProducto || 'Producto'} se está agregando al carrito...`);
+        const unidadSeleccionada = unidadVenta === 'rollo' ? 'rollo' : 'metro';
         try {
             const res = await fetch(`${import.meta.env.VITE_BACKEND_URL}/carrito/items`, {
                 method: "POST",
                 headers: { "Content-Type": "application/json", Authorization: `Bearer ${token}` },
-                body: JSON.stringify({ productoId, cantidad: 1 }),
+                body: JSON.stringify({ productoId, cantidad: 1, unidadSeleccionada }),
             });
             if (!res.ok) {
                 const data = await res.json().catch(() => ({}));
@@ -242,7 +243,7 @@ const Productos = () => {
                                     {producto.descuento > 0 && (
                                         <span className="dash-badge-off">-{producto.descuento}%</span>
                                     )}
-                                    {producto.stock < 1 && (
+                                    {(producto.metrosDisponibles ?? 0) <= 0 && (
                                         <div className="dash-overlay-agotado">
                                             <span>Sin stock</span>
                                         </div>
@@ -251,18 +252,25 @@ const Productos = () => {
                                 <div className="dash-card-body">
                                     <p className="dash-card-name">{producto.nombre}</p>
                                     <p className="dash-card-desc">{producto.descripcion}</p>
+                                    <div style={{ fontSize: '0.76rem', color: '#6b7280', marginBottom: '0.65rem', fontWeight: 700 }}>
+                                        Unidad: {producto.unidadVenta || 'metro'}
+                                    </div>
                                     <div className="dash-card-footer">
                                         <span className="dash-price">${producto.precio}</span>
-                                        <span className={`dash-stock-badge ${producto.stock > 0 ? "in" : "out"}`}>
-                                            {producto.stock > 0 ? `Stock: ${producto.stock}` : "Agotado"}
+                                        <span className={`dash-stock-badge ${(producto.metrosDisponibles ?? 0) > 0 ? "in" : "out"}`}>
+                                            {(() => {
+                                                const metros = producto.metrosDisponibles ?? 0;
+                                                const rollos = Math.floor(metros / (producto.metrosPorRollo || 100));
+                                                return metros > 0 ? `${metros} m / ${rollos} rollos` : 'Agotado';
+                                            })()}
                                         </span>
                                     </div>
                                     <button
                                         className="btn-dash-add"
-                                        onClick={() => agregarAlCarrito(producto._id, producto.nombre)}
-                                        disabled={agregando === producto._id || producto.stock < 1}
+                                        onClick={() => agregarAlCarrito(producto._id, producto.nombre, producto.unidadVenta)}
+                                        disabled={agregando === producto._id || (producto.metrosDisponibles ?? 0) <= 0}
                                     >
-                                        {producto.stock < 1
+                                        {(producto.metrosDisponibles ?? 0) <= 0
                                             ? "Sin stock"
                                             : agregando === producto._id
                                                 ? "Agregando…"

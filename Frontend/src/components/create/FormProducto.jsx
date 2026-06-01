@@ -133,10 +133,6 @@ export const FormProducto = ({ productoToUpdate, onSuccess, onCancel }) => {
     const { register, handleSubmit, formState: { errors }, reset } = useForm();
     const [isSubmitting, setIsSubmitting] = useState(false);
     const [imagen, setImagen] = useState(null);
-    const imagenUrl = '';
-    const metodoImagen = 'archivo';
-    const setImagenUrl = () => {};
-    const setMetodoImagen = () => {};
     const [previewImagen, setPreviewImagen] = useState(null);
     const [categoriasOptions, setCategoriasOptions] = useState([]);
     const [selectedCategoria, setSelectedCategoria] = useState('');
@@ -174,6 +170,11 @@ export const FormProducto = ({ productoToUpdate, onSuccess, onCancel }) => {
                 descripcion: productoToUpdate.descripcion || '',
                 precio: productoToUpdate.precio || '',
                 stock: productoToUpdate.stock || '',
+                metrosDisponibles: productoToUpdate.metrosDisponibles ?? '',
+                metrosPorRollo: productoToUpdate.metrosPorRollo ?? 100,
+                precioPorMetro: productoToUpdate.precioPorMetro ?? '',
+                precioPorRollo: productoToUpdate.precioPorRollo ?? '',
+                unidadVenta: productoToUpdate.unidadVenta || 'metro',
                 descuento: productoToUpdate.descuento || 0,
                 color: productoToUpdate.color || '',
                 estado: productoToUpdate.estado || 'activo',
@@ -226,6 +227,11 @@ export const FormProducto = ({ productoToUpdate, onSuccess, onCancel }) => {
             formData.append('descripcion', data.descripcion);
             formData.append('precio', data.precio);
             formData.append('stock', data.stock);
+            if (data.metrosDisponibles !== '') formData.append('metrosDisponibles', data.metrosDisponibles);
+            if (data.metrosPorRollo)           formData.append('metrosPorRollo', data.metrosPorRollo);
+            if (data.precioPorMetro !== '')     formData.append('precioPorMetro', data.precioPorMetro);
+            if (data.precioPorRollo !== '')     formData.append('precioPorRollo', data.precioPorRollo);
+            formData.append('unidadVenta', data.unidadVenta || 'metro');
             formData.append('categoria', selectedCategoria);
             formData.append('descuento', data.descuento || 0);
             formData.append('color', data.color || '');
@@ -283,7 +289,7 @@ export const FormProducto = ({ productoToUpdate, onSuccess, onCancel }) => {
     return (
         <>
             <style>{fpStyles}</style>
-            {!onCancel &&}
+            {!onCancel && <div />}
             <form onSubmit={handleSubmit(onSubmit)} className="fp-form" noValidate>
             <div className="fp-form-body">
                 {/* Nombre */}
@@ -330,7 +336,7 @@ export const FormProducto = ({ productoToUpdate, onSuccess, onCancel }) => {
                 {/* Precio y Stock */}
                 <div className="fp-grid-2">
                     <div className="fp-field" style={{ marginBottom: 0 }}>
-                        <label className="fp-label">Precio *</label>
+                        <label className="fp-label">Precio referencial *</label>
                         <input
                             type="number"
                             placeholder="0.00"
@@ -341,15 +347,77 @@ export const FormProducto = ({ productoToUpdate, onSuccess, onCancel }) => {
                         {errors.precio && <p className="fp-error">⚠ {errors.precio.message}</p>}
                     </div>
                     <div className="fp-field" style={{ marginBottom: 0 }}>
-                        <label className="fp-label">Stock *</label>
+                        <label className="fp-label">Stock (unidades)</label>
                         <input
                             type="number"
                             placeholder="0"
                             className="fp-input"
-                            {...register('stock', { required: 'El stock es obligatorio' })}
+                            {...register('stock')}
                         />
-                        {errors.stock && <p className="fp-error">⚠ {errors.stock.message}</p>}
                     </div>
+                </div>
+
+                {/* Stock en metros */}
+                <div className="fp-grid-2" style={{ marginTop: '1rem' }}>
+                    <div className="fp-field" style={{ marginBottom: 0 }}>
+                        <label className="fp-label">Metros disponibles</label>
+                        <input
+                            type="number"
+                            placeholder="0"
+                            step="0.01"
+                            min="0"
+                            className="fp-input"
+                            {...register('metrosDisponibles', { min: 0 })}
+                        />
+                        {errors.metrosDisponibles && <p className="fp-error">⚠ {errors.metrosDisponibles.message}</p>}
+                    </div>
+                    <div className="fp-field" style={{ marginBottom: 0 }}>
+                        <label className="fp-label">Metros por rollo</label>
+                        <input
+                            type="number"
+                            placeholder="100"
+                            step="1"
+                            min="1"
+                            className="fp-input"
+                            {...register('metrosPorRollo', { min: 1 })}
+                        />
+                    </div>
+                </div>
+
+                {/* Precio por metro y por rollo */}
+                <div className="fp-grid-2" style={{ marginTop: '1rem' }}>
+                    <div className="fp-field" style={{ marginBottom: 0 }}>
+                        <label className="fp-label">Precio por metro ($)</label>
+                        <input
+                            type="number"
+                            placeholder="0.00"
+                            step="0.01"
+                            min="0"
+                            className="fp-input"
+                            {...register('precioPorMetro', { min: 0 })}
+                        />
+                    </div>
+                    <div className="fp-field" style={{ marginBottom: 0 }}>
+                        <label className="fp-label">Precio por rollo ($)</label>
+                        <input
+                            type="number"
+                            placeholder="0.00"
+                            step="0.01"
+                            min="0"
+                            className="fp-input"
+                            {...register('precioPorRollo', { min: 0 })}
+                        />
+                    </div>
+                </div>
+
+                {/* Unidad de venta */}
+                <div className="fp-field" style={{ marginTop: '1rem' }}>
+                    <label className="fp-label">Unidad de venta</label>
+                    <select className="fp-select" {...register('unidadVenta')}>
+                        <option value="metro">Metro</option>
+                        <option value="rollo">Rollo</option>
+                        <option value="ambos">Ambos (metro y rollo)</option>
+                    </select>
                 </div>
 
                 {/* Descuento y Color */}
@@ -405,51 +473,15 @@ export const FormProducto = ({ productoToUpdate, onSuccess, onCancel }) => {
                 <div className="fp-field">
                     <label className="fp-label">Imagen {!productoToUpdate && '*'}</label>
                     <div className="fp-img-section">
-                        <div className="fp-img-toggle">
-                            <label className="fp-img-option">
-                                <input
-                                    type="radio"
-                                    value="archivo"
-                                    checked={metodoImagen === 'archivo'}
-                                    onChange={() => { setMetodoImagen('archivo'); setImagenUrl(''); setPreviewImagen(null); }}
-                                />
-                                📤 Subir archivo
-                            </label>
-                            <label className="fp-img-option">
-                                <input
-                                    type="radio"
-                                    value="url"
-                                    checked={metodoImagen === 'url'}
-                                    onChange={() => { setMetodoImagen('url'); setImagen(null); }}
-                                />
-                                🔗 URL de imagen
-                            </label>
-                        </div>
-
-                        {metodoImagen === 'archivo' ? (
-                            <>
-                                <input
-                                    ref={fileInputRef}
-                                    type="file"
-                                    accept="image/*"
-                                    className="fp-input"
-                                    onChange={handleArchivoChange}
-                                    style={{ paddingTop: '0.45rem' }}
-                                />
-                                <p className="fp-img-hint">📤 Se subirá a Cloudinary al guardar. Formatos: JPG, PNG, WebP.</p>
-                            </>
-                        ) : (
-                            <>
-                                <input
-                                    type="url"
-                                    placeholder="https://res.cloudinary.com/..."
-                                    className="fp-input"
-                                    value={imagenUrl}
-                                    onChange={e => { setImagenUrl(e.target.value); setPreviewImagen(e.target.value); }}
-                                />
-                                <p className="fp-img-hint">🔗 URL pública de imagen (Cloudinary recomendado)</p>
-                            </>
-                        )}
+                        <input
+                            ref={fileInputRef}
+                            type="file"
+                            accept="image/*"
+                            className="fp-input"
+                            onChange={handleArchivoChange}
+                            style={{ paddingTop: '0.45rem' }}
+                        />
+                        <p className="fp-img-hint">📤 Se subirá a Cloudinary al guardar. Formatos: JPG, PNG, WebP.</p>
 
                         {previewImagen && (
                             <div className="fp-preview">

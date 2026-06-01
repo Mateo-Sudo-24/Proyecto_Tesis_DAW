@@ -81,28 +81,6 @@ const styles = `
         color: #d1d5db;
         font-style: italic;
     }
-    .cp-toggle-btn {
-        display: flex;
-        align-items: center;
-        gap: 0.4rem;
-        padding: 0.45rem 0;
-        background: none;
-        border: none;
-        cursor: pointer;
-        font-size: 0.72rem;
-        font-weight: 700;
-        text-transform: uppercase;
-        letter-spacing: 0.06em;
-        color: #e8760a;
-        width: 100%;
-        border-bottom: 1px solid #f3f4f6;
-        transition: color 0.15s;
-    }
-    .cp-toggle-btn:hover { color: #c4620a; }
-    .cp-toggle-chevron { font-size: 0.6rem; margin-left: auto; transition: transform 0.2s; }
-    .cp-toggle-chevron.open { transform: rotate(180deg); }
-    .cp-collapsible { overflow: hidden; transition: max-height 0.25s ease; max-height: 0; }
-    .cp-collapsible.open { max-height: 150px; }
 `;
 
 export const CardProfile = () => {

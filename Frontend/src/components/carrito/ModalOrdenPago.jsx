@@ -1,4 +1,5 @@
 import { useEffect, useState, useRef } from 'react'
+import PropTypes from 'prop-types'
 import { toast } from 'react-toastify'
 import useFetch from '../../hooks/useFetch.js'
 import storeProfile from '../../context/storeProfile'
@@ -17,8 +18,7 @@ const numeroSeguro = (value) => {
 }
 
 const metodosCliente = [
-    { value: 'Stripe', label: 'Tarjeta', helper: 'Pago con tarjeta mediante pasarela segura.' },
-    { value: 'De Una', label: 'De Una', helper: 'Escanea el QR y confirma tu pago.' },
+        { value: 'Pago por tarjeta en línea', label: 'Pago por tarjeta en línea', helper: 'Pago seguro con tarjeta de crédito o débito. Serás redirigido a completar el pago.' },
     { value: 'Pago contra entrega', label: 'Contra entrega', helper: 'Pagas en el momento de la entrega.' },
 ]
 
@@ -27,7 +27,6 @@ const metodosVendedor = [
     { value: 'De Una', label: 'De Una', helper: 'Pago con QR para confirmar la compra.' },
     { value: 'Pago contra entrega', label: 'Contra entrega', helper: 'Pago al recibir el pedido.' },
     { value: 'Pago efectivo / tarjeta débito', label: 'Efectivo / Débito', helper: 'Pago en efectivo o tarjeta débito presencial.' },
-    { value: 'Transferencia Bancaria', label: 'Transferencia', helper: 'Registra una transferencia bancaria.' },
 ]
 
 const cargarLeaflet = () => new Promise((resolve, reject) => {
@@ -58,26 +57,6 @@ const cargarLeaflet = () => new Promise((resolve, reject) => {
     script.onerror = reject
     document.body.appendChild(script)
 })
-
-const agregarCanvasPaginado = (pdf, canvas) => {
-    const pdfW = pdf.internal.pageSize.getWidth()
-    const pdfH = pdf.internal.pageSize.getHeight()
-    const imgH = canvas.height * (pdfW / canvas.width)
-    const imgData = canvas.toDataURL('image/png')
-
-    let remainingHeight = imgH
-    let position = 0
-
-    pdf.addImage(imgData, 'PNG', 0, position, pdfW, imgH)
-    remainingHeight -= pdfH
-
-    while (remainingHeight > 0) {
-        position -= pdfH
-        pdf.addPage()
-        pdf.addImage(imgData, 'PNG', 0, position, pdfW, imgH)
-        remainingHeight -= pdfH
-    }
-}
 
 const modalStyles = `
     @import url('https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;700&family=DM+Mono:wght@400;500&display=swap');
@@ -180,10 +159,11 @@ const modalStyles = `
         max-height: none;
         overflow-y: auto;
         overscroll-behavior: contain;
-        padding: 1.25rem;
+        padding: 0;
         display: flex;
         flex-direction: column;
-        gap: 1rem;
+        gap: 0;
+        background: #fff;
     }
     .mop-body::-webkit-scrollbar { width: 10px; }
     .mop-body::-webkit-scrollbar-track { background: var(--gray-100); }
@@ -202,22 +182,17 @@ const modalStyles = `
         flex-wrap: wrap;
     }
 
-    /* ── Form cards ── */
-    .op-card {
-        background: #fff;
-        border-radius: 0.875rem;
-        border: 1px solid var(--gray-200);
-        overflow: hidden;
+    /* Form sections */
+    .op-section {
+        border-bottom: 1px solid var(--gray-200);
     }
     .op-section-title {
         font-size: 0.68rem;
         font-weight: 700;
         text-transform: uppercase;
         letter-spacing: 0.08em;
-        color: var(--gray-400);
+        color: var(--orange);
         padding: 0.75rem 1.25rem 0.4rem;
-        background: var(--gray-50);
-        border-bottom: 1px solid var(--gray-200);
     }
     .op-grid {
         display: grid;
@@ -255,22 +230,26 @@ const modalStyles = `
     .op-input.error { border-color: #ef4444; }
     .op-error-msg { font-size: 0.68rem; color: #ef4444; }
     .op-pay-grid {
-        display: grid;
-        grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
-        gap: 0.75rem;
+        display: flex;
+        flex-direction: column;
+        gap: 0.5rem;
         padding: 0.875rem 1.25rem;
     }
-    .op-pay-card {
+    .op-pay-option {
         border: 1.5px solid var(--gray-200);
-        border-radius: 0.75rem;
-        background: var(--gray-50);
-        padding: 0.85rem;
+        border-radius: 0.5rem;
+        background: #fff;
+        padding: 0.7rem 1rem;
         cursor: pointer;
         text-align: left;
+        width: 100%;
         transition: border-color 0.15s, box-shadow 0.15s, background 0.15s;
+        display: flex;
+        align-items: center;
+        gap: 0.6rem;
     }
-    .op-pay-card:hover { border-color: var(--orange); background: #fff; }
-    .op-pay-card.active {
+    .op-pay-option:hover { border-color: var(--orange); background: #fff; }
+    .op-pay-option.active {
         border-color: var(--orange);
         background: #fff7ed;
         box-shadow: 0 0 0 3px rgba(232,118,10,0.12);
@@ -435,18 +414,8 @@ const modalStyles = `
     .op-btn-pdf:hover { background: var(--orange-dark); transform: translateY(-1px); }
     .op-btn-pdf:disabled { opacity: 0.6; cursor: not-allowed; transform: none; }
 
-    /* ── PDF template (off-screen) ── */
-    .pdf-template {
-        position: fixed;
-        left: -9999px;
-        top: 0;
-        width: 794px;
-        background: #fff;
-        padding: 48px 56px;
-        box-sizing: border-box;
-        font-family: 'DM Sans', sans-serif;
-        z-index: -1;
-    }
+    /* ── PDF template (removed) ── */
+    .pdf-template { display: none; }
     .pdf-top {
         display: flex;
         justify-content: space-between;
@@ -508,7 +477,7 @@ const ModalOrdenPago = ({
     subtotalCart = 0,
     onClose,
     onOrdenCreada,
-    onNeedStripe,
+    onNeedCardPayment,
 }) => {
     const { fetchDataBackend } = useFetch()
     const { user } = storeProfile()
@@ -516,20 +485,15 @@ const ModalOrdenPago = ({
     const isVendedor = user?.rol === 'vendedor'
     const metodosPago = isVendedor ? metodosVendedor : metodosCliente
     const [metodoPago, setMetodoPago] = useState(metodosPago[0].value)
-    const [direccionDomicilio, setDireccionDomicilio] = useState('CAVA CORP — Almacenes Intex')
+    const [direccionDomicilio] = useState('CAVA CORP - Almacenes Intex')
     const [mapaVisible, setMapaVisible] = useState(false)
     const [isCreating, setIsCreating] = useState(false)
-    const [loadingPdf, setLoadingPdf] = useState(false)
     const [errors, setErrors] = useState({})
-    const pdfRef = useRef(null)
     const mapContainerRef = useRef(null)
     const leafletMapRef = useRef(null)
 
     const iva = subtotalCart * IVA
     const total = subtotalCart + iva
-
-    const numeroOrden = `OP-${String(Date.now()).slice(-6)}`
-    const fechaHoy = new Date().toLocaleDateString('es-EC', { year: 'numeric', month: 'long', day: 'numeric' })
 
     useEffect(() => {
         if (!metodosPago.some((m) => m.value === metodoPago)) {
@@ -604,29 +568,6 @@ const ModalOrdenPago = ({
         return Object.keys(errs).length === 0
     }
 
-    const generarPDF = async () => {
-        setLoadingPdf(true)
-        try {
-            const [{ default: jsPDF }, { default: html2canvas }] = await Promise.all([
-                import('jspdf'),
-                import('html2canvas'),
-            ])
-            const el = pdfRef.current
-            el.style.left = '0'
-            el.style.visibility = 'hidden'
-            const canvas = await html2canvas(el, { scale: 2, useCORS: true, backgroundColor: '#ffffff' })
-            el.style.left = '-9999px'
-            el.style.visibility = 'visible'
-            const pdf = new jsPDF({ unit: 'px', format: 'a4', orientation: 'portrait' })
-            agregarCanvasPaginado(pdf, canvas)
-            pdf.save(`orden-pago-${Date.now()}.pdf`)
-        } catch (err) {
-            console.error(err)
-            toast.error('Error al generar el PDF.')
-        }
-        setLoadingPdf(false)
-    }
-
     const handleConfirmar = async () => {
         if (!validate()) return
         setIsCreating(true)
@@ -670,10 +611,10 @@ const ModalOrdenPago = ({
 
         const ordenRecien = response.orden
 
-        if (metodoPago === 'Stripe') {
+        if (metodoPago === 'Pago por tarjeta en línea') {
             setIsCreating(false)
             toast.success('Orden creada. Completa el pago con tarjeta.')
-            onNeedStripe(ordenRecien)
+            onNeedCardPayment(ordenRecien)
             return
         }
 
@@ -730,7 +671,7 @@ const ModalOrdenPago = ({
 
                     {/* Dirección de entrega (solo domicilio) */}
                     {tipoEntrega === 'domicilio' && (
-                        <div className="op-card">
+                        <div className="op-section">
                             <div className="op-section-title">📍 Dirección de entrega</div>
                             <div style={{ padding: '0.875rem 1.25rem 0.5rem' }}>
                                 <div style={{ background:'#f0fdf4', border:'1.5px solid #86efac', borderRadius:'0.6rem', padding:'0.6rem 1rem', fontSize:'0.875rem', color:'#166534', fontWeight:600, display:'flex', alignItems:'center', gap:'0.5rem' }}>
@@ -761,7 +702,7 @@ const ModalOrdenPago = ({
                     )}
 
                     {(tipoEntrega === 'retiro' || tipoEntrega === 'establecimiento' || tipoEntrega === 'venta_local') && (
-                        <div className="op-card">
+                        <div className="op-section">
                             <div className="op-section-title">🏪 Retiro en almacenes</div>
                             <div style={{ padding: '0.875rem 1.25rem', display: 'grid', gap: '0.45rem', color: '#374151', fontSize: '0.875rem' }}>
                                 <strong style={{ color: '#111827' }}>CAVA CORP - Almacenes Intex</strong>
@@ -778,7 +719,7 @@ const ModalOrdenPago = ({
                     )}
 
                     {/* Datos de facturación */}
-                    <div className="op-card">
+                    <div className="op-section">
                         <div className="op-section-title">Datos de facturación</div>
                         <div className="op-grid">
                             <div className="op-field">
@@ -799,7 +740,7 @@ const ModalOrdenPago = ({
                             <div className="op-field">
                                 <label className="op-label">Teléfono</label>
                                 <input className={`op-input${errors.telefono ? ' error' : ''}`} name="telefono" inputMode="tel" maxLength={10} placeholder="0987654321" value={form.telefono} onChange={handleForm} />
-                                {errors.telefono && <span className="op-error-msg">âš  {errors.telefono}</span>}
+                                {errors.telefono && <span className="op-error-msg">! {errors.telefono}</span>}
                             </div>
                             <div className="op-field full">
                                 <label className="op-label">Correo electrónico</label>
@@ -809,15 +750,15 @@ const ModalOrdenPago = ({
                             <div className="op-field full">
                                 <label className="op-label">Dirección de facturación</label>
                                 <input className={`op-input${errors.direccion ? ' error' : ''}`} name="direccion" placeholder="Av. Principal 123, ciudad" value={form.direccion} onChange={handleForm} />
-                                {errors.direccion && <span className="op-error-msg">âš  {errors.direccion}</span>}
+                                {errors.direccion && <span className="op-error-msg">! {errors.direccion}</span>}
                             </div>
                         </div>
                     </div>
 
                     {/* Productos del carrito */}
-                    <div className="op-card">
+                    <div className="op-section">
                         <div className="op-section-title">Productos del carrito</div>
-                        {errors.items && <span className="op-error-msg" style={{ display:'block', padding:'0.6rem 1.25rem 0' }}>âš  {errors.items}</span>}
+                        {errors.items && <span className="op-error-msg" style={{ display:'block', padding:'0.6rem 1.25rem 0' }}>! {errors.items}</span>}
                         <div className="mop-items-header">
                             <span>Producto</span>
                             <span style={{ textAlign:'center' }}>Cant.</span>
@@ -842,14 +783,14 @@ const ModalOrdenPago = ({
                     </div>
 
                     {/* Método de pago */}
-                    <div className="op-card">
+                    <div className="op-section">
                         <div className="op-section-title">Método de pago</div>
                         <div className="op-pay-grid">
                             {metodosPago.map((metodo) => (
                                 <button
                                     type="button"
                                     key={metodo.value}
-                                    className={`op-pay-card${metodoPago === metodo.value ? ' active' : ''}`}
+                                    className={`op-pay-option${metodoPago === metodo.value ? ' active' : ''}`}
                                     onClick={() => setMetodoPago(metodo.value)}
                                 >
                                     <span className="op-pay-title">{metodo.label}</span>
@@ -873,15 +814,6 @@ const ModalOrdenPago = ({
                 {/* Footer — acciones */}
                 <div className="mop-footer">
                     <button className="op-btn-reset" onClick={onClose} type="button">Cancelar</button>
-                    <button
-                        className="op-btn-pdf"
-                        onClick={generarPDF}
-                        disabled={loadingPdf}
-                        type="button"
-                        style={{ background:'#374151', boxShadow:'none' }}
-                    >
-                        {loadingPdf ? '⏳ Generando...' : '📄 PDF orden de pago'}
-                    </button>
                     <button className="op-btn-pdf" onClick={handleConfirmar} disabled={isCreating} type="button">
                         {isCreating ? (
                             <>
@@ -893,80 +825,18 @@ const ModalOrdenPago = ({
                 </div>
             </div>
 
-            {/* Plantilla oculta para el PDF */}
-            <div ref={pdfRef} className="pdf-template">
-                <div className="pdf-top">
-                    <div className="pdf-brand">
-                        <div className="pdf-brand-name"><span>IN</span>TEX</div>
-                        <div className="pdf-brand-sub">Textiles</div>
-                    </div>
-                    <div className="pdf-meta">
-                        <div className="pdf-meta-title">Orden de Pago</div>
-                        <div className="pdf-meta-num">{numeroOrden}</div>
-                        <div className="pdf-meta-date">{fechaHoy}</div>
-                    </div>
-                </div>
-
-                <div className="pdf-parties">
-                    <div>
-                        <div className="pdf-party-label">Emisor</div>
-                        <div className="pdf-party-name">Intex Textiles</div>
-                        <div className="pdf-party-detail">
-                            RUC: 1791234560001<br />
-                            facturacion@intextextiles.com<br />
-                            Ecuador
-                        </div>
-                    </div>
-                    <div>
-                        <div className="pdf-party-label">Facturar a</div>
-                        <div className="pdf-party-name">{form.nombre || '—'} {form.apellido}</div>
-                        <div className="pdf-party-detail">
-                            {form.ruc && <>RUC/CI: {form.ruc}<br /></>}
-                            {form.email && <>{form.email}<br /></>}
-                            {form.telefono && <>{form.telefono}<br /></>}
-                            {(form.direccion || direccionDomicilio) && <>{form.direccion || direccionDomicilio}</>}
-                        </div>
-                    </div>
-                </div>
-
-                <table className="pdf-table">
-                    <thead>
-                        <tr>
-                            <th>Producto</th>
-                            <th>Cant.</th>
-                            <th>P. unitario</th>
-                            <th>Total</th>
-                        </tr>
-                    </thead>
-                    <tbody>
-                        {cartItems.map((it, i) => (
-                            <tr key={i}>
-                                <td>{it.producto?.nombre || 'Producto'}</td>
-                                <td style={{ textAlign:'center' }}>{Math.trunc(numeroSeguro(it.cantidad))}</td>
-                                <td style={{ textAlign:'right' }}>{fmt(numeroSeguro(it.producto?.precio))}</td>
-                                <td style={{ textAlign:'right' }}>{fmt(numeroSeguro(it.producto?.precio) * Math.trunc(numeroSeguro(it.cantidad)))}</td>
-                            </tr>
-                        ))}
-                    </tbody>
-                </table>
-
-                <div className="pdf-totals">
-                    <div className="pdf-total-row"><span>Subtotal</span><span>{fmt(subtotalCart)}</span></div>
-                    <div className="pdf-total-row"><span>IVA 15%</span><span>{fmt(iva)}</span></div>
-                    <div className="pdf-total-row grand"><span>Total a pagar</span><span>{fmt(total)}</span></div>
-                </div>
-
-                <div className="pdf-footer">
-                    <div className="pdf-footer-note">
-                        Gracias por su confianza. Este documento es válido como orden de pago interna.<br />
-                        Para consultas: facturacion@intextextiles.com
-                    </div>
-                    <div className="pdf-footer-stamp">Pendiente de pago</div>
-                </div>
-            </div>
 
         </>
     )
 }
 
 export default ModalOrdenPago
+
+ModalOrdenPago.propTypes = {
+    tipoEntrega: PropTypes.string,
+    cartItems: PropTypes.array,
+    subtotalCart: PropTypes.number,
+    onClose: PropTypes.func,
+    onOrdenCreada: PropTypes.func,
+    onNeedCardPayment: PropTypes.func,
+}

@@ -1,5 +1,6 @@
 import Notificacion from '../models/Notificacion.js';
 import Administrador from '../models/Administrador.js';
+import Vendedor from '../models/Vendedor.js';
 import axios from 'axios';
 
 // ✅ WEBHOOK SIN AUTENTICACIÓN - N8N puede enviar directamente
@@ -151,6 +152,46 @@ export const marcarLeida = async (req, res) => {
   } catch (error) {
     console.error('Error al marcar notificación como leída:', error);
     res.status(500).json({ msg: 'Error al actualizar notificación', ok: false });
+  }
+};
+
+// Marcar notificacion como pendiente de gestion en BDD (Solo Administrador)
+export const marcarPendiente = async (req, res) => {
+  const { id } = req.params;
+  const { _id, rol } = req.usuario;
+
+  if (rol !== 'administrador') {
+    return res.status(403).json({ msg: 'Acceso denegado. Solo administradores pueden modificar notificaciones.' });
+  }
+
+  try {
+    const notif = await Notificacion.findById(id);
+    if (!notif) {
+      return res.status(404).json({ msg: 'Notificacion no encontrada' });
+    }
+
+    if (!notif.administrador || notif.administrador.toString() !== _id.toString()) {
+      return res.status(403).json({ msg: 'No tienes permiso para modificar esta notificacion' });
+    }
+
+    const notifActualizada = await Notificacion.findByIdAndUpdate(
+      id,
+      { estadoGestion: 'pendiente' },
+      { new: true }
+    );
+
+    const decrypted = notifActualizada.descifrarDatos();
+    res.json({
+      ok: true,
+      notif: {
+        ...notifActualizada.toObject(),
+        mensaje: decrypted.mensaje,
+        productos: decrypted.productos
+      }
+    });
+  } catch (error) {
+    console.error('Error al marcar notificacion como pendiente:', error);
+    res.status(500).json({ msg: 'Error al actualizar notificacion', ok: false });
   }
 };
 
@@ -335,6 +376,25 @@ export const aprobarPedido = async (req, res) => {
     }
 
     await Notificacion.findByIdAndUpdate(id, { estadoGestion: 'aprobado', leida: true });
+
+    // Notificar a todos los vendedores activos que la reposición fue aprobada
+    try {
+      const vendedores = await Vendedor.find({ status: 'activo' }).select('_id');
+      const datosDescifrados = notif.descifrarDatos();
+      const msgProductos = (datosDescifrados.productos || []).map(p => p.nombre).join(', ');
+      await Promise.all(vendedores.map(v =>
+        Notificacion.crearConCifrado({
+          vendedor: v._id,
+          tipo: 'confirmacion_pedido',
+          mensaje: `✅ Reposición de stock aprobada por administración${msgProductos ? `: ${msgProductos}` : ''}. Por favor procede con el pedido al proveedor.`,
+          leida: false,
+          estadoGestion: 'completado',
+          metadatos: { timestamp: new Date() }
+        })
+      ));
+    } catch (vErr) {
+      console.warn('⚠️ Error al notificar vendedores sobre aprobación:', vErr.message);
+    }
 
     // Llamar al webhook de n8n para reanudar el flujo de espera
     const n8nUrl = process.env.N8N_WEBHOOK_URL;

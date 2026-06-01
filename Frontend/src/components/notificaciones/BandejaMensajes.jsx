@@ -27,7 +27,7 @@ const bmStyles = `
         position: absolute;
         top: -5px; right: -5px;
         min-width: 17px; height: 17px;
-        background: #ef4444;
+        background: #e8760a;
         color: #fff;
         font-size: 0.65rem;
         font-weight: 800;
@@ -39,7 +39,6 @@ const bmStyles = `
         pointer-events: none;
         z-index: 2;
     }
-    .bm-badge.orange { background: #e8760a; }
 
     /* ── Panel desplegable ── */
     .bm-panel {
@@ -83,62 +82,6 @@ const bmStyles = `
         color: #fff;
         margin: 0;
     }
-    .bm-header-badges { display: flex; gap: 0.4rem; }
-    .bm-hbadge {
-        font-size: 0.68rem; font-weight: 800;
-        padding: 0.15rem 0.55rem;
-        border-radius: 999px;
-        border: none;
-        cursor: pointer;
-        transition: opacity 0.15s, outline 0.15s;
-        outline: 2px solid transparent;
-    }
-    .bm-hbadge:hover { opacity: 0.85; }
-    .bm-hbadge-unread  { background: #e8760a; color: #fff; }
-    .bm-hbadge-pending { background: #ef4444; color: #fff; }
-    .bm-hbadge-active  { outline: 2px solid #fff; outline-offset: 1px; }
-
-    /* ── Filtros ── */
-    .bm-filters {
-        display: flex;
-        gap: 0;
-        background: #f9fafb;
-        border-bottom: 1px solid #e5e7eb;
-    }
-    .bm-filter-btn {
-        flex: 1;
-        padding: 0.6rem 0.5rem;
-        border: none;
-        background: transparent;
-        font-size: 0.75rem;
-        font-weight: 700;
-        color: #6b7280;
-        cursor: pointer;
-        border-bottom: 2px solid transparent;
-        transition: color 0.15s, border-color 0.15s, background 0.15s;
-        display: flex;
-        align-items: center;
-        justify-content: center;
-        gap: 0.3rem;
-        white-space: nowrap;
-    }
-    .bm-filter-btn:hover { background: #f3f4f6; color: #374151; }
-    .bm-filter-btn.active-todas    { border-bottom-color: #6b7280; color: #111827; }
-    .bm-filter-btn.active-unread   { border-bottom-color: #e8760a; color: #e8760a; }
-    .bm-filter-btn.active-pending  { border-bottom-color: #ef4444; color: #ef4444; }
-    .bm-filter-btn.active-read     { border-bottom-color: #3b82f6; color: #3b82f6; }
-    .bm-filter-count {
-        font-size: 0.65rem; font-weight: 800;
-        padding: 0.1rem 0.4rem;
-        border-radius: 999px;
-        background: #e5e7eb;
-        color: #6b7280;
-    }
-    .bm-filter-btn.active-todas   .bm-filter-count { background: #374151;  color: #fff; }
-    .bm-filter-btn.active-unread  .bm-filter-count { background: #e8760a;  color: #fff; }
-    .bm-filter-btn.active-pending .bm-filter-count { background: #ef4444;  color: #fff; }
-    .bm-filter-btn.active-read    .bm-filter-count { background: #3b82f6;  color: #fff; }
-
     /* ── Lista ── */
     .bm-list {
         max-height: 420px;
@@ -164,9 +107,12 @@ const bmStyles = `
         transition: background 0.15s;
     }
     .bm-item:last-child { border-bottom: none; }
-    .bm-item.unread  { background: #fffbeb; border-left: 3px solid #f59e0b; }
-    .bm-item.pending { background: #fef2f2; border-left: 3px solid #ef4444; }
-    .bm-item.read    { background: #fff;    border-left: 3px solid transparent; }
+    .bm-item.unread  { background: #fff; border-left: 3px solid #e8760a; }
+    .bm-item.pending { background: #fff;  border-left: 3px solid #3b82f6; }
+    .bm-item.aprobado{ background: #fff;  border-left: 3px solid #16a34a; }
+    .bm-item.rechazado{ background: #fff; border-left: 3px solid #ef4444; }
+    .bm-item.completado{ background: #fff; border-left: 3px solid #6b7280; }
+    .bm-item.read    { background: #fff;  border-left: 3px solid transparent; }
 
     /* Cabecera clicable del item */
     .bm-item-head {
@@ -284,8 +230,6 @@ const bmStyles = `
         }
         .bm-list { max-height: calc(85vh - 130px); }
         .bm-panel::before { display: none; }
-        .bm-filter-btn { font-size: 0.68rem; padding: 0.5rem 0.3rem; }
-        .bm-filter-count { display: none; }
     }
 
     /* ── Paginación ── */
@@ -352,8 +296,6 @@ export default function BandejaMensajes() {
     const [abierta, setAbierta] = useState(false);
     const [expandido, setExpandido] = useState(null);
     const [gestionando, setGestionando] = useState(null);
-    const [filtro, setFiltro] = useState('todas');
-    const [localEstado, setLocalEstado] = useState({}); // { [id]: 'pendiente' }
     const [pagina, setPagina] = useState(1);
     const [pollingActivo, setPollingActivo] = useState(true);
     const panelRef = useRef(null);
@@ -415,12 +357,6 @@ export default function BandejaMensajes() {
         return () => document.removeEventListener('mousedown', handler);
     }, [abierta]);
 
-    const cambiarFiltro = (key) => {
-        setFiltro(key);
-        setPagina(1);
-        setExpandido(null);
-    };
-
     const marcarLeida = async (id) => {
         try {
             const token = getToken();
@@ -450,66 +386,39 @@ export default function BandejaMensajes() {
                         ? { ...n, estadoGestion: decision === 'aprobar' ? 'aprobado' : 'rechazado', leida: true }
                         : n
                 ));
-                // Limpiar estado local pendiente (admin)
-                setLocalEstado(prev => { const next = { ...prev }; delete next[id]; return next; });
                 setExpandido(null);
             }
         } catch { /* silencioso */ }
         finally { setGestionando(null); }
     };
 
-    // Admin — Paso 1: Confirmar desde "Sin leer" → mueve a "Pendientes" solo en local
-    const moverAPendiente = (id) => {
-        setLocalEstado(prev => ({ ...prev, [id]: 'pendiente' }));
-        setExpandido(null);
+    // Admin: confirma una notificación nueva y guarda pendiente en BDD.
+    const moverAPendiente = async (id) => {
+        try {
+            const token = getToken();
+            const res = await fetch(`${import.meta.env.VITE_BACKEND_URL}/notificaciones/${id}/pendiente`, {
+                method: 'PATCH',
+                headers: { Authorization: `Bearer ${token}` }
+            });
+            if (res.ok) {
+                const data = await res.json();
+                setNotifs(prev => prev.map(n => n._id === id ? (data.notif || { ...n, estadoGestion: 'pendiente' }) : n));
+            }
+        } catch { /* silencioso */ }
+        finally { setExpandido(null); }
     };
 
-    // Admin — Paso 1: Rechazar desde "Sin leer" → marca como leída, desaparece
+    // Admin: rechaza una notificación nueva y la marca como leída.
     const rechazarDesdeUnread = async (id) => {
         await marcarLeida(id);
         setExpandido(null);
     };
 
-    // ── Conteos generales ──
-    const noLeidas  = notifs.filter(n => !n.leida).length;
-    const pendientes = notifs.filter(necesitaGestion).length;
-    const leidas     = notifs.filter(n => n.leida).length;
+    // ── Badge: total de notificaciones no leídas ──
+    const totalBadge = notifs.filter(n => !n.leida).length;
 
-    // ── Conteos admin ──
-    const unreadAdmin     = notifs.filter(n => !n.leida && !localEstado[n._id]).length;
-    const pendientesAdmin = notifs.filter(n => localEstado[n._id] === 'pendiente').length;
-    const aprobadasAdmin  = notifs.filter(n => n.estadoGestion === 'aprobado').length;
-
-    const badgeUnread  = isAdminUser ? unreadAdmin    : noLeidas;
-    const badgePending = isAdminUser ? pendientesAdmin : pendientes;
-    const totalBadge   = badgeUnread + badgePending;
-
-    // ── Tabs ──
-    const tabs = isAdminUser
-        ? [
-            { key: 'todas',   label: 'Todas',      count: notifs.length },
-            { key: 'pending', label: 'Pendientes', count: pendientesAdmin },
-            { key: 'read',    label: 'Aprobadas',  count: aprobadasAdmin },
-          ]
-        : [
-            { key: 'todas',   label: 'Todas',      count: notifs.length },
-            { key: 'pending', label: 'Pendientes', count: pendientes },
-            { key: 'read',    label: 'Leídas',     count: leidas },
-          ];
-
-    // ── Filtrado ──
-    const notifsFiltradas = notifs.filter(n => {
-        if (isAdminUser) {
-            if (filtro === 'unread')  return !n.leida && !localEstado[n._id];
-            if (filtro === 'pending') return localEstado[n._id] === 'pendiente';
-            if (filtro === 'read')    return n.estadoGestion === 'aprobado';
-            return true;
-        }
-        if (filtro === 'unread')  return !n.leida;
-        if (filtro === 'pending') return necesitaGestion(n);
-        if (filtro === 'read')    return n.leida;
-        return true;
-    });
+    // Mostrar todas las notificaciones sin filtros en la burbuja.
+    const notifsFiltradas = notifs;
 
     // ── Paginación (solo admin) ──
     const totalPaginas  = Math.ceil(notifsFiltradas.length / ITEMS_POR_PAGINA);
@@ -520,9 +429,11 @@ export default function BandejaMensajes() {
 
     // ── Clase visual del item ──
     const getItemClass = (n) => {
+        if (n.estadoGestion === 'rechazado')    return 'bm-item rechazado';
+        if (n.estadoGestion === 'completado')   return 'bm-item completado';
+        if (n.estadoGestion === 'aprobado')     return 'bm-item aprobado';
         if (isAdminUser) {
-            if (localEstado[n._id] === 'pendiente') return 'bm-item pending';
-            if (n.estadoGestion === 'aprobado')     return 'bm-item read';
+            if (n.estadoGestion === 'pendiente')    return 'bm-item pending';
             if (!n.leida)                           return 'bm-item unread';
             return 'bm-item read';
         }
@@ -544,10 +455,7 @@ export default function BandejaMensajes() {
                     🔔
                 </button>
                 {totalBadge > 0 && (
-                    <span
-                        className={`bm-badge${badgePending > 0 ? '' : ' orange'}`}
-                        onClick={() => setAbierta(v => !v)}
-                    >
+                    <span className="bm-badge" onClick={() => setAbierta(v => !v)}>
                         {totalBadge > 9 ? '9+' : totalBadge}
                     </span>
                 )}
@@ -555,43 +463,14 @@ export default function BandejaMensajes() {
                 {/* Panel */}
                 {abierta && (
                     <div className="bm-panel">
-                        {/* Header — badges clicables como filtro */}
+                        {/* Header */}
                         <div className="bm-panel-header">
                             <p className="bm-panel-title">Notificaciones</p>
-                            <div className="bm-header-badges">
-                                {badgeUnread > 0 && (
-                                    <button
-                                        className={`bm-hbadge bm-hbadge-unread${filtro === 'unread' ? ' bm-hbadge-active' : ''}`}
-                                        onClick={() => cambiarFiltro(filtro === 'unread' ? 'todas' : 'unread')}
-                                        title="Filtrar sin leer"
-                                    >
-                                        {badgeUnread} sin leer
-                                    </button>
-                                )}
-                                {badgePending > 0 && (
-                                    <button
-                                        className={`bm-hbadge bm-hbadge-pending${filtro === 'pending' ? ' bm-hbadge-active' : ''}`}
-                                        onClick={() => cambiarFiltro(filtro === 'pending' ? 'todas' : 'pending')}
-                                        title="Filtrar pendientes"
-                                    >
-                                        {badgePending} pendiente{badgePending !== 1 ? 's' : ''}
-                                    </button>
-                                )}
-                            </div>
-                        </div>
-
-                        {/* Filtros */}
-                        <div className="bm-filters">
-                            {tabs.map(({ key, label, count }) => (
-                                <button
-                                    key={key}
-                                    className={`bm-filter-btn${filtro === key ? ` active-${key}` : ''}`}
-                                    onClick={() => cambiarFiltro(key)}
-                                >
-                                    {label}
-                                    <span className="bm-filter-count">{count}</span>
-                                </button>
-                            ))}
+                            {totalBadge > 0 && (
+                                <span style={{ fontSize: '0.72rem', color: '#9ca3af' }}>
+                                    {totalBadge} nueva{totalBadge !== 1 ? 's' : ''}
+                                </span>
+                            )}
                         </div>
 
                         {/* Lista */}
@@ -599,13 +478,13 @@ export default function BandejaMensajes() {
                             {notifsEnPagina.length === 0 ? (
                                 <div className="bm-empty">
                                     <div className="bm-empty-icon">🔕</div>
-                                    <p>{notifs.length === 0 ? 'Sin notificaciones por ahora' : 'Sin resultados en este filtro'}</p>
+                                    <p>Sin notificaciones por ahora</p>
                                 </div>
                             ) : (
                                 notifsEnPagina.map(n => {
                                     const estaExpandido    = expandido === n._id;
-                                    const enPendienteLocal = isAdminUser && localEstado[n._id] === 'pendiente';
-                                    const esUnreadAdmin    = isAdminUser && !n.leida && !localEstado[n._id];
+                                    const enPendienteLocal = isAdminUser && n.estadoGestion === 'pendiente';
+                                    const esUnreadAdmin    = isAdminUser && !n.leida && n.estadoGestion !== 'pendiente';
                                     const puedeGestionar   = !isAdminUser && necesitaGestion(n);
 
                                     return (
@@ -670,7 +549,7 @@ export default function BandejaMensajes() {
                                                         </div>
                                                     )}
 
-                                                    {/* ── Admin — Paso 1: Sin leer → Confirmar/Rechazar ── */}
+                                                    {/* Admin: confirmar/rechazar notificación nueva */}
                                                     {esUnreadAdmin && (
                                                         <div className="bm-gestion-row">
                                                             <button

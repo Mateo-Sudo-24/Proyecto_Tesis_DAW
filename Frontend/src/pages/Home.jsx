@@ -255,14 +255,6 @@ const styles = `
     .footer-top { display: flex; flex-wrap: wrap; gap: 2rem; justify-content: space-between; margin-bottom: 2rem; }
     .footer-contact h3 { font-size: 1.5rem; font-weight: 900; color: var(--orange-dark); margin-bottom: 0.75rem; }
     .footer-contact p  { font-weight: 600; color: #374151; margin: 0.3rem 0; }
-    .footer-newsletter { flex: 1; max-width: 440px; }
-    .footer-newsletter fieldset { border: 2px solid var(--orange-border); padding: 1rem; border-radius: 0.5rem; }
-    .footer-newsletter legend { background: #c4620a; color: #fff; padding: 0.35rem 0.75rem; font-size: 0.85rem; font-weight: 700; border-radius: 0.25rem; }
-    .newsletter-row { display: flex; gap: 0.75rem; margin-top: 0.75rem; }
-    .newsletter-row input { flex: 1; border: 1px solid #d1d5db; border-radius: 0.5rem; padding: 0.5rem 0.75rem; font-size: 0.875rem; outline: none; }
-    .newsletter-row input:focus { border-color: var(--orange-main); box-shadow: 0 0 0 2px rgba(232,118,10,0.15); }
-    .newsletter-row button { background: var(--orange-dark); color: #fff; font-weight: 700; padding: 0.5rem 1.25rem; border: none; border-radius: 0.5rem; cursor: pointer; transition: background 0.18s; }
-    .newsletter-row button:hover { background: var(--orange-main); }
     .footer-hr { border: 1px solid var(--orange-border); margin: 1.5rem 0; }
     .footer-copy { text-align: center; font-weight: 600; color: #6b7280; font-size: 0.875rem; }
 
@@ -272,7 +264,6 @@ const styles = `
         .home-main { flex-direction: column; padding: 2rem 1.5rem; }
         .section-wrap { padding: 2rem 1.5rem; }
         .footer-top { flex-direction: column; }
-        .footer-newsletter { max-width: 100%; }
     }
 `;
 
@@ -384,7 +375,8 @@ export const Home = () => {
                     <div className="footer-top">
                         <div className="footer-contact">
                             <h3>Contáctanos</h3>
-                            <p>📧 contacto@intex.com &nbsp;|&nbsp; 📞 +593 99 564 4186</p>
+                            <p>📧 intex@gmail.com &nbsp;|&nbsp; 📞 0998434399</p>
+                            <p>📍 Av De los Granados y Río Coca</p>
                         </div>
                     </div>
                     <hr className="footer-hr" />

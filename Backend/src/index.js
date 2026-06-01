@@ -6,6 +6,7 @@ import jwt from 'jsonwebtoken';
 import Administrador from './models/Administrador.js';
 import Cliente from './models/Cliente.js';
 import Vendedor from './models/Vendedor.js';
+import ChatMessage from './models/ChatMessage.js';
 
 // 1. Crear un servidor HTTP a partir de nuestra aplicación de Express
 const server = http.createServer(app);
@@ -26,18 +27,20 @@ const io = new Server(server, {
 // Mapa de usuarios conectados: userId → { id, rol, nombre, socketId }
 const usuariosConectados = new Map();
 
-// Historial en memoria por cliente: clienteId → mensaje[]
-const historialChats = new Map();
+// Helper: conversationId canónico entre dos usuarios
+const convId = (a, b) => [String(a), String(b)].sort().join('_');
 
-// Devuelve todos los clientes y vendedores ACTIVOS de la BD con su estado online
+// Devuelve todos los clientes, vendedores y admins ACTIVOS con su estado online
 const getListaCompletaUsuarios = async () => {
-    const [clientes, vendedores] = await Promise.all([
+    const [clientes, vendedores, admins] = await Promise.all([
         Cliente.find({ status: true }).select('_id nombre email').lean(),
         Vendedor.find({ status: true }).select('_id nombre email').lean(),
+        Administrador.find({}).select('_id nombre email').lean(),
     ]);
     const todos = [
         ...clientes.map(u => ({ id: String(u._id), nombre: u.nombre, email: u.email, rol: 'cliente' })),
         ...vendedores.map(u => ({ id: String(u._id), nombre: u.nombre, email: u.email, rol: 'vendedor' })),
+        ...admins.map(u => ({ id: String(u._id), nombre: u.nombre, email: u.email, rol: 'administrador' })),
     ];
     return todos.map(u => ({ ...u, online: usuariosConectados.has(u.id) }));
 };
@@ -112,50 +115,75 @@ io.on('connection', async (socket) => {
     }
 
     // ── Cliente envía mensaje a soporte o a vendedor específico ──
-    socket.on('mensaje_cliente', ({ texto, para }) => {
+    socket.on('mensaje_cliente', async ({ texto, para }) => {
         if (!texto?.trim()) return;
+        const cid = convId(socket.usuario.id, para || 'staff');
         const msg = {
             de: { id: socket.usuario.id, nombre: socket.usuario.nombre, rol: 'cliente' },
             texto: texto.trim(),
             timestamp: new Date(),
         };
-        const clave = para || socket.usuario.id;
-        if (!historialChats.has(clave)) historialChats.set(clave, []);
-        historialChats.get(clave).push(msg);
+        // Persistir en BD
+        try {
+            await ChatMessage.create({ conversationId: cid, de: msg.de, texto: msg.de.texto || msg.texto });
+        } catch { /* no bloquear chat si falla la persistencia */ }
+
         if (para) {
-            // Dirigido a un vendedor específico
             io.to(para).emit('mensaje_de_cliente', { clienteId: socket.usuario.id, msg });
         } else {
-            // Broadcast a todo el staff (soporte general)
             io.to('staff_room').emit('mensaje_de_cliente', { clienteId: socket.usuario.id, msg });
         }
     });
 
     // ── Staff envía mensaje a un cliente o vendedor específico ──
-    socket.on('mensaje_staff', ({ para, texto }) => {
+    socket.on('mensaje_staff', async ({ para, texto }) => {
         if (!texto?.trim() || !para) return;
+        const cid = convId(socket.usuario.id, para);
         const msg = {
             de: { id: socket.usuario.id, nombre: socket.usuario.nombre, rol: socket.usuario.rol },
             texto: texto.trim(),
             timestamp: new Date(),
         };
-        if (!historialChats.has(para)) historialChats.set(para, []);
-        historialChats.get(para).push(msg);
-        // Enviar al destinatario si está conectado
+        // Persistir en BD
+        try {
+            await ChatMessage.create({ conversationId: cid, de: msg.de, texto: msg.texto });
+        } catch { /* no bloquear */ }
+
         io.to(para).emit('mensaje_de_staff', msg);
-        // Reenviar a todo el staff para sincronización
         io.to('staff_room').emit('mensaje_de_cliente', { clienteId: para, msg });
     });
 
-    // ── Staff solicita historial de un cliente ──
-    socket.on('solicitar_historial', ({ clienteId }) => {
-        const historial = historialChats.get(clienteId) || [];
-        socket.emit('historial_chat', { clienteId, historial });
+    // ── Staff solicita historial de una conversación ──
+    socket.on('solicitar_historial', async ({ clienteId }) => {
+        try {
+            const cid = convId(socket.usuario.id, clienteId);
+            const mensajes = await ChatMessage.find({ conversationId: cid })
+                .sort({ createdAt: 1 })
+                .limit(200)
+                .lean();
+            const historial = mensajes.map(m => ({
+                de: m.de,
+                texto: m.texto,
+                timestamp: m.createdAt,
+                visto: m.visto,
+            }));
+            socket.emit('historial_chat', { clienteId, historial });
+        } catch { socket.emit('historial_chat', { clienteId, historial: [] }); }
     });
 
     // ── Marcar mensajes como vistos ──
-    socket.on('marcar_visto', ({ para }) => {
+    socket.on('marcar_visto', async ({ para }) => {
         if (!para) return;
+        const cid = convId(socket.usuario.id, para);
+        // Marcar como vistos en BD los mensajes enviados por "para"
+        try {
+            await ChatMessage.updateMany(
+                { conversationId: cid, 'de.id': para, visto: { $ne: true } },
+                { $set: { visto: true } }
+            );
+        } catch (dbErr) {
+            console.error('Error al marcar mensajes como vistos en BD:', dbErr.message);
+        }
         // Notifica al usuario "para" que sus mensajes fueron vistos por quien emitió
         io.to(para).emit('visto_por', { de: socket.usuario.id });
     });

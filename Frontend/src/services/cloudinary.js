@@ -32,9 +32,8 @@ export const uploadToCloudinary = async (file) => {
     return { url: data.secure_url, publicId: data.public_id };
 };
 
-export const editCloudinaryImage = async ({ file, url }) => {
+export const editCloudinaryImage = async ({ file }) => {
     if (file) return uploadToCloudinary(file);
-    if (url?.trim()) return { url: url.trim(), publicId: '' };
     return { url: '', publicId: '' };
 };
 

@@ -316,9 +316,9 @@ const Contact = () => {
             <div className="con-stats">
                 <div className="con-stats-grid">
                     {[
-                        { Icon: MdEmail,       lbl: 'Email',     val: 'contacto@intex.com' },
-                        { Icon: MdPhone,       lbl: 'Teléfono',  val: '+593 99 564 4186' },
-                        { Icon: FaMapMarkerAlt,lbl: 'Dirección', val: 'Av. Textiles S/N, Quito' },
+                        { Icon: MdEmail,       lbl: 'Email',     val: 'intex@gmail.com' },
+                        { Icon: MdPhone,       lbl: 'Teléfono',  val: '0998434399' },
+                        { Icon: FaMapMarkerAlt,lbl: 'Dirección', val: 'Av De los Granados y Río Coca' },
                         { Icon: FaClock,       lbl: 'Horario',   val: 'Lun – Vie: 8:00 – 18:00' },
                     ].map(({ Icon, lbl, val }) => (
                         <div key={lbl} className="con-stat-card">
@@ -345,9 +345,9 @@ const Contact = () => {
                                 <p className="sub">Completa el formulario y nos pondremos en contacto contigo lo antes posible.</p>
                                 <ul className="con-info-list">
                                     {[
-                                        { Icon: MdEmail,        lbl: 'Email',     val: 'contacto@intex.com' },
-                                        { Icon: MdPhone,        lbl: 'Teléfono',  val: '+593 99 564 4186' },
-                                        { Icon: MdBusiness,     lbl: 'Dirección', val: 'Av. de los Textiles S/N, Quito' },
+                                        { Icon: MdEmail,        lbl: 'Email',     val: 'intex@gmail.com' },
+                                        { Icon: MdPhone,        lbl: 'Teléfono',  val: '0998434399' },
+                                        { Icon: MdBusiness,     lbl: 'Dirección', val: 'Av De los Granados y Río Coca' },
                                         { Icon: FaClock,        lbl: 'Horario',   val: 'Lun – Vie: 8:00 am – 6:00 pm' },
                                     ].map(({ Icon, lbl, val }) => (
                                         <li key={lbl}>
@@ -408,7 +408,8 @@ const Contact = () => {
                     <div className="con-footer-top">
                         <div className="con-footer-contact">
                             <h3>Contáctanos</h3>
-                            <p>📧 contacto@intex.com &nbsp;|&nbsp; 📞 +593 99 564 4186</p>
+                            <p>📧 intex@gmail.com &nbsp;|&nbsp; 📞 0998434399</p>
+                            <p>📍 Av De los Granados y Río Coca</p>
                         </div>
                     </div>
                     <hr className="con-footer-hr" />

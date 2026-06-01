@@ -45,7 +45,7 @@ const pageStyles = `
 `;
 
 const ITEMS_PER_PAGE = 10;
-const getOrderTotal = (orden) => Number(orden?.precioTotal ?? orden?.total ?? 0) || 0;
+const getOrderTotal = (orden) => Number(orden?.totalFinal ?? orden?.precioTotal ?? orden?.total ?? 0) || 0;
 const getPagoEstado = (estadoPago) => {
     if (estadoPago === true || estadoPago === 'true' || estadoPago === 'completado' || estadoPago === 'pagado') return 'completado';
     if (estadoPago === 'fallido') return 'fallido';
@@ -251,6 +251,50 @@ const Ventas = () => {
                     </div>
                 )}
             </div>
+
+            {/* ── ÚLTIMAS 5 VENTAS ──────────────────────────────────── */}
+            {!loading && ordenes.length > 0 && (
+                <div style={{ marginTop: '2rem' }}>
+                    <h2 style={{ fontSize: '1.05rem', fontWeight: 800, color: '#374151', marginBottom: '0.75rem' }}>
+                        🕐 Últimas 5 ventas
+                    </h2>
+                    <div style={{ background: '#fff', borderRadius: '0.75rem', border: '1px solid #e5e7eb', overflow: 'hidden' }}>
+                        <table className="vt-table">
+                            <thead>
+                                <tr>
+                                    <th>ID Pedido</th>
+                                    <th>Cliente</th>
+                                    <th>Fecha</th>
+                                    <th>Tipo entrega</th>
+                                    <th>Estado</th>
+                                    <th>Total</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {ordenes.slice(0, 5).map((orden) => {
+                                    const total = getOrderTotal(orden);
+                                    const fecha = new Date(orden.createdAt).toLocaleDateString('es-ES', { day:'2-digit', month:'short', year:'numeric' });
+                                    const clienteNombre = orden.cliente
+                                        ? `${orden.cliente.nombre ?? ''} ${orden.cliente.apellido ?? ''}`.trim()
+                                        : '—';
+                                    return (
+                                        <tr key={`last5-${orden._id}`}>
+                                            <td style={{ fontFamily:'monospace', fontSize:'0.78rem', color:'#6b7280' }}>
+                                                {orden._id?.slice(-8).toUpperCase()}
+                                            </td>
+                                            <td style={{ fontWeight:600 }}>{clienteNombre || '—'}</td>
+                                            <td>{fecha}</td>
+                                            <td><span style={{ fontSize:'0.75rem', color:'#6b7280', fontWeight:600 }}>{orden.tipoEntrega || '—'}</span></td>
+                                            <td><span className={`vt-badge ${orden.estadoOrden}`}>{orden.estadoOrden}</span></td>
+                                            <td style={{ fontWeight:800, color:'#e8760a' }}>${Number(total).toFixed(2)}</td>
+                                        </tr>
+                                    );
+                                })}
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            )}
         </>
     );
 };

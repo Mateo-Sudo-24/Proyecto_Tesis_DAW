@@ -3,6 +3,7 @@ import {
   recibirNotificacion, 
   obtenerNotificaciones, 
   marcarLeida,
+  marcarPendiente,
   obtenerNotificacionesNoLeidas,
   obtenerNotificacionesNoLeidasWebhook,
   obtenerAprobadasPendientesWebhook,
@@ -48,6 +49,7 @@ router.get('/no-leidas', verificarTokenJWT, esAdmin, obtenerNotificacionesNoLeid
 
 // PATCH /api/notificaciones/:id/leida -> Marcar notificación como leída (CON JWT)
 router.patch('/:id/leida', verificarTokenJWT, esAdmin, marcarLeida);
+router.patch('/:id/pendiente', verificarTokenJWT, esAdmin, marcarPendiente);
 
 // PATCH /api/notificaciones/:id/aprobar -> Aprobar pedido de reposición (llama n8n webhook)
 router.patch('/:id/aprobar', verificarTokenJWT, esAdmin, aprobarPedido);

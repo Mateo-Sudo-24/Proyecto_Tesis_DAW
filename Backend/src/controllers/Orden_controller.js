@@ -22,14 +22,45 @@ const validarAvanceManualOrden = (estadoActualRaw, estadoSiguiente) => {
 };
 
 // ─── Helper: crear notificación de pago para todos los admins ───────────────
-const crearNotificacionPago = async (orden) => {
+const crearNotificacionNuevaOrden = async (orden) => {
     try {
         const admins = await Administrador.find().select('_id');
+        const codigo = orden.codigoOrden ?? orden._id.toString().slice(-6).toUpperCase();
+        const total = (orden.totalFinal ?? orden.precioTotal ?? 0).toFixed(2);
+        const tipoE = orden.tipoEntrega ?? 'N/D';
+        const metodo = orden.metodoPago ?? 'N/D';
+        const clienteNombre = orden.datosFacturacion
+            ? `${orden.datosFacturacion.nombre ?? ''} ${orden.datosFacturacion.apellido ?? ''}`.trim()
+            : 'Cliente';
         await Promise.all(admins.map(admin =>
             Notificacion.crearConCifrado({
                 administrador: admin._id,
                 tipo: 'pago_completado',
-                mensaje: `💳 Nueva compra recibida: Orden #${orden.codigoOrden} por $${orden.precioTotal.toFixed(2)} — Método: ${orden.metodoPago}`,
+                mensaje: `🛒 Nueva orden #${codigo} — $${total} — Entrega: ${tipoE} — Método: ${metodo} — Cliente: ${clienteNombre}`,
+                leida: false,
+                estadoGestion: 'pendiente',
+                metadatos: { timestamp: new Date() }
+            })
+        ));
+    } catch (err) {
+        console.error('❌ Error al crear notificación de nueva orden:', err.message);
+    }
+};
+
+const crearNotificacionPago = async (orden) => {
+    try {
+        const admins = await Administrador.find().select('_id');
+        const codigo = orden.codigoOrden ?? orden._id.toString().slice(-6).toUpperCase();
+        const total = (orden.totalFinal ?? orden.precioTotal ?? 0).toFixed(2);
+        const tipoE = orden.tipoEntrega ?? 'N/D';
+        const clienteNombre = orden.datosFacturacion
+            ? `${orden.datosFacturacion.nombre ?? ''} ${orden.datosFacturacion.apellido ?? ''}`.trim()
+            : 'Cliente';
+        await Promise.all(admins.map(admin =>
+            Notificacion.crearConCifrado({
+                administrador: admin._id,
+                tipo: 'pago_completado',
+                mensaje: `💳 Pago completado: Orden #${codigo} — $${total} — Entrega: ${tipoE} — Método: ${orden.metodoPago} — Cliente: ${clienteNombre}`,
                 leida: false,
                 estadoGestion: 'pendiente',
                 metadatos: { timestamp: new Date() }
@@ -40,21 +71,31 @@ const crearNotificacionPago = async (orden) => {
     }
 };
 
-// ─── Helper: crear notificación de confirmación para todos los vendedores y admin ──
+// ─── Helper: crear notificación de confirmación para vendedor asignado o todos ──
 const crearNotificacionConfirmacionVendedores = async (orden) => {
     try {
-        const [vendedores, admins] = await Promise.all([
-            Vendedor.find().select('_id'),
-            Administrador.find().select('_id')
-        ]);
         const codigoOrden = orden.codigoOrden ?? orden._id.toString().slice(-6).toUpperCase();
-        const total = (orden.precioTotal ?? orden.total ?? 0).toFixed(2);
+        const total = (orden.totalFinal ?? orden.precioTotal ?? orden.total ?? 0).toFixed(2);
+        const entrega = orden.tipoEntrega ?? 'N/D';
+        const msgVendedor = `✅ Orden #${codigoOrden} confirmada y pagada — $${total} — Entrega: ${entrega}. Por favor procesa el pedido.`;
+        const msgAdmin = `✅ Confirmaste el pago de la Orden #${codigoOrden} por $${total} — Entrega: ${entrega}. Los vendedores han sido notificados.`;
+
+        // Notificar al vendedor asignado o a todos los activos
+        let vendedorIds = [];
+        if (orden.vendedor) {
+            vendedorIds = [{ _id: orden.vendedor }];
+        } else {
+            vendedorIds = await Vendedor.find({ status: 'activo' }).select('_id');
+        }
+
+        const admins = await Administrador.find().select('_id');
+
         await Promise.all([
-            ...vendedores.map(v =>
+            ...vendedorIds.map(v =>
                 Notificacion.crearConCifrado({
                     vendedor: v._id,
                     tipo: 'confirmacion_pedido',
-                    mensaje: `✅ El administrador confirmó el pago de la Orden #${codigoOrden} por $${total} — Método: ${orden.metodoPago}. El pedido está listo para ser procesado.`,
+                    mensaje: msgVendedor,
                     leida: false,
                     estadoGestion: 'pendiente',
                     metadatos: { timestamp: new Date() }
@@ -64,7 +105,7 @@ const crearNotificacionConfirmacionVendedores = async (orden) => {
                 Notificacion.crearConCifrado({
                     administrador: admin._id,
                     tipo: 'confirmacion_pedido',
-                    mensaje: `✅ Confirmaste el pago de la Orden #${codigoOrden} por $${total} — Método: ${orden.metodoPago}. Los vendedores han sido notificados.`,
+                    mensaje: msgAdmin,
                     leida: false,
                     estadoGestion: 'pendiente',
                     metadatos: { timestamp: new Date() }
@@ -174,6 +215,9 @@ const registrarOrden = async (req, res) => {
         });
 
         await orden.save();
+
+        // Notificar al admin sobre nueva orden creada
+        crearNotificacionNuevaOrden(orden).catch(() => {});
 
         // Descontar stock en metros
         for (const item of carrito.items) {
@@ -571,7 +615,7 @@ const reporteVentas = async (req, res) => {
         }
         if (estadoOrden) filtro.estadoOrden = estadoOrden;
         if (metodoPago)  filtro.metodoPago  = metodoPago;
-        if (estadoPago !== undefined) filtro.estadoPago = estadoPago === 'true';
+        if (estadoPago !== undefined) filtro.estadoPago = estadoPago;
 
         const ordenes = await Orden.find(filtro)
             .populate('cliente', 'nombre apellido email')
@@ -579,9 +623,13 @@ const reporteVentas = async (req, res) => {
 
         // Estadísticas agregadas
         const totalVentas    = ordenes.length;
-        const ingresoTotal   = ordenes.reduce((acc, o) => acc + (o.estadoPago ? o.precioTotal : 0), 0);
-        const ordenesPagadas = ordenes.filter(o => o.estadoPago).length;
-        const ordenesPendientes = ordenes.filter(o => !o.estadoPago).length;
+        const cuentaComoIngreso = (o) =>
+            o.estadoOrden === 'entregado' ||
+            (o.tipoEntrega === 'venta_local' && o.estadoPago === 'completado');
+        const getTotalOrden = (o) => Number(o.totalFinal ?? o.precioTotal ?? 0) || 0;
+        const ingresoTotal = ordenes.reduce((acc, o) => acc + (cuentaComoIngreso(o) ? getTotalOrden(o) : 0), 0);
+        const ordenesPagadas    = ordenes.filter(o => o.estadoPago === 'completado').length;
+        const ordenesPendientes = ordenes.filter(o => o.estadoPago !== 'completado').length;
 
         const ventasPorMetodo = ordenes.reduce((acc, o) => {
             acc[o.metodoPago] = (acc[o.metodoPago] || 0) + 1;

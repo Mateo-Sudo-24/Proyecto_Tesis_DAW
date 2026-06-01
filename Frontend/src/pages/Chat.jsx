@@ -515,8 +515,9 @@ const Chat = () => {
                                 <p className="ch-no-contacts">Sin usuarios registrados</p>
                             ) : (
                                 (() => {
-                                    const vendedores = usuariosConEstado.filter(u => u.rol === 'vendedor');
-                                    const clientes   = usuariosConEstado.filter(u => u.rol === 'cliente');
+                                    const admins   = usuariosConEstado.filter(u => u.rol === 'administrador');
+                                    const vendedoresLista = usuariosConEstado.filter(u => u.rol === 'vendedor' && u.id !== miId);
+                                    const clientes = usuariosConEstado.filter(u => u.rol === 'cliente');
 
                                     const renderUsuario = (u) => (
                                         <button
@@ -532,7 +533,7 @@ const Chat = () => {
                                             <div className="ch-contact-info">
                                                 <p className="ch-contact-name">{u.nombre}</p>
                                                 <p className="ch-contact-role">
-                                                    {u.rol === 'vendedor' ? '🏪 Vendedor' : '👤 Cliente'}{' '}
+                                                    {u.rol === 'vendedor' ? '🏪 Vendedor' : u.rol === 'administrador' ? '🛡️ Admin' : '👤 Cliente'}{' '}
                                                     <span style={{ color: u.online ? '#22c55e' : '#ef4444', fontWeight: 700 }}>
                                                         {u.online ? '● en línea' : '● desconectado'}
                                                     </span>
@@ -543,10 +544,16 @@ const Chat = () => {
 
                                     return (
                                         <>
-                                            {vendedores.length > 0 && (
+                                            {admins.length > 0 && (
                                                 <>
-                                                    <p className="ch-group-label">🏪 Vendedores ({vendedores.length})</p>
-                                                    {vendedores.map(renderUsuario)}
+                                                    <p className="ch-group-label">🛡️ Administradores ({admins.length})</p>
+                                                    {admins.map(renderUsuario)}
+                                                </>
+                                            )}
+                                            {vendedoresLista.length > 0 && (
+                                                <>
+                                                    <p className="ch-group-label">🏪 Vendedores ({vendedoresLista.length})</p>
+                                                    {vendedoresLista.map(renderUsuario)}
                                                 </>
                                             )}
                                             {clientes.length > 0 && (

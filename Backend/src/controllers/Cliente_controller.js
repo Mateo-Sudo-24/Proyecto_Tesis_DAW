@@ -155,6 +155,23 @@ const actualizarPerfil = async (req, res) => {
     const { _id } = req.usuario;
     const { password, rol, ...datosActualizar } = req.body;
     try {
+        // Validar unicidad de email entre todos los roles
+        if (datosActualizar.email) {
+            const emailNuevo = datosActualizar.email.toLowerCase().trim();
+            const [Administrador, Vendedor] = await Promise.all([
+                import('../models/Administrador.js').then(m => m.default),
+                import('../models/Vendedor.js').then(m => m.default),
+            ]);
+            const [cliConf, adminConf, vendConf] = await Promise.all([
+                Cliente.findOne({ email: emailNuevo, _id: { $ne: _id } }).lean(),
+                Administrador.findOne({ email: emailNuevo }).lean(),
+                Vendedor.findOne({ email: emailNuevo }).lean(),
+            ]);
+            if (cliConf || adminConf || vendConf) {
+                return res.status(400).json({ msg: "Este correo ya está registrado en el sistema." });
+            }
+            datosActualizar.email = emailNuevo;
+        }
         const clienteActualizado = await Cliente.findByIdAndUpdate(_id, datosActualizar, { new: true }).select("-password -token -__v");
         res.status(200).json({ msg: "Perfil actualizado correctamente.", cliente: clienteActualizado });
     } catch (error) {
@@ -295,7 +312,7 @@ const eliminarCliente = async (req, res) => {
     try {
         const Orden = (await import('../models/Orden.js')).default;
         const tieneOrdenes = await Orden.exists({ cliente: id });
-        if (tieneOrdenes) return res.status(400).json({ msg: "No se puede eliminar: el cliente tiene órdenes asociadas." });
+        if (tieneOrdenes) return res.status(400).json({ msg: "No se puede eliminar este cliente porque tiene pedidos registrados." });
         const clienteEliminado = await Cliente.findByIdAndDelete(id);
         if (!clienteEliminado) return res.status(404).json({ msg: "Cliente no encontrado." });
         res.status(200).json({ msg: "Cliente eliminado exitosamente." });

@@ -1,11 +1,26 @@
 import { useEffect, useState } from "react";
-import { toast } from "react-toastify";
-import { Link, useNavigate } from "react-router-dom";
+import { Link } from "react-router-dom";
 import useFetch from "../../hooks/useFetch";
 import ModalPago from "./ModalPago.jsx";
 import ModalOrdenPago from "./ModalOrdenPago.jsx";
-import FacturaPDF from "./FacturaPDF.jsx";
 import ConfirmDialog from "../ui/ConfirmDialog.jsx";
+
+const getUnidadItem = (item) => {
+    const unidadProducto = item?.producto?.unidadVenta;
+    if (unidadProducto === 'rollo') return 'rollo';
+    if (unidadProducto === 'metro') return 'metro';
+    return item?.unidadSeleccionada || 'metro';
+};
+
+const getPrecioUnidad = (item) => {
+    const unidad = getUnidadItem(item);
+    const producto = item?.producto || {};
+    if (unidad === 'rollo') return Number(producto.precioPorRollo ?? producto.precio ?? 0) || 0;
+    return Number(producto.precioPorMetro ?? producto.precio ?? 0) || 0;
+};
+
+const getMetrosDisponibles = (producto = {}) => Number(producto.metrosDisponibles ?? producto.stock ?? 0) || 0;
+const getRollosDisponibles = (producto = {}) => Math.floor(getMetrosDisponibles(producto) / (producto.metrosPorRollo || 100));
 
 const cartStyles = `
     :root {
@@ -415,8 +430,6 @@ const Carrito = () => {
     const [showModalPago, setShowModalPago] = useState(false);
     const [ordenCreada, setOrdenCreada] = useState(null);
     const [pedidoExitoso, setPedidoExitoso] = useState(null); // { orden, facturacion }
-
-    const navigate = useNavigate();
     const { fetchDataBackend } = useFetch();
 
     // Obtener carrito al montar
@@ -430,12 +443,13 @@ const Carrito = () => {
         fetchCarrito();
     }, []);
 
-    // Cambiar cantidad
-    const cambiarCantidad = async (productoId, cantidad) => {
-        if (cantidad < 1) return;
+    // Cambiar cantidad o unidad
+    const cambiarCantidad = async (productoId, cantidad, unidadSeleccionada) => {
+        const cant = parseFloat(cantidad);
+        if (!cant || cant <= 0) return;
         const response = await fetchDataBackend(
             `${import.meta.env.VITE_BACKEND_URL}/carrito/items`,
-            { productoId, cantidad },
+            { productoId, cantidad: cant, unidadSeleccionada },
             "POST"
         );
         if (response) setCarrito(response);
@@ -469,7 +483,7 @@ const Carrito = () => {
     };
 
     const subtotal = carrito?.items?.reduce(
-        (acc, item) => acc + (item.producto?.precio || 0) * item.cantidad,
+        (acc, item) => acc + getPrecioUnidad(item) * item.cantidad,
         0
     ) || 0;
 
@@ -515,16 +529,15 @@ const Carrito = () => {
                         <div className="cart-success-info">
                             <strong>Método de pago:</strong> {pedidoExitoso.orden.metodoPago}<br />
                             <strong>Entrega:</strong> {pedidoExitoso.orden.tipoEntrega === 'domicilio' ? 'Envío a domicilio' : 'Retiro en almacenes'}<br />
-                            <strong>A nombre de:</strong> {pedidoExitoso.facturacion.nombre} {pedidoExitoso.facturacion.apellido}
+                            <strong>A nombre de:</strong> {pedidoExitoso.facturacion.nombre} {pedidoExitoso.facturacion.apellido}<br />
+                            <span style={{ color: '#6b7280', fontSize: '0.85rem' }}>Puedes ver y descargar tu factura en <strong>Mis pedidos</strong>.</span>
                         </div>
                         <div className="cart-success-actions">
-                            <FacturaPDF
-                                orden={pedidoExitoso.orden}
-                                facturacion={pedidoExitoso.facturacion}
-                                label="📄 Descargar factura PDF"
-                            />
-                            <Link to="/dashboard/mis-pedidos" className="cart-success-link">
+                            <Link to="/dashboard/mis-pedidos" className="cart-success-link" style={{ background: '#e8760a', color: '#fff' }}>
                                 Ver mis pedidos →
+                            </Link>
+                            <Link to="/dashboard/productos" className="cart-success-link">
+                                Seguir comprando
                             </Link>
                         </div>
                     </div>
@@ -573,13 +586,19 @@ const Carrito = () => {
                                         <tr>
                                             <th style={{textAlign:'left'}}>Producto</th>
                                             <th style={{textAlign:'center'}}>Precio</th>
+                                            <th style={{textAlign:'center'}}>Unidad</th>
                                             <th style={{textAlign:'center'}}>Cantidad</th>
                                             <th style={{textAlign:'right'}}>Subtotal</th>
                                             <th style={{textAlign:'center'}}></th>
                                         </tr>
                                     </thead>
                                     <tbody>
-                                        {carrito.items.map((item) => (
+                                        {carrito.items.map((item) => {
+                                            const unidad = getUnidadItem(item);
+                                            const precioUnidad = getPrecioUnidad(item);
+                                            const permiteAmbos = item.producto?.unidadVenta === 'ambos';
+                                            const stepCantidad = unidad === 'rollo' ? 1 : 0.01;
+                                            return (
                                             <tr key={item.producto?._id}>
                                                 <td>
                                                     <div className="cart-product-cell">
@@ -591,18 +610,38 @@ const Carrito = () => {
                                                         <span className="cart-product-name">{item.producto?.nombre}</span>
                                                     </div>
                                                 </td>
-                                                <td className="cart-price">${item.producto?.precio?.toFixed(2)}</td>
+                                                <td className="cart-price">${precioUnidad.toFixed(2)}</td>
+                                                <td style={{textAlign:'center'}}>
+                                                    {permiteAmbos ? (
+                                                        <select
+                                                            className="cart-select"
+                                                            value={unidad}
+                                                            onChange={e => cambiarCantidad(item.producto?._id, e.target.value === 'rollo' ? 1 : 0.5, e.target.value)}
+                                                        >
+                                                            <option value="metro">Metro</option>
+                                                            <option value="rollo">Rollo</option>
+                                                        </select>
+                                                    ) : (
+                                                        <span style={{ fontWeight: 700, color: '#4b5563' }}>
+                                                            {unidad === 'rollo' ? 'Rollo' : 'Metro'}
+                                                        </span>
+                                                    )}
+                                                    <div style={{ fontSize: '0.68rem', color: '#9ca3af', marginTop: '0.25rem' }}>
+                                                        {getMetrosDisponibles(item.producto)}m / {getRollosDisponibles(item.producto)} rollos
+                                                    </div>
+                                                </td>
                                                 <td style={{textAlign:'center'}}>
                                                     <input
                                                         type="number"
-                                                        min={1}
+                                                        min={unidad === 'rollo' ? 1 : 0.01}
+                                                        step={stepCantidad}
                                                         value={item.cantidad}
-                                                        onChange={e => cambiarCantidad(item.producto?._id, parseInt(e.target.value))}
+                                                        onChange={e => cambiarCantidad(item.producto?._id, e.target.value, unidad)}
                                                         className="cart-qty-input"
                                                     />
                                                 </td>
                                                 <td className="cart-subtotal">
-                                                    ${((item.producto?.precio || 0) * item.cantidad).toFixed(2)}
+                                                    ${(precioUnidad * item.cantidad).toFixed(2)}
                                                 </td>
                                                 <td style={{textAlign:'center'}}>
                                                     <button
@@ -613,7 +652,7 @@ const Carrito = () => {
                                                     </button>
                                                 </td>
                                             </tr>
-                                        ))}
+                                        )})}
                                     </tbody>
                                 </table>
                             </div>
@@ -706,7 +745,7 @@ const Carrito = () => {
                         setShowModalOP(false);
                         setPedidoExitoso({ orden, facturacion: fac });
                     }}
-                    onNeedStripe={(orden) => {
+                    onNeedCardPayment={(orden) => {
                         setShowModalOP(false);
                         setOrdenCreada(orden);
                         setShowModalPago(true);

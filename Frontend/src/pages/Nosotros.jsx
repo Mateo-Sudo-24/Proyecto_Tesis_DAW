@@ -424,7 +424,8 @@ const Nosotros = () => {
                     <div className="nos-footer-top">
                         <div className="nos-footer-contact">
                             <h3>Contáctanos</h3>
-                            <p>📧 contacto@intex.com &nbsp;|&nbsp; 📞 +593 99 564 4186</p>
+                            <p>📧 intex@gmail.com &nbsp;|&nbsp; 📞 0998434399</p>
+                            <p>📍 Av De los Granados y Río Coca</p>
                         </div>
                     </div>
                     <hr className="nos-footer-hr" />

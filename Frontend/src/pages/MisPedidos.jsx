@@ -73,20 +73,26 @@ const pageStyles = `
     .mp-factura-row { display:flex; justify-content:flex-end; margin-top:0.875rem; padding-top:0.75rem; border-top:1px solid #f3f4f6; }
 `;
 
-const STEPS_DOMICILIO = ['procesando', 'enviado', 'entregado'];
-const STEPS_ESTABLECIMIENTO = ['procesando', 'listo', 'entregado'];
-const STEPS_VENTA_LOCAL = ['procesando', 'listo', 'entregado'];
+const STEPS_DOMICILIO      = ['Pedido recibido', 'Procesando', 'Motorizado en camino a su hogar', 'Entregado'];
+const STEPS_ESTABLECIMIENTO = ['Procesando pedido', 'Buscando pedido', 'Pedido en recepción'];
+const STEPS_VENTA_LOCAL    = ['Listo'];
 
-const getSteps = (tipoEntrega) => {
-    if (tipoEntrega === 'domicilio') return STEPS_DOMICILIO;
-    return STEPS_ESTABLECIMIENTO; // venta_local / establecimiento / retiro
+// Maps display label → backend estadoOrden value
+const DOMICILIO_MAP      = { 'Pedido recibido': 'pendiente', 'Procesando': 'procesando', 'Motorizado en camino a su hogar': 'enviado', 'Entregado': 'entregado' };
+const ESTABLECIMIENTO_MAP = { 'Procesando pedido': 'procesando', 'Buscando pedido': 'buscando', 'Pedido en recepción': 'entregado' };
+const VENTA_LOCAL_MAP     = { 'Listo': 'listo' };
+
+const getStepConfig = (tipoEntrega) => {
+    if (tipoEntrega === 'domicilio')       return { steps: STEPS_DOMICILIO,       map: DOMICILIO_MAP };
+    if (tipoEntrega === 'venta_local')     return { steps: STEPS_VENTA_LOCAL,     map: VENTA_LOCAL_MAP };
+    return { steps: STEPS_ESTABLECIMIENTO, map: ESTABLECIMIENTO_MAP };
 };
 const ITEMS_PER_PAGE = 3;
 
 const estadoIcono = { pendiente:'⏳', procesando:'⚙️', enviado:'🚚', entregado:'✅', cancelado:'❌', pagado:'💰' };
 
 const ProgressBar = ({ estadoOrden, tipoEntrega, isVendedor, ordenId, token, onStatusUpdate }) => {
-    const ORDER_STEPS = getSteps(tipoEntrega);
+    const { steps: ORDER_STEPS, map: STEP_MAP } = getStepConfig(tipoEntrega);
     const [updating, setUpdating] = useState(false);
 
     if (estadoOrden === 'cancelado') {
@@ -98,14 +104,30 @@ const ProgressBar = ({ estadoOrden, tipoEntrega, isVendedor, ordenId, token, onS
         );
     }
 
-    // Si el estado es 'pendiente', lo tratamos como antes de 'procesando'
-    const currentIdx = ORDER_STEPS.indexOf(estadoOrden);
+    // venta_local: render single dot centered
+    if (tipoEntrega === 'venta_local') {
+        const isDone = estadoOrden === 'listo' || estadoOrden === 'entregado';
+        return (
+            <div style={{ display:'flex', justifyContent:'center', margin:'0.875rem 0 0' }}>
+                <div className="mp-step">
+                    <div className={`mp-step-dot${isDone ? ' done' : ' active'}`}>
+                        {isDone ? '✓' : '🏪'}
+                    </div>
+                    <span className={`mp-step-label${isDone ? ' done' : ' active'}`}>Listo</span>
+                </div>
+            </div>
+        );
+    }
+
+    // Map backend estadoOrden → step index
+    const currentIdx = ORDER_STEPS.findIndex(label => STEP_MAP[label] === estadoOrden);
     const effectiveIdx = currentIdx === -1 ? -1 : currentIdx;
 
-    const handleStepClick = async (step, stepIdx) => {
-        // Solo el paso siguiente al actual es clickeable
+    const handleStepClick = async (label, stepIdx) => {
         if (stepIdx !== effectiveIdx + 1) return;
         if (!isVendedor || updating) return;
+        const backendEstado = STEP_MAP[label];
+        if (!backendEstado) return;
 
         setUpdating(true);
         try {
@@ -117,13 +139,13 @@ const ProgressBar = ({ estadoOrden, tipoEntrega, isVendedor, ordenId, token, onS
                         'Content-Type': 'application/json',
                         Authorization: `Bearer ${token}`,
                     },
-                    body: JSON.stringify({ estadoOrden: step }),
+                    body: JSON.stringify({ estadoOrden: backendEstado }),
                 }
             );
             if (!res.ok) throw new Error('No se pudo actualizar el estado.');
             const data = await res.json();
-            toast.success(`✅ Pedido marcado como "${step}"`);
-            onStatusUpdate(data.orden ?? { estadoOrden: step });
+            toast.success(`✅ Pedido marcado como "${label}"`);
+            onStatusUpdate(data.orden ?? { estadoOrden: backendEstado });
         } catch {
             toast.error('Error al actualizar el estado del pedido.');
         } finally {
@@ -138,7 +160,7 @@ const ProgressBar = ({ estadoOrden, tipoEntrega, isVendedor, ordenId, token, onS
                     const isDone   = i < effectiveIdx;
                     const isActive = i === effectiveIdx;
                     // Solo el paso siguiente al actual es clickeable para el vendedor
-                    const isClickable = isVendedor && !updating && i === effectiveIdx + 1 && step !== 'pendiente';
+                    const isClickable = isVendedor && !updating && i === effectiveIdx + 1;
                     const isUpdating  = updating && i === effectiveIdx + 1;
 
                     const dotClass = [

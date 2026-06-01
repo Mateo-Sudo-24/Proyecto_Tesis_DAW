@@ -80,7 +80,7 @@ app.use(fileUpload({ useTempFiles: true, tempFileDir: './uploads' }));
 // =======================================================================
 // --- Ruta principal de bienvenida ---
 app.get('/', (req, res) => {
-    res.send("✅ API Activa - Unitex Backend");
+    res.send("✅ API Activa - Intex Backend");
 });
 
 // --- Rutas específicas de la API --- ¡ESTE ES EL BLOQUE QUE FALTABA! ---
