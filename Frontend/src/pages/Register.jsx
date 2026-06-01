@@ -1,7 +1,9 @@
+/* eslint-disable react/prop-types */
 import { useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import { useForm } from "react-hook-form";
 import useFetch from '../hooks/useFetch';
+import { letrasConTildesRegex } from '../utils/textValidators.js';
 
 const registerStyles = `
     /* ─── Layout ─── */
@@ -299,7 +301,7 @@ export const Register = () => {
                                     className={`reg-input${errors.nombre ? ' input-error' : ''}`}
                                     {...register("nombre", {
                                         required: "El nombre es obligatorio",
-                                        pattern: { value: /^[a-zA-ZáéíóúÁÉÍÓÚñÑ\s]+$/, message: "Solo letras, sin símbolos" }
+                                        pattern: { value: letrasConTildesRegex, message: "Solo letras, tildes y espacios" }
                                     })}
                                 />
                                 {errors.nombre && <ErrorMsg msg={errors.nombre.message} />}
@@ -313,7 +315,7 @@ export const Register = () => {
                                     className={`reg-input${errors.apellido ? ' input-error' : ''}`}
                                     {...register("apellido", {
                                         required: "El apellido es obligatorio",
-                                        pattern: { value: /^[a-zA-ZáéíóúÁÉÍÓÚñÑ\s]+$/, message: "Solo letras, sin símbolos" }
+                                        pattern: { value: letrasConTildesRegex, message: "Solo letras, tildes y espacios" }
                                     })}
                                 />
                                 {errors.apellido && <ErrorMsg msg={errors.apellido.message} />}

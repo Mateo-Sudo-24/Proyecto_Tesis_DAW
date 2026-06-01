@@ -16,7 +16,7 @@ const styles = `
         display: flex;
         min-height: 100vh;
     }
-    /* â”€â”€ Sidebar â”€â”€ */
+    /* Ã¢â€â‚¬Ã¢â€â‚¬ Sidebar Ã¢â€â‚¬Ã¢â€â‚¬ */
     .dsb-sidebar {
         width: 240px;
         min-width: 240px;
@@ -60,7 +60,7 @@ const styles = `
         text-transform: uppercase;
         letter-spacing: 0.08em;
     }
-    /* â”€â”€ User Card â”€â”€ */
+    /* Ã¢â€â‚¬Ã¢â€â‚¬ User Card Ã¢â€â‚¬Ã¢â€â‚¬ */
     .dsb-user-card {
         padding: 1rem 1.25rem;
         border-bottom: 1px solid rgba(255,255,255,0.07);
@@ -99,7 +99,7 @@ const styles = `
         text-transform: capitalize;
         font-weight: 600;
     }
-    /* â”€â”€ Nav â”€â”€ */
+    /* Ã¢â€â‚¬Ã¢â€â‚¬ Nav Ã¢â€â‚¬Ã¢â€â‚¬ */
     .dsb-nav {
         flex: 1;
         padding: 0.75rem 0.625rem;
@@ -160,7 +160,7 @@ const styles = `
         transition: transform 0.2s;
     }
     .dsb-chevron.open { transform: rotate(180deg); }
-    /* â”€â”€ Dropdown submenu â”€â”€ */
+    /* Ã¢â€â‚¬Ã¢â€â‚¬ Dropdown submenu Ã¢â€â‚¬Ã¢â€â‚¬ */
     .dsb-submenu {
         overflow: hidden;
         max-height: 0;
@@ -170,7 +170,7 @@ const styles = `
         margin-left: 1.1rem;
     }
     .dsb-submenu.open { max-height: 200px; }
-    /* â”€â”€ Footer â”€â”€ */
+    /* Ã¢â€â‚¬Ã¢â€â‚¬ Footer Ã¢â€â‚¬Ã¢â€â‚¬ */
     .dsb-sidebar-footer {
         padding: 0.875rem 0.625rem;
         border-top: 1px solid rgba(255,255,255,0.07);
@@ -195,7 +195,7 @@ const styles = `
         background: rgba(220,38,38,0.18);
         color: #fca5a5;
     }
-    /* â”€â”€ Main area â”€â”€ */
+    /* Ã¢â€â‚¬Ã¢â€â‚¬ Main area Ã¢â€â‚¬Ã¢â€â‚¬ */
     .dsb-main {
         flex: 1;
         display: flex;
@@ -259,7 +259,7 @@ const styles = `
         letter-spacing: 0.03em;
         border-top: 1px solid rgba(255,255,255,0.06);
     }
-    /* â”€â”€ Mobile sidebar â”€â”€ */
+    /* Ã¢â€â‚¬Ã¢â€â‚¬ Mobile sidebar Ã¢â€â‚¬Ã¢â€â‚¬ */
     .dsb-sidebar-overlay {
         display: none;
         position: fixed;
@@ -284,7 +284,7 @@ const styles = `
         .dsb-content { padding: 1rem; }
         .dsb-topbar { justify-content: space-between; padding: 0.7rem 1rem; }
     }
-    /* â”€â”€ Hamburger button â”€â”€ */
+    /* Ã¢â€â‚¬Ã¢â€â‚¬ Hamburger button Ã¢â€â‚¬Ã¢â€â‚¬ */
     .dsb-hamburger {
         display: none;
         background: none;
@@ -325,13 +325,13 @@ const Dashboard = () => {
             <style>{styles}</style>
             <div className="dsb-layout">
 
-                {/* â”€â”€ Overlay mÃ³vil â”€â”€ */}
+                {/* Ã¢â€â‚¬Ã¢â€â‚¬ Overlay mÃƒÂ³vil Ã¢â€â‚¬Ã¢â€â‚¬ */}
                 <div
                     className={`dsb-sidebar-overlay${sidebarOpen ? ' open' : ''}`}
                     onClick={closeSidebar}
                 />
 
-                {/* â”€â”€ Sidebar â”€â”€ */}
+                {/* Ã¢â€â‚¬Ã¢â€â‚¬ Sidebar Ã¢â€â‚¬Ã¢â€â‚¬ */}
                 <aside className={`dsb-sidebar${sidebarOpen ? ' mobile-open' : ''}`}>
 
                     {/* Brand */}
@@ -357,68 +357,68 @@ const Dashboard = () => {
                         <span className="dsb-nav-section">Principal</span>
 
                         <Link to="/dashboard/perfil" className={lc('/dashboard/perfil')} onClick={closeSidebar}>
-                            <span className="dsb-icon">ðŸ‘¤</span> Perfil
+                            <span className="dsb-icon">👤</span> Perfil
                         </Link>
 
                         <Link to="/dashboard/chat" className={lc('/dashboard/chat')} onClick={closeSidebar}>
-                            <span className="dsb-icon">ðŸ’¬</span> Chat
+                            <span className="dsb-icon">💬</span> Chat
                         </Link>
 
-                        {/* GestiÃ³n (admin + vendedor) */}
+                        {/* GestiÃƒÂ³n (admin + vendedor) */}
                         {(isVendedor || isAdmin) && (
                             <>
-                                <span className="dsb-nav-section">GestiÃ³n</span>
+                                <span className="dsb-nav-section">Gestión</span>
                                 <Link to="/dashboard/usuarios" className={lc('/dashboard/usuarios')} onClick={closeSidebar}>
-                                    <span className="dsb-icon">ðŸ—‚ï¸</span> Usuarios
+                                    <span className="dsb-icon">🗂️</span> Usuarios
                                 </Link>
                             </>
                         )}
 
-                        {/* Admin especÃ­fico */}
+                        {/* Admin especÃƒÂ­fico */}
                         {isAdmin && (
                             <>
                                 <Link to="/dashboard/productos-admin" className={lc('/dashboard/productos-admin')} onClick={closeSidebar}>
-                                    <span className="dsb-icon">ðŸ“¦</span> Productos
+                                    <span className="dsb-icon">📦</span> Productos
                                 </Link>
                                 <Link to="/dashboard/notificaciones" className={lc('/dashboard/notificaciones')} onClick={closeSidebar}>
-                                    <span className="dsb-icon">ðŸ””</span> Notificaciones
+                                    <span className="dsb-icon">🔔</span> Notificaciones
                                 </Link>
                                 <Link to="/dashboard/ventas" className={lc('/dashboard/ventas')} onClick={closeSidebar}>
-                                    <span className="dsb-icon">ðŸ“Š</span> Ventas
+                                    <span className="dsb-icon">📊</span> Ventas
                                 </Link>
                             </>
                         )}
 
-                        {/* Vendedor â€” productos + pedidos */}
+                        {/* Vendedor Ã¢â‚¬â€ productos + pedidos */}
                         {isVendedor && (
                             <>
                                 <Link to="/dashboard/productos-admin" className={lc('/dashboard/productos-admin')} onClick={closeSidebar}>
-                                    <span className="dsb-icon">ðŸ§µ</span> Productos
+                                    <span className="dsb-icon">🧵</span> Productos
                                 </Link>
                                 <Link to="/dashboard/carrito" className={lc('/dashboard/carrito')} onClick={closeSidebar}>
-                                    <span className="dsb-icon">ðŸ›’</span> Carrito
+                                    <span className="dsb-icon">🛒</span> Carrito
                                 </Link>
                                 <Link to="/dashboard/mis-pedidos" className={lc('/dashboard/mis-pedidos')} onClick={closeSidebar}>
-                                    <span className="dsb-icon">ðŸ“¦</span> Gestion de pedidos
+                                    <span className="dsb-icon">📦</span> Gestión de pedidos
                                 </Link>
                                 <Link to="/dashboard/ventas" className={lc('/dashboard/ventas')} onClick={closeSidebar}>
-                                    <span className="dsb-icon">ðŸ“Š</span> Ventas
+                                    <span className="dsb-icon">📊</span> Ventas
                                 </Link>
                             </>
                         )}
 
-                        {/* Cliente especÃ­fico */}
+                        {/* Cliente especÃƒÂ­fico */}
                         {isCliente && (
                             <>
                                 <span className="dsb-nav-section">Tienda</span>
                                 <Link to="/dashboard/productos" className={lc('/dashboard/productos')} onClick={closeSidebar}>
-                                    <span className="dsb-icon">ðŸ§µ</span> Productos
+                                    <span className="dsb-icon">🧵</span> Productos
                                 </Link>
                                 <Link to="/dashboard/carrito" className={lc('/dashboard/carrito')} onClick={closeSidebar}>
-                                    <span className="dsb-icon">ðŸ›’</span> Carrito
+                                    <span className="dsb-icon">🛒</span> Carrito
                                 </Link>
                                 <Link to="/dashboard/mis-pedidos" className={lc('/dashboard/mis-pedidos')} onClick={closeSidebar}>
-                                    <span className="dsb-icon">ðŸ“¦</span> Mis pedidos
+                                    <span className="dsb-icon">📦</span> Mis pedidos
                                 </Link>
                             </>
                         )}
@@ -430,19 +430,19 @@ const Dashboard = () => {
                             className="btn-dsb-logout"
                             onClick={() => { clearToken(); navigate('/login'); }}
                         >
-                            ðŸšª Cerrar sesiÃ³n
+                            🚪 Cerrar sesión
                         </button>
                     </div>
                 </aside>
 
-                {/* â”€â”€ Main â”€â”€ */}
+                {/* Ã¢â€â‚¬Ã¢â€â‚¬ Main Ã¢â€â‚¬Ã¢â€â‚¬ */}
                 <div className="dsb-main">
                     <header className="dsb-topbar">
-                        {/* BotÃ³n hamburguesa (solo mÃ³vil) */}
+                        {/* BotÃƒÂ³n hamburguesa (solo mÃƒÂ³vil) */}
                         <button
                             className="dsb-hamburger"
                             onClick={() => setSidebarOpen(o => !o)}
-                            aria-label="Abrir menÃº"
+                            aria-label="Abrir menú"
                         >
                             <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round">
                                 {sidebarOpen ? (
@@ -473,7 +473,7 @@ const Dashboard = () => {
                         <Outlet />
                     </main>
                     <footer className="dsb-footer">
-                        Â© {new Date().getFullYear()} Intex Textiles â€” Todos los derechos reservados
+                        © {new Date().getFullYear()} Intex Textiles — Todos los derechos reservados
                     </footer>
                 </div>
 

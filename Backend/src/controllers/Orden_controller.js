@@ -25,6 +25,16 @@ const esPagoPresencial = (metodo = '') => {
         || normalizado.includes('dÃ©bito');
 };
 
+const getTotalOrden = (orden = {}) => {
+    const totalFinal = Number(orden.totalFinal);
+    if (Number.isFinite(totalFinal) && totalFinal > 0) return totalFinal;
+    const precioTotal = Number(orden.precioTotal);
+    if (Number.isFinite(precioTotal) && precioTotal > 0) return precioTotal;
+    const total = Number(orden.total);
+    if (Number.isFinite(total) && total > 0) return total;
+    return 0;
+};
+
 const validarAvanceManualOrden = (estadoActualRaw, estadoSiguiente) => {
     const estadoActual = estadoActualRaw === 'pendiente' ? 'pagado' : estadoActualRaw;
     const indiceActual = flujoManualOrden.indexOf(estadoActual);
@@ -40,7 +50,7 @@ const crearNotificacionNuevaOrden = async (orden) => {
     try {
         const admins = await Administrador.find().select('_id');
         const codigo = orden.codigoOrden ?? orden._id.toString().slice(-6).toUpperCase();
-        const total = (orden.totalFinal ?? orden.precioTotal ?? 0).toFixed(2);
+        const total = getTotalOrden(orden).toFixed(2);
         const tipoE = orden.tipoEntrega ?? 'N/D';
         const metodo = orden.metodoPago ?? 'N/D';
         const clienteNombre = orden.datosFacturacion
@@ -65,7 +75,7 @@ const crearNotificacionPago = async (orden) => {
     try {
         const admins = await Administrador.find().select('_id');
         const codigo = orden.codigoOrden ?? orden._id.toString().slice(-6).toUpperCase();
-        const total = (orden.totalFinal ?? orden.precioTotal ?? 0).toFixed(2);
+        const total = getTotalOrden(orden).toFixed(2);
         const tipoE = orden.tipoEntrega ?? 'N/D';
         const clienteNombre = orden.datosFacturacion
             ? `${orden.datosFacturacion.nombre ?? ''} ${orden.datosFacturacion.apellido ?? ''}`.trim()
@@ -89,7 +99,7 @@ const crearNotificacionPago = async (orden) => {
 const crearNotificacionConfirmacionVendedores = async (orden) => {
     try {
         const codigoOrden = orden.codigoOrden ?? orden._id.toString().slice(-6).toUpperCase();
-        const total = (orden.totalFinal ?? orden.precioTotal ?? orden.total ?? 0).toFixed(2);
+        const total = getTotalOrden(orden).toFixed(2);
         const entrega = orden.tipoEntrega ?? 'N/D';
         const msgVendedor = `✅ Orden #${codigoOrden} confirmada y pagada — $${total} — Entrega: ${entrega}. Por favor procesa el pedido.`;
         const msgAdmin = `✅ Confirmaste el pago de la Orden #${codigoOrden} por $${total} — Entrega: ${entrega}. Los vendedores han sido notificados.`;
@@ -591,8 +601,12 @@ const procesarPagoOrden = async (req, res) => {
             });
         }
 
+        const montoPago = Number(orden.totalFinal) > 0
+            ? Number(orden.totalFinal)
+            : Number(orden.precioTotal) || 0;
+
         const paymentIntent = await stripe.paymentIntents.create({
-            amount: Math.round(orden.precioTotal * 100),
+            amount: Math.round(montoPago * 100),
             currency: "usd",
             description: `Pago por Orden #${orden.codigoOrden}`,
             payment_method: paymentMethodId,
@@ -649,7 +663,6 @@ const reporteVentas = async (req, res) => {
         const cuentaComoIngreso = (o) =>
             o.estadoOrden === 'entregado' ||
             (o.tipoEntrega === 'venta_local' && o.estadoPago === 'completado');
-        const getTotalOrden = (o) => Number(o.totalFinal ?? o.precioTotal ?? 0) || 0;
         const ingresoTotal = ordenes.reduce((acc, o) => acc + (cuentaComoIngreso(o) ? getTotalOrden(o) : 0), 0);
         const ordenesPagadas    = ordenes.filter(o => o.estadoPago === 'completado').length;
         const ordenesPendientes = ordenes.filter(o => o.estadoPago !== 'completado').length;

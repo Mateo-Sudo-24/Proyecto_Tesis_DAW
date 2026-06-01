@@ -5,6 +5,7 @@ import useFetch from '../../hooks/useFetch.js'
 import storeProfile from '../../context/storeProfile'
 import deUnaQr from '../../assets/deuna.jpg'
 import { calcularDesglose } from './ordenLocal.js'
+import { letrasConTildesRegex } from '../../utils/textValidators.js'
 
 const IVA = 0.15
 const fmt = (n) => `$${Number(n).toFixed(2)}`
@@ -557,7 +558,7 @@ const ModalOrdenPago = ({
 
     const validate = () => {
         const errs = {}
-        const soloLetras = /^[A-Za-zÃÃ‰ÃÃ“ÃšÃ¡Ã©Ã­Ã³ÃºÃ‘Ã±\s]{2,}$/
+        const soloLetras = letrasConTildesRegex
         const emailValido = /^[^\s@]+@[^\s@]+\.[^\s@]+$/
         const documentoValido = /^(\d{10}|\d{13})$/
         const telefonoValido = /^0\d{8,9}$/
@@ -569,12 +570,12 @@ const ModalOrdenPago = ({
 
         if (!soloLetras.test(form.nombre.trim()))   errs.nombre   = 'Ingresa al menos 2 letras'
         if (!soloLetras.test(form.apellido.trim())) errs.apellido  = 'Ingresa al menos 2 letras'
-        if (!documentoValido.test(form.ruc.trim())) errs.ruc       = 'Usa cÃ©dula de 10 dÃ­gitos o RUC de 13'
-        if (!emailValido.test(form.email.trim()))   errs.email     = 'Correo invÃ¡lido'
-        if (form.telefono.trim() && !telefonoValido.test(form.telefono.trim())) errs.telefono = 'TelÃ©fono invÃ¡lido'
-        if (!form.direccion.trim()) errs.direccion = 'Ingresa la direcciÃ³n de facturaciÃ³n'
-        if (tipoEntrega === 'domicilio' && !direccionDomicilio) errs.mapaDireccion = 'Selecciona tu direcciÃ³n en el mapa'
-        if (!itemsValidos) errs.items = 'Hay productos con cantidad o precio invÃ¡lido'
+        if (!documentoValido.test(form.ruc.trim())) errs.ruc       = 'Usa cédula de 10 dígitos o RUC de 13'
+        if (!emailValido.test(form.email.trim()))   errs.email     = 'Correo inválido'
+        if (form.telefono.trim() && !telefonoValido.test(form.telefono.trim())) errs.telefono = 'Teléfono inválido'
+        if (!form.direccion.trim()) errs.direccion = 'Ingresa la direcci?n de facturaci?n'
+        if (tipoEntrega === 'domicilio' && !direccionDomicilio) errs.mapaDireccion = 'Selecciona tu direcci?n en el mapa'
+        if (!itemsValidos) errs.items = 'Hay productos con cantidad o precio inv?lido'
         setErrors(errs)
         return Object.keys(errs).length === 0
     }
@@ -669,14 +670,14 @@ const ModalOrdenPago = ({
 
                 {/* Header */}
                 <div className="mop-header">
-                    <div className="mop-header-icon">ðŸ§¾</div>
+                    <div className="mop-header-icon">??</div>
                     <div>
                         <h2 className="mop-header-title">Orden de pago</h2>
                         <p className="mop-header-sub">
-                            {tipoEntrega === 'domicilio' ? 'ðŸ›µ EnvÃ­o a domicilio' : tipoEntrega === 'establecimiento' ? 'ðŸ¢ Entrega en establecimiento' : tipoEntrega === 'venta_local' ? 'ðŸª Venta local' : 'ðŸª Retiro en almacenes'}
+                            {tipoEntrega === 'domicilio' ? '?? Env?o a domicilio' : tipoEntrega === 'establecimiento' ? '?? Entrega en establecimiento' : tipoEntrega === 'venta_local' ? '?? Venta local' : '?? Retiro en almacenes'}
                         </p>
                     </div>
-                    <button className="mop-close" onClick={onClose} type="button">âœ•</button>
+                    <button className="mop-close" onClick={onClose} type="button">?</button>
                 </div>
 
                 {/* Scrollable body */}
@@ -685,13 +686,13 @@ const ModalOrdenPago = ({
                     {/* DirecciÃ³n de entrega (solo domicilio) */}
                     {tipoEntrega === 'domicilio' && (
                         <div className="op-section">
-                            <div className="op-section-title">ðŸ“ DirecciÃ³n de entrega</div>
+                            <div className="op-section-title">?? Direcci?n de entrega</div>
                             <div style={{ padding: '0.875rem 1.25rem 0.5rem' }}>
                                 <div style={{ background:'#f0fdf4', border:'1.5px solid #86efac', borderRadius:'0.6rem', padding:'0.6rem 1rem', fontSize:'0.875rem', color:'#166534', fontWeight:600, display:'flex', alignItems:'center', gap:'0.5rem' }}>
-                                    ðŸ“ <span style={{ flex:1 }}>{direccionDomicilio}</span>
+                                    ?? <span style={{ flex:1 }}>{direccionDomicilio}</span>
                                 </div>
                                 {errors.mapaDireccion && (
-                                    <span className="op-error-msg" style={{ display:'block', marginTop:'0.4rem' }}>âš  {errors.mapaDireccion}</span>
+                                    <span className="op-error-msg" style={{ display:'block', marginTop:'0.4rem' }}>? {errors.mapaDireccion}</span>
                                 )}
                             </div>
                             <button
@@ -699,7 +700,7 @@ const ModalOrdenPago = ({
                                 className="mop-mapa-toggle"
                                 onClick={() => setMapaVisible(v => !v)}
                             >
-                                ðŸ—º Ver ubicaciÃ³n en el mapa
+                                ?? Ver ubicaci?n en el mapa
                                 <span className={`mop-mapa-chevron${mapaVisible ? ' open' : ''}`}>â–¼</span>
                             </button>
                             <div className={`mop-mapa-body${mapaVisible ? ' open' : ''}`}>
@@ -707,7 +708,7 @@ const ModalOrdenPago = ({
                                     <div
                                         ref={mapContainerRef}
                                         className="mop-map-canvas"
-                                        aria-label="UbicaciÃ³n CAVA CORP en Leaflet"
+                                        aria-label="Ubicaci?n CAVA CORP en Leaflet"
                                     />
                                 </div>
                             </div>
@@ -716,15 +717,15 @@ const ModalOrdenPago = ({
 
                     {(tipoEntrega === 'retiro' || tipoEntrega === 'establecimiento' || tipoEntrega === 'venta_local') && (
                         <div className="op-section">
-                            <div className="op-section-title">ðŸª Retiro en almacenes</div>
+                            <div className="op-section-title">?? Retiro en almacenes</div>
                             <div style={{ padding: '0.875rem 1.25rem', display: 'grid', gap: '0.45rem', color: '#374151', fontSize: '0.875rem' }}>
                                 <strong style={{ color: '#111827' }}>CAVA CORP - Almacenes Intex</strong>
                                 <span>{
                                     tipoEntrega === 'venta_local'
                                         ? 'Venta registrada en el local. El cliente paga y se lleva el producto.'
                                         : tipoEntrega === 'establecimiento'
-                                        ? 'El pedido se entregarÃ¡ en el establecimiento del cliente.'
-                                        : 'Tu pedido quedarÃ¡ registrado para retiro en almacenes. Usa la direcciÃ³n de facturaciÃ³n para emitir la orden y confirmar la entrega.'
+                                        ? 'El pedido se entregar? en el establecimiento del cliente.'
+                                        : 'Tu pedido quedar? registrado para retiro en almacenes. Usa la direcci?n de facturaci?n para emitir la orden y confirmar la entrega.'
                                 }</span>
                                 <span style={{ color: '#6b7280' }}>Total a cancelar: <b style={{ color: '#e8760a' }}>{fmt(total)}</b></span>
                             </div>
@@ -733,35 +734,35 @@ const ModalOrdenPago = ({
 
                     {/* Datos de facturaciÃ³n */}
                     <div className="op-section">
-                        <div className="op-section-title">Datos de facturaciÃ³n</div>
+                        <div className="op-section-title">Datos de facturaci?n</div>
                         <div className="op-grid">
                             <div className="op-field">
                                 <label className="op-label">Nombre</label>
                                 <input className={`op-input${errors.nombre ? ' error' : ''}`} name="nombre" placeholder="Juan" value={form.nombre} onChange={handleForm} />
-                                {errors.nombre && <span className="op-error-msg">âš  {errors.nombre}</span>}
+                                {errors.nombre && <span className="op-error-msg">? {errors.nombre}</span>}
                             </div>
                             <div className="op-field">
                                 <label className="op-label">Apellido</label>
-                                <input className={`op-input${errors.apellido ? ' error' : ''}`} name="apellido" placeholder="GarcÃ­a" value={form.apellido} onChange={handleForm} />
-                                {errors.apellido && <span className="op-error-msg">âš  {errors.apellido}</span>}
+                                <input className={`op-input${errors.apellido ? ' error' : ''}`} name="apellido" placeholder="Garc?a" value={form.apellido} onChange={handleForm} />
+                                {errors.apellido && <span className="op-error-msg">? {errors.apellido}</span>}
                             </div>
                             <div className="op-field">
-                                <label className="op-label">RUC / CÃ©dula</label>
+                                <label className="op-label">RUC / C?dula</label>
                                 <input className={`op-input${errors.ruc ? ' error' : ''}`} name="ruc" inputMode="numeric" maxLength={13} placeholder="1234567890001" value={form.ruc} onChange={handleForm} />
-                                {errors.ruc && <span className="op-error-msg">âš  {errors.ruc}</span>}
+                                {errors.ruc && <span className="op-error-msg">? {errors.ruc}</span>}
                             </div>
                             <div className="op-field">
-                                <label className="op-label">TelÃ©fono</label>
+                                <label className="op-label">Tel?fono</label>
                                 <input className={`op-input${errors.telefono ? ' error' : ''}`} name="telefono" inputMode="tel" maxLength={10} placeholder="0987654321" value={form.telefono} onChange={handleForm} />
                                 {errors.telefono && <span className="op-error-msg">! {errors.telefono}</span>}
                             </div>
                             <div className="op-field full">
-                                <label className="op-label">Correo electrÃ³nico</label>
+                                <label className="op-label">Correo electr?nico</label>
                                 <input className={`op-input${errors.email ? ' error' : ''}`} name="email" type="email" placeholder="correo@ejemplo.com" value={form.email} onChange={handleForm} />
-                                {errors.email && <span className="op-error-msg">âš  {errors.email}</span>}
+                                {errors.email && <span className="op-error-msg">? {errors.email}</span>}
                             </div>
                             <div className="op-field full">
-                                <label className="op-label">DirecciÃ³n de facturaciÃ³n</label>
+                                <label className="op-label">Direcci?n de facturaci?n</label>
                                 <input className={`op-input${errors.direccion ? ' error' : ''}`} name="direccion" placeholder="Av. Principal 123, ciudad" value={form.direccion} onChange={handleForm} />
                                 {errors.direccion && <span className="op-error-msg">! {errors.direccion}</span>}
                             </div>
@@ -818,7 +819,7 @@ const ModalOrdenPago = ({
 
                     {/* MÃ©todo de pago */}
                     <div className="op-section">
-                        <div className="op-section-title">MÃ©todo de pago</div>
+                        <div className="op-section-title">M?todo de pago</div>
                         <div className="op-pay-grid">
                             {metodosPago.map((metodo) => (
                                 <button
@@ -837,7 +838,7 @@ const ModalOrdenPago = ({
                                 <img src={deUnaQr} alt="QR de pago De Una" />
                                 <div>
                                     <strong>Pago con De Una</strong>
-                                    <p>Escanea el QR, realiza el pago por el total mostrado y conserva el comprobante para validaciÃ³n.</p>
+                                    <p>Escanea el QR, realiza el pago por el total mostrado y conserva el comprobante para validaci?n.</p>
                                 </div>
                             </div>
                         )}
@@ -854,7 +855,7 @@ const ModalOrdenPago = ({
                                 <span style={{ width:'13px', height:'13px', border:'2px solid rgba(255,255,255,0.35)', borderTopColor:'#fff', borderRadius:'50%', display:'inline-block', animation:'mop-spin 0.7s linear infinite' }} />
                                 Procesando...
                             </>
-                        ) : 'âœ… Confirmar pedido'}
+                        ) : '? Confirmar pedido'}
                     </button>
                 </div>
             </div>

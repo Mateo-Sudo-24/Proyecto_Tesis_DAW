@@ -89,6 +89,38 @@ const getStepConfig = (tipoEntrega) => {
     return { steps: STEPS_ESTABLECIMIENTO, map: ESTABLECIMIENTO_MAP };
 };
 const ITEMS_PER_PAGE = 3;
+const IVA_RATE = 0.15;
+
+const numeroValido = (value) => {
+    const n = Number(value);
+    return Number.isFinite(n) ? n : 0;
+};
+
+const numeroPositivo = (value) => {
+    const n = numeroValido(value);
+    return n > 0 ? n : 0;
+};
+
+const calcularTotalesOrden = (orden = {}) => {
+    const items = orden.productoPedido ?? orden.items ?? [];
+    const subtotalItems = items.reduce((s, it) => {
+        const subtotalItem = numeroPositivo(it.subtotal);
+        if (subtotalItem > 0) return s + subtotalItem;
+        const precio = numeroValido(it.precio ?? it.precioUnitario ?? it.producto?.precioPorMetro ?? it.producto?.precioPorRollo ?? it.producto?.precio);
+        const cantidad = numeroValido(it.cantidad || 1);
+        return s + (precio * cantidad);
+    }, 0);
+
+    const subtotal = numeroPositivo(orden.subtotal) || subtotalItems;
+    const descuentoTotal = numeroValido(orden.descuentoTotal);
+    const iva = numeroPositivo(orden.iva) || Number((subtotal * IVA_RATE).toFixed(2));
+    const envio = numeroValido(orden.envio);
+    const comisionPago = numeroValido(orden.comisionPago);
+    const totalGuardado = numeroPositivo(orden.totalFinal) || numeroPositivo(orden.precioTotal) || numeroPositivo(orden.total);
+    const totalFinal = totalGuardado || Number((subtotal + iva + envio + comisionPago).toFixed(2));
+
+    return { subtotal, descuentoTotal, iva, envio, comisionPago, totalFinal };
+};
 
 const estadoIcono = { pendiente:'⏳', procesando:'⚙️', enviado:'🚚', entregado:'✅', cancelado:'❌', pagado:'💰' };
 
@@ -218,7 +250,9 @@ const OrdenCard = ({ orden: ordenInicial, index, isVendedor, token }) => {
     const [open, setOpen] = useState(false);
     const fecha = new Date(orden.createdAt).toLocaleDateString('es-ES', { day:'2-digit', month:'short', year:'numeric' });
     const itemsOrden = orden.productoPedido ?? orden.items ?? [];
-    const total = orden.totalFinal ?? orden.precioTotal ?? orden.total ?? itemsOrden.reduce((s, it) => s + (it.subtotal ?? ((it.precio ?? it.producto?.precio ?? 0) * (it.cantidad || 1))), 0) ?? 0;
+    const totalesOrden = calcularTotalesOrden(orden);
+    const total = totalesOrden.totalFinal;
+    const ordenFactura = { ...orden, ...totalesOrden, precioTotal: total };
 
     const pagoClass = {
         pendiente: 'pago-pendiente',
@@ -312,7 +346,7 @@ const OrdenCard = ({ orden: ordenInicial, index, isVendedor, token }) => {
             )}
             <div className="mp-factura-row">
                 <FacturaPDF
-                    orden={orden}
+                    orden={ordenFactura}
                     facturacion={
                         orden.datosFacturacion
                         ?? (orden.cliente ? {

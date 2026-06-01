@@ -99,11 +99,20 @@ const styles = `
 
 const stripePromise = loadStripe(import.meta.env.VITE_STRIPE_PUBLIC_KEY);
 
+const getTotalOrden = (orden) => {
+    const totalFinal = Number(orden?.totalFinal);
+    if (Number.isFinite(totalFinal) && totalFinal > 0) return totalFinal;
+    const precioTotal = Number(orden?.precioTotal);
+    if (Number.isFinite(precioTotal) && precioTotal > 0) return precioTotal;
+    return 0;
+};
+
 const CheckoutForm = ({ orden, closeModal }) => {
     const stripe = useStripe();
     const elements = useElements();
     const navigate = useNavigate();
     const { fetchDataBackend, isLoading } = useFetch();
+    const totalOrden = getTotalOrden(orden);
 
     const handleSubmit = async (event) => {
         event.preventDefault();
@@ -140,7 +149,7 @@ const CheckoutForm = ({ orden, closeModal }) => {
                     Cancelar
                 </button>
                 <button type="submit" disabled={!stripe || isLoading} className="btn-modal-pay">
-                    {isLoading ? 'Procesando…' : `Pagar $${orden.precioTotal.toFixed(2)}`}
+                    {isLoading ? 'Procesando…' : `Pagar $${totalOrden.toFixed(2)}`}
                 </button>
             </div>
             <p className="modal-secure-note">🔒 Pago seguro procesado por Stripe</p>
@@ -151,7 +160,8 @@ const CheckoutForm = ({ orden, closeModal }) => {
 CheckoutForm.propTypes = {
     orden: PropTypes.shape({
         _id: PropTypes.string.isRequired,
-        precioTotal: PropTypes.number.isRequired,
+        precioTotal: PropTypes.number,
+        totalFinal: PropTypes.number,
         codigoOrden: PropTypes.string
     }).isRequired,
     closeModal: PropTypes.func.isRequired
@@ -159,6 +169,7 @@ CheckoutForm.propTypes = {
 
 const ModalPago = ({ orden, closeModal }) => {
     if (!orden) return null;
+    const totalOrden = getTotalOrden(orden);
 
     return (
         <>
@@ -172,7 +183,7 @@ const ModalPago = ({ orden, closeModal }) => {
                     <div className="modal-body">
                         <div className="modal-total-row">
                             <span className="modal-total-label">Total a pagar</span>
-                            <span className="modal-total-amount">${orden.precioTotal.toFixed(2)}</span>
+                            <span className="modal-total-amount">${totalOrden.toFixed(2)}</span>
                         </div>
                         <Elements stripe={stripePromise}>
                             <CheckoutForm orden={orden} closeModal={closeModal} />
@@ -187,7 +198,8 @@ const ModalPago = ({ orden, closeModal }) => {
 ModalPago.propTypes = {
     orden: PropTypes.shape({
         _id: PropTypes.string.isRequired,
-        precioTotal: PropTypes.number.isRequired,
+        precioTotal: PropTypes.number,
+        totalFinal: PropTypes.number,
         codigoOrden: PropTypes.string
     }),
     closeModal: PropTypes.func.isRequired

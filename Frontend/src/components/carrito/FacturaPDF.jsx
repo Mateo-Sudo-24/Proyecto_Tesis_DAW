@@ -4,6 +4,14 @@ import jsPDF from 'jspdf';
 
 const IVA = 0.15;
 const fmt = (n) => `$${Number(n || 0).toFixed(2)}`;
+const numeroValido = (value) => {
+    const n = Number(value);
+    return Number.isFinite(n) ? n : 0;
+};
+const numeroPositivo = (value) => {
+    const n = numeroValido(value);
+    return n > 0 ? n : 0;
+};
 const canalPago = (metodo = '') => {
     const value = String(metodo).toLowerCase();
     if (value.includes('de una')) return 'Canal: De Una (QR)';
@@ -111,13 +119,15 @@ const FacturaPDF = ({ orden, facturacion, label = 'Descargar factura' }) => {
     const pdfRef = useRef(null);
 
     const items = normalizarItemsOrden(orden);
-    const subtotal = orden?.subtotal ?? items.reduce((s, it) => s + (it.subtotal || (it.precio * it.cantidad)), 0);
-    const descuentoTotal = orden?.descuentoTotal ?? 0;
+    const subtotalCalculado = items.reduce((s, it) => s + (it.subtotal || (it.precio * it.cantidad)), 0);
+    const subtotal = numeroPositivo(orden?.subtotal) || subtotalCalculado;
+    const descuentoTotal = numeroValido(orden?.descuentoTotal);
     const subtotalBruto = subtotal + descuentoTotal;
-    const iva = orden?.iva ?? subtotal * IVA;
-    const envio = orden?.envio ?? 0;
-    const comisionPago = orden?.comisionPago ?? 0;
-    const total = orden?.totalFinal ?? (subtotal + iva + envio + comisionPago);
+    const iva = numeroPositivo(orden?.iva) || Number((subtotal * IVA).toFixed(2));
+    const envio = numeroValido(orden?.envio);
+    const comisionPago = numeroValido(orden?.comisionPago);
+    const totalGuardado = numeroPositivo(orden?.totalFinal) || numeroPositivo(orden?.precioTotal) || numeroPositivo(orden?.total);
+    const total = totalGuardado || Number((subtotal + iva + envio + comisionPago).toFixed(2));
 
     const nombreCliente = facturacion
         ? `${facturacion.nombre || ''} ${facturacion.apellido || ''}`.trim()

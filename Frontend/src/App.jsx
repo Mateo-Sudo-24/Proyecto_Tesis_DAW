@@ -47,9 +47,9 @@ function AppContent() {
     }
   }, [token, profile]);
 
-  // Admin lands on /ventas, everyone else on /perfil
+  // Admin and sellers land on /ventas, everyone else on /perfil
   const DashboardIndex = () => {
-    if (user?.rol === 'administrador') return <Navigate to="/dashboard/ventas" replace />;
+    if (user?.rol === 'administrador' || user?.rol === 'vendedor') return <Navigate to="/dashboard/ventas" replace />;
     return <Navigate to="/dashboard/perfil" replace />;
   };
 

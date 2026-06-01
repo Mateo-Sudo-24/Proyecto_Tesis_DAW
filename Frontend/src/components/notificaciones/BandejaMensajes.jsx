@@ -282,8 +282,6 @@ const bmStyles = `
 const necesitaGestion = (n) =>
     n.tipo === 'stock_critico' && (!n.estadoGestion || n.estadoGestion === 'pendiente');
 
-const isN8n = (n) => n.tipo === 'stock_critico' || n.tipo === 'pago_completado';
-
 const estadoTag = (estado) => {
     if (estado === 'aprobado')   return <span className="bm-tag bm-tag-aprobado">Aprobado ✓</span>;
     if (estado === 'rechazado')  return <span className="bm-tag bm-tag-rechazado">Rechazado ✗</span>;
@@ -402,7 +400,7 @@ export default function BandejaMensajes() {
             });
             if (res.ok) {
                 const data = await res.json();
-                setNotifs(prev => prev.map(n => n._id === id ? (data.notif || { ...n, estadoGestion: 'pendiente' }) : n));
+                setNotifs(prev => prev.map(n => n._id === id ? (data.notif || { ...n, estadoGestion: 'pendiente', leida: true }) : n));
             }
         } catch { /* silencioso */ }
         finally { setExpandido(null); }
@@ -433,8 +431,8 @@ export default function BandejaMensajes() {
         if (n.estadoGestion === 'completado')   return 'bm-item completado';
         if (n.estadoGestion === 'aprobado')     return 'bm-item aprobado';
         if (isAdminUser) {
-            if (n.estadoGestion === 'pendiente')    return 'bm-item pending';
             if (!n.leida)                           return 'bm-item unread';
+            if (n.estadoGestion === 'pendiente')    return 'bm-item pending';
             return 'bm-item read';
         }
         if (!n.leida)           return 'bm-item unread';
@@ -483,8 +481,8 @@ export default function BandejaMensajes() {
                             ) : (
                                 notifsEnPagina.map(n => {
                                     const estaExpandido    = expandido === n._id;
-                                    const enPendienteLocal = isAdminUser && n.estadoGestion === 'pendiente';
-                                    const esUnreadAdmin    = isAdminUser && !n.leida && n.estadoGestion !== 'pendiente';
+                                    const esUnreadAdmin    = isAdminUser && !n.leida && (!n.estadoGestion || n.estadoGestion === 'pendiente');
+                                    const enPendienteLocal = isAdminUser && n.estadoGestion === 'pendiente' && n.leida;
                                     const puedeGestionar   = !isAdminUser && necesitaGestion(n);
 
                                     return (
@@ -503,7 +501,7 @@ export default function BandejaMensajes() {
                                                 </span>
                                                 <div className="bm-item-info">
                                                     <div className="bm-item-tags">
-                                                        {estadoTag(n.estadoGestion)}
+                                                        {(enPendienteLocal || n.estadoGestion !== 'pendiente') && estadoTag(n.estadoGestion)}
                                                         {enPendienteLocal && (
                                                             <span className="bm-tag bm-tag-accion">Pendiente de aprobación</span>
                                                         )}
@@ -556,13 +554,13 @@ export default function BandejaMensajes() {
                                                                 className="bm-btn-ok"
                                                                 onClick={() => moverAPendiente(n._id)}
                                                             >
-                                                                ✓ Confirmar
+                                                                Pasar a pendiente
                                                             </button>
                                                             <button
                                                                 className="bm-btn-ko"
                                                                 onClick={() => rechazarDesdeUnread(n._id)}
                                                             >
-                                                                ✗ Rechazar
+                                                                Rechazar
                                                             </button>
                                                         </div>
                                                     )}
@@ -577,18 +575,16 @@ export default function BandejaMensajes() {
                                                             >
                                                                 {gestionando === n._id
                                                                     ? 'Procesando…'
-                                                                    : isN8n(n) ? '✓ Aprobar' : '✓ Confirmar pedido'}
+                                                                    : '✓ Aprobar'}
                                                             </button>
                                                             <button
                                                                 className="bm-btn-ko"
-                                                                onClick={isN8n(n)
-                                                                    ? () => gestionarPedido(n._id, 'rechazar')
-                                                                    : () => setExpandido(null)}
+                                                                onClick={() => gestionarPedido(n._id, 'rechazar')}
                                                                 disabled={gestionando === n._id}
                                                             >
                                                                 {gestionando === n._id
                                                                     ? 'Procesando…'
-                                                                    : isN8n(n) ? '✗ Rechazar' : '⏸ Dejar en pendiente'}
+                                                                    : '✗ Rechazar'}
                                                             </button>
                                                         </div>
                                                     )}

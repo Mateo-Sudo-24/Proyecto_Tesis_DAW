@@ -326,8 +326,6 @@ const estadoBadge = (estado) => {
     return null;
 };
 
-const isN8n = (n) => n.tipo === 'stock_critico' || n.tipo === 'pago_completado';
-
 const ITEMS_POR_PAGINA = 5;
 
 /* ═══════════════════════════════════════════════════════════════ */
@@ -403,12 +401,33 @@ const Notificaciones = () => {
     };
 
     // ── Conteos ──
-    const pendientesCount = notificaciones.filter(n => n.estadoGestion === 'pendiente').length;
+    const pasarAPendiente = async (id) => {
+        setGestionando(id);
+        try {
+            const res = await fetch(`${backendUrl}/notificaciones/${id}/pendiente`, {
+                method: 'PATCH', headers: { Authorization: `Bearer ${token}` }
+            });
+            if (res.ok) {
+                const data = await res.json();
+                setNotificaciones(prev =>
+                    prev.map(n => n._id === id
+                        ? (data.notif || { ...n, estadoGestion: 'pendiente', leida: true })
+                        : n)
+                );
+                toast.success('Notificación puesta en pendiente');
+            } else {
+                toast.error('No se pudo pasar a pendiente');
+            }
+        } catch { toast.error('Error de conexión'); }
+        finally { setGestionando(null); }
+    };
+
+    const pendientesCount = notificaciones.filter(n => n.estadoGestion === 'pendiente' && n.leida).length;
     const aprobadasCount  = notificaciones.filter(n => n.estadoGestion === 'aprobado').length;
 
     // Filtros visibles: Todas, Pendientes y Aprobadas.
     const notificacionesFiltradas = notificaciones.filter(n => {
-        if (filtro === 'pendientes') return n.estadoGestion === 'pendiente';
+        if (filtro === 'pendientes') return n.estadoGestion === 'pendiente' && n.leida;
         if (filtro === 'aprobadas')  return n.estadoGestion === 'aprobado';
         return true;
     });
@@ -425,8 +444,8 @@ const Notificaciones = () => {
         if (n.estadoGestion === 'aprobado')     return 'notif-card aprobada';
         if (n.estadoGestion === 'rechazado')    return 'notif-card rechazada';
         if (n.estadoGestion === 'completado')   return 'notif-card completada';
-        if (n.estadoGestion === 'pendiente')    return 'notif-card en-pendiente';
         if (!n.leida)                           return 'notif-card no-leida';
+        if (n.estadoGestion === 'pendiente')    return 'notif-card en-pendiente';
         return 'notif-card';
     };
 
@@ -497,8 +516,8 @@ const Notificaciones = () => {
                         <div>
                             {notifsPagina.map(notif => {
                                 const estaExpandido    = expandido === notif._id;
-                                const enPendienteLocal = notif.estadoGestion === 'pendiente';
-                                const esUnread         = !notif.leida && notif.estadoGestion !== 'pendiente';
+                                const esUnread         = !notif.leida && (!notif.estadoGestion || notif.estadoGestion === 'pendiente');
+                                const enPendienteLocal = notif.estadoGestion === 'pendiente' && notif.leida;
                                 const label            = TIPO_LABELS[notif.tipo] || notif.tipo || 'Notificación';
 
                                 return (
@@ -515,7 +534,7 @@ const Notificaciones = () => {
                                             <div style={{ flex: 1, minWidth: 0, textAlign: 'left' }}>
                                                 <div style={{ display: 'flex', alignItems: 'center', gap: '0.4rem', flexWrap: 'wrap', marginBottom: '0.15rem' }}>
                                                     <span className="notif-tipo-label">{label}</span>
-                                                    {estadoBadge(notif.estadoGestion)}
+                                                    {(enPendienteLocal || notif.estadoGestion !== 'pendiente') && estadoBadge(notif.estadoGestion)}
                                                     {esUnread && <span className="badge-nueva">Nueva</span>}
                                                     {enPendienteLocal && <span className="badge-en-pendiente">Pendiente de aprobación</span>}
                                                 </div>
@@ -564,6 +583,18 @@ const Notificaciones = () => {
                                                 )}
 
                                                 {/* ── Paso 2: Pendiente → Aprobar / Rechazar o Confirmar pedido / Dejar ── */}
+                                                {esUnread && (
+                                                    <div className="gestion-row">
+                                                        <button
+                                                            className="btn-confirmar-paso1"
+                                                            onClick={() => pasarAPendiente(notif._id)}
+                                                            disabled={gestionando === notif._id}
+                                                        >
+                                                            {gestionando === notif._id ? 'Procesando…' : 'Pasar a pendiente'}
+                                                        </button>
+                                                    </div>
+                                                )}
+
                                                 {enPendienteLocal && (
                                                     <div className="gestion-row">
                                                         <button
@@ -573,18 +604,16 @@ const Notificaciones = () => {
                                                         >
                                                             {gestionando === notif._id
                                                                 ? 'Procesando…'
-                                                                : isN8n(notif) ? '✓ Aprobar' : '✓ Confirmar pedido'}
+                                                                : '✓ Aprobar'}
                                                         </button>
                                                         <button
-                                                            className={`btn-paso2-ko${isN8n(notif) ? '' : ' dejar'}`}
-                                                            onClick={isN8n(notif)
-                                                                ? () => gestionarPedido(notif._id, 'rechazar')
-                                                                : () => setExpandido(null)}
+                                                            className="btn-paso2-ko"
+                                                            onClick={() => gestionarPedido(notif._id, 'rechazar')}
                                                             disabled={gestionando === notif._id}
                                                         >
                                                             {gestionando === notif._id
                                                                 ? 'Procesando…'
-                                                                : isN8n(notif) ? '✗ Rechazar' : '⏸ Dejar en pendiente'}
+                                                                : '✗ Rechazar'}
                                                         </button>
                                                     </div>
                                                 )}

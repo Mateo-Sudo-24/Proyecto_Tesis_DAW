@@ -176,7 +176,7 @@ export const marcarPendiente = async (req, res) => {
 
     const notifActualizada = await Notificacion.findByIdAndUpdate(
       id,
-      { estadoGestion: 'pendiente' },
+      { estadoGestion: 'pendiente', leida: true },
       { new: true }
     );
 
