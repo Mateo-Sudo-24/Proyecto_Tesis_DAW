@@ -2,7 +2,7 @@ import { useState, useEffect } from "react";
 import useFetch from "../../hooks/useFetch";
 import { useNavigate } from "react-router-dom";
 import { useForm } from "react-hook-form";
-import { toast, ToastContainer } from "react-toastify";
+import { toast } from "react-toastify";
 import storeProfile from "../../context/storeProfile";
 
 const styles = `
@@ -215,7 +215,6 @@ const FormCliente = ({ clienteToUpdate, onSuccess, tipoInicial }) => {
     return (
         <>
             <style>{styles}</style>
-            <ToastContainer position="top-right" autoClose={4000} />
             <div className="ux-form-wrapper">
                 {/* Encabezado */}
                 <div className="ux-form-header">

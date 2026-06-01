@@ -14,7 +14,7 @@ const sendBrevo = async (to, subject, html) => {
             'content-type': 'application/json',
         },
         body: JSON.stringify({
-            sender: { name: 'Soporte Unitex', email: 'mateo.paredes.0012@gmail.com' },
+            sender: { name: 'Soporte Intex', email: 'mateo.paredes.0012@gmail.com' },
             to: [{ email: to }],
             subject,
             htmlContent: html,
@@ -46,53 +46,53 @@ const baseStyle = `
 
 const sendMailToRegister = async (userMail, token) => {
     const link = `${process.env.URL_FRONTEND}/confirmar/${token}`;
-    await sendBrevo(userMail, 'Unitex - Confirma tu cuenta', `
+    await sendBrevo(userMail, 'Intex - Confirma tu cuenta', `
         <!DOCTYPE html><html lang="es"><head><meta charset="UTF-8">${baseStyle}</head><body>
         <div class="container">
-            <h2>¡Bienvenido a Unitex!</h2>
+            <h2>¡Bienvenido a Intex!</h2>
             <p>Gracias por registrarte. Para activar tu cuenta, haz clic en el botón:</p>
             <div class="button-container"><a href="${link}" class="button">Confirmar Mi Cuenta</a></div>
             <p>Si no realizaste esta solicitud, ignora este correo.</p>
-            <hr><footer>© ${new Date().getFullYear()} Unitex. Todos los derechos reservados.</footer>
+            <hr><footer>© ${new Date().getFullYear()} Intex. Todos los derechos reservados.</footer>
         </div></body></html>`);
 };
 
 const sendMailToRecoveryPassword = async (userMail, token) => {
     const link = `${process.env.URL_FRONTEND}/reset/${token}`;
-    await sendBrevo(userMail, 'Unitex - Restablece tu contraseña', `
+    await sendBrevo(userMail, 'Intex - Restablece tu contraseña', `
         <!DOCTYPE html><html lang="es"><head><meta charset="UTF-8">${baseStyle}</head><body>
         <div class="container">
             <h2>Restablece tu Contraseña</h2>
             <p>Haz clic en el botón para crear una nueva contraseña:</p>
             <div class="button-container"><a href="${link}" class="button">Crear Nueva Contraseña</a></div>
             <p>Si no solicitaste este cambio, ignora este correo.</p>
-            <hr><footer>© ${new Date().getFullYear()} Unitex. Todos los derechos reservados.</footer>
+            <hr><footer>© ${new Date().getFullYear()} Intex. Todos los derechos reservados.</footer>
         </div></body></html>`);
 };
 
 const sendMailToInviteUser = async (userMail, token) => {
     const link = `${process.env.URL_FRONTEND}/vendedores/setup-account/${token}`;
-    await sendBrevo(userMail, 'Unitex - ¡Has sido invitado a unirte!', `
+    await sendBrevo(userMail, 'Intex - ¡Has sido invitado a unirte!', `
         <!DOCTYPE html><html lang="es"><head><meta charset="UTF-8">${baseStyle}</head><body>
         <div class="container">
-            <h2>¡Bienvenido al Equipo Unitex!</h2>
+            <h2>¡Bienvenido al Equipo Intex!</h2>
             <p>Has sido invitado como vendedor. Activa tu cuenta:</p>
             <div class="button-container"><a href="${link}" class="button">Activar Mi Cuenta</a></div>
             <p>Este enlace es de un solo uso.</p>
-            <hr><footer>© ${new Date().getFullYear()} Unitex. Todos los derechos reservados.</footer>
+            <hr><footer>© ${new Date().getFullYear()} Intex. Todos los derechos reservados.</footer>
         </div></body></html>`);
 };
 
 const sendMailToInviteCliente = async (userMail, token) => {
     const link = `${process.env.URL_FRONTEND}/clientes/setup-account/${token}`;
-    await sendBrevo(userMail, 'Unitex - ¡Tu cuenta ha sido creada!', `
+    await sendBrevo(userMail, 'Intex - ¡Tu cuenta ha sido creada!', `
         <!DOCTYPE html><html lang="es"><head><meta charset="UTF-8">${baseStyle}</head><body>
         <div class="container">
-            <h2>¡Bienvenido a Unitex!</h2>
+            <h2>¡Bienvenido a Intex!</h2>
             <p>Un administrador creó una cuenta para ti. Actívala aquí:</p>
             <div class="button-container"><a href="${link}" class="button">Activar Mi Cuenta</a></div>
             <p>Este enlace es de un solo uso.</p>
-            <hr><footer>© ${new Date().getFullYear()} Unitex. Todos los derechos reservados.</footer>
+            <hr><footer>© ${new Date().getFullYear()} Intex. Todos los derechos reservados.</footer>
         </div></body></html>`);
 };
 

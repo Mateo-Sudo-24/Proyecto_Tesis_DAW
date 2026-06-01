@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react';
-import { toast, ToastContainer } from 'react-toastify';
+import { toast } from 'react-toastify';
 import storeAuth from '../context/storeAuth';
 
 const pageStyles = `
@@ -58,6 +58,7 @@ const Ventas = () => {
     const [loading, setLoading] = useState(true);
     const [filtroEstado, setFiltroEstado] = useState('');
     const [filtroPago, setFiltroPago] = useState('');
+    const [filtroTipo, setFiltroTipo] = useState('');
     const [page, setPage] = useState(1);
 
     useEffect(() => {
@@ -84,6 +85,7 @@ const Ventas = () => {
     const filtered = ordenes.filter(o => {
         if (filtroEstado && o.estadoOrden !== filtroEstado) return false;
         if (filtroPago && getPagoEstado(o.estadoPago) !== filtroPago) return false;
+        if (filtroTipo && o.tipoEntrega !== filtroTipo) return false;
         return true;
     });
 
@@ -96,11 +98,18 @@ const Ventas = () => {
 
     const handleFiltroEstado = (v) => { setFiltroEstado(v); setPage(1); };
     const handleFiltroPago = (v) => { setFiltroPago(v); setPage(1); };
+    const handleFiltroTipo = (v) => { setFiltroTipo(v); setPage(1); };
+
+    const metricasPorTipo = {
+        domicilio:     filtered.filter(o => o.tipoEntrega === 'domicilio').length,
+        retiro:        filtered.filter(o => o.tipoEntrega === 'retiro').length,
+        establecimiento: filtered.filter(o => o.tipoEntrega === 'establecimiento').length,
+        venta_local:   filtered.filter(o => o.tipoEntrega === 'venta_local').length,
+    };
 
     return (
         <>
             <style>{pageStyles}</style>
-            <ToastContainer />
             <div className="vt-page">
                 <div className="vt-header">
                     <div>
@@ -127,6 +136,22 @@ const Ventas = () => {
                         <p className="vt-metric-label">Pendientes / En curso</p>
                         <p className="vt-metric-value">{filtered.filter(o => ['pendiente','procesando','listo'].includes(o.estadoOrden)).length}</p>
                     </div>
+                    <div className="vt-metric">
+                        <p className="vt-metric-label">🛵 Domicilio</p>
+                        <p className="vt-metric-value">{metricasPorTipo.domicilio}</p>
+                    </div>
+                    <div className="vt-metric">
+                        <p className="vt-metric-label">🏪 Retiro</p>
+                        <p className="vt-metric-value">{metricasPorTipo.retiro}</p>
+                    </div>
+                    <div className="vt-metric">
+                        <p className="vt-metric-label">🏢 Establecimiento</p>
+                        <p className="vt-metric-value">{metricasPorTipo.establecimiento}</p>
+                    </div>
+                    <div className="vt-metric">
+                        <p className="vt-metric-label">💰 Venta local</p>
+                        <p className="vt-metric-value">{metricasPorTipo.venta_local}</p>
+                    </div>
                 </div>
 
                 {/* Filtros */}
@@ -145,10 +170,17 @@ const Ventas = () => {
                         <option value="completado">Pago completado</option>
                         <option value="fallido">Pago fallido</option>
                     </select>
-                    {(filtroEstado || filtroPago) && (
+                    <select className="vt-select" value={filtroTipo} onChange={e => handleFiltroTipo(e.target.value)}>
+                        <option value="">Todos los tipos</option>
+                        <option value="domicilio">Domicilio</option>
+                        <option value="retiro">Retiro</option>
+                        <option value="establecimiento">Establecimiento</option>
+                        <option value="venta_local">Venta local</option>
+                    </select>
+                    {(filtroEstado || filtroPago || filtroTipo) && (
                         <button
                             className="vt-page-btn"
-                            onClick={() => { setFiltroEstado(''); setFiltroPago(''); setPage(1); }}
+                            onClick={() => { setFiltroEstado(''); setFiltroPago(''); setFiltroTipo(''); setPage(1); }}
                         >
                             Limpiar filtros
                         </button>
@@ -172,6 +204,7 @@ const Ventas = () => {
                                     <th>ID Pedido</th>
                                     <th>Cliente</th>
                                     <th>Fecha</th>
+                                    <th>Tipo entrega</th>
                                     <th>Estado</th>
                                     <th>Pago</th>
                                     <th>Total</th>
@@ -193,6 +226,7 @@ const Ventas = () => {
                                             </td>
                                             <td style={{ fontWeight:600 }}>{clienteNombre || '—'}</td>
                                             <td>{fecha}</td>
+                                            <td><span style={{ fontSize:'0.75rem', color:'#6b7280', fontWeight:600 }}>{orden.tipoEntrega || '—'}</span></td>
                                             <td><span className={`vt-badge ${orden.estadoOrden}`}>{orden.estadoOrden}</span></td>
                                             <td><span className={`vt-badge ${pagoEstado}`}>{pagoEstado}</span></td>
                                             <td style={{ fontWeight:800, color:'#e8760a' }}>${Number(total).toFixed(2)}</td>

@@ -5,6 +5,7 @@ import useFetch from "../../hooks/useFetch";
 import ModalPago from "./ModalPago.jsx";
 import ModalOrdenPago from "./ModalOrdenPago.jsx";
 import FacturaPDF from "./FacturaPDF.jsx";
+import ConfirmDialog from "../ui/ConfirmDialog.jsx";
 
 const cartStyles = `
     :root {
@@ -398,9 +399,14 @@ const cartStyles = `
 
 const Carrito = () => {
     const [carrito, setCarrito] = useState(null);
+    const [confirmVaciar, setConfirmVaciar] = useState(false);
+
+    // Rol del usuario
+    const getRol = () => { try { return JSON.parse(localStorage.getItem('auth-token'))?.state?.rol ?? null; } catch { return null; } };
+    const isVendedor = getRol() === 'vendedor';
 
     // Tipo de entrega
-    const [tipoEntrega, setTipoEntrega] = useState(''); // 'domicilio' | 'retiro'
+    const [tipoEntrega, setTipoEntrega] = useState(''); // 'domicilio' | 'retiro' | 'establecimiento' | 'venta_local'
 
     // Modal orden de pago
     const [showModalOP, setShowModalOP] = useState(false);
@@ -447,13 +453,13 @@ const Carrito = () => {
 
     // Vaciar carrito
     const vaciarCarrito = async () => {
-        if (!window.confirm("¿Seguro que deseas vaciar el carrito?")) return;
         const response = await fetchDataBackend(
             `${import.meta.env.VITE_BACKEND_URL}/carrito`,
             null,
             "DELETE"
         );
         if (response) setCarrito({ items: [] });
+        setConfirmVaciar(false);
     };
 
     // Función para cerrar el modal
@@ -530,6 +536,14 @@ const Carrito = () => {
     return (
         <>
             <style>{cartStyles}</style>
+            <ConfirmDialog
+                open={confirmVaciar}
+                title="¿Vaciar carrito?"
+                message="Se eliminarán todos los productos del carrito. Esta acción no se puede deshacer."
+                confirmLabel="Vaciar"
+                onConfirm={vaciarCarrito}
+                onCancel={() => setConfirmVaciar(false)}
+            />
             <div className="cart-wrapper">
                 <h2 className="cart-title">
                     <span className="cart-title-icon">🛒</span>
@@ -604,7 +618,7 @@ const Carrito = () => {
                                 </table>
                             </div>
                             <div className="cart-table-footer">
-                                <button className="cart-clear-btn" onClick={vaciarCarrito}>
+                                <button className="cart-clear-btn" onClick={() => setConfirmVaciar(true)}>
                                     🗑️ Vaciar carrito
                                 </button>
                                 <Link to="/dashboard/productos" className="cart-continue-link">
@@ -652,6 +666,24 @@ const Carrito = () => {
                                             <span className="cart-delivery-opt-icon">🏪</span>
                                             <span className="cart-delivery-opt-label">Retiro en almacenes</span>
                                         </div>
+                                        {isVendedor && (
+                                            <>
+                                                <div
+                                                    className={`cart-delivery-opt${tipoEntrega === 'establecimiento' ? ' selected' : ''}`}
+                                                    onClick={() => { setTipoEntrega('establecimiento'); setShowModalOP(true); }}
+                                                >
+                                                    <span className="cart-delivery-opt-icon">🏢</span>
+                                                    <span className="cart-delivery-opt-label">Entrega en establecimiento</span>
+                                                </div>
+                                                <div
+                                                    className={`cart-delivery-opt${tipoEntrega === 'venta_local' ? ' selected' : ''}`}
+                                                    onClick={() => { setTipoEntrega('venta_local'); setShowModalOP(true); }}
+                                                >
+                                                    <span className="cart-delivery-opt-icon">💰</span>
+                                                    <span className="cart-delivery-opt-label">Venta local</span>
+                                                </div>
+                                            </>
+                                        )}
                                     </div>
                                 </div>
                             </div>

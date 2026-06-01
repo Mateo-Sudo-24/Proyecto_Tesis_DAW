@@ -38,14 +38,11 @@ function useFetch() {
                 }
             }
 
-            console.log("🔍 DEBUG Fetch:", { url, method, headers: options.headers });
-
             const response = await fetch(url, options);
             const responseData = await response.json();
 
             if (!response.ok) {
                 const errorMsg = responseData?.msg || `Error ${response.status}: ${response.statusText}`;
-                console.error("❌ Error en respuesta:", { status: response.status, data: responseData });
                 throw new Error(errorMsg);
             }
 
@@ -57,10 +54,6 @@ function useFetch() {
             return responseData;
 
         } catch (error) {
-            console.error("❌ Error completo:", error);
-            console.error("❌ Error message:", error.message);
-            
-            // Intentar obtener el mensaje de error
             const errorMsg = error.message || "Ocurrió un error inesperado.";
             
             if (!suppressErrorToast) {

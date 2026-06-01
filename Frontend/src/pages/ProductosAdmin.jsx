@@ -1,7 +1,8 @@
 ﻿import { useEffect, useState } from 'react';
-import { toast, ToastContainer } from 'react-toastify';
+import { toast } from 'react-toastify';
 import { MdEdit, MdDelete, MdAdd, MdSave, MdClose, MdSearch } from 'react-icons/md';
 import FormProducto from '../components/create/FormProducto';
+import ConfirmDialog from '../components/ui/ConfirmDialog';
 
 const styles = `
     :root {
@@ -432,6 +433,7 @@ const ProductosAdmin = () => {
     const [formularioEdicion, setFormularioEdicion] = useState({});
     const [showEditModal, setShowEditModal] = useState(false);
     const [showNuevoModal, setShowNuevoModal] = useState(false);
+    const [confirmEliminarId, setConfirmEliminarId] = useState(null);
 
     const token = JSON.parse(localStorage.getItem('auth-token'))?.state?.token;
 
@@ -453,18 +455,22 @@ const ProductosAdmin = () => {
     }, []);
 
     const eliminarProducto = async (id) => {
-        if (!window.confirm('¿Está seguro de que desea eliminar este producto?')) return;
         try {
             const res = await fetch(`${import.meta.env.VITE_BACKEND_URL}/productos/${id}`, {
                 method: 'DELETE',
                 headers: { Authorization: `Bearer ${token}` }
             });
-            if (!res.ok) throw new Error();
+            if (!res.ok) {
+                const data = await res.json();
+                throw new Error(data.msg || 'Error al eliminar');
+            }
             const data = await res.json();
             toast.success(data.msg || 'Producto eliminado');
             setProductos(prev => prev.filter(p => p._id !== id));
-        } catch {
-            toast.error('Error al eliminar el producto');
+        } catch (e) {
+            toast.error(e.message || 'Error al eliminar el producto');
+        } finally {
+            setConfirmEliminarId(null);
         }
     };
 
@@ -542,7 +548,14 @@ const ProductosAdmin = () => {
     return (
         <>
             <style>{styles}</style>
-            <ToastContainer position="top-right" autoClose={3000} />
+            <ConfirmDialog
+                open={!!confirmEliminarId}
+                title="¿Eliminar producto?"
+                message="Esta acción no se puede deshacer. Si el producto tiene órdenes asociadas no podrá eliminarse."
+                confirmLabel="Eliminar"
+                onConfirm={() => eliminarProducto(confirmEliminarId)}
+                onCancel={() => setConfirmEliminarId(null)}
+            />
 
             <div className="pa-page">
                 {/* Header */}
@@ -616,7 +629,7 @@ const ProductosAdmin = () => {
                                     <button className="btn-pa-edit" onClick={() => abrirEdicion(producto)}>
                                         <MdEdit size={16} /> Editar
                                     </button>
-                                    <button className="btn-pa-delete" onClick={() => eliminarProducto(producto._id)}>
+                                    <button className="btn-pa-delete" onClick={() => setConfirmEliminarId(producto._id)}>
                                         <MdDelete size={16} /> Eliminar
                                     </button>
                                 </div>

@@ -1,5 +1,5 @@
 import { useEffect } from "react";
-import { toast, ToastContainer } from "react-toastify";
+import { toast } from "react-toastify";
 import storeAuth from "../../context/storeAuth";
 import storeProfile from "../../context/storeProfile";
 import { FormProducto } from "./FormProducto";
@@ -37,7 +37,6 @@ export const Form = ({ usuarioToUpdate, productoToUpdate, tipoCreacion }) => {
 
   return (
     <>
-      <ToastContainer />
       
       {/* ✅ TIPO PRODUCTO: Mostrar FormProducto */}
       {tipoCreacion === "producto" && (

@@ -213,6 +213,9 @@ const eliminarVendedor = async (req, res) => {
     const { id } = req.params;
     if (!mongoose.Types.ObjectId.isValid(id)) return res.status(400).json({ msg: "ID de vendedor no válido." });
     try {
+        const Orden = (await import('../models/Orden.js')).default;
+        const tieneOrdenes = await Orden.exists({ vendedor: id });
+        if (tieneOrdenes) return res.status(400).json({ msg: "No se puede eliminar: el vendedor tiene órdenes asociadas." });
         const vendedorEliminado = await Vendedor.findByIdAndDelete(id);
         if (!vendedorEliminado) return res.status(404).json({ msg: "Vendedor no encontrado." });
         res.status(200).json({ msg: "Vendedor eliminado exitosamente." });

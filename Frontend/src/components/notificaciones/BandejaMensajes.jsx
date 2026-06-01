@@ -355,6 +355,7 @@ export default function BandejaMensajes() {
     const [filtro, setFiltro] = useState('todas');
     const [localEstado, setLocalEstado] = useState({}); // { [id]: 'pendiente' }
     const [pagina, setPagina] = useState(1);
+    const [pollingActivo, setPollingActivo] = useState(true);
     const panelRef = useRef(null);
 
     // Detectar rol del usuario desde el store de auth en localStorage
@@ -375,6 +376,7 @@ export default function BandejaMensajes() {
     const fetchNotifs = async () => {
         try {
             const token = getToken();
+            if (!token) { setPollingActivo(false); return; }
             const rol = getRol();
             const endpoint = rol === 'vendedor'
                 ? `${import.meta.env.VITE_BACKEND_URL}/notificaciones/vendedor`
@@ -382,6 +384,10 @@ export default function BandejaMensajes() {
             const res = await fetch(endpoint, {
                 headers: { Authorization: `Bearer ${token}` }
             });
+            if (res.status === 401 || res.status === 403) {
+                setPollingActivo(false);
+                return;
+            }
             if (!res.ok) return;
             const data = await res.json();
             setNotifs(Array.isArray(data) ? data : data.notificaciones || []);
@@ -389,10 +395,13 @@ export default function BandejaMensajes() {
     };
 
     useEffect(() => {
+        if (!pollingActivo) return;
         fetchNotifs();
-        const id = setInterval(fetchNotifs, 30000);
+        const id = setInterval(() => {
+            if (pollingActivo) fetchNotifs();
+        }, 30000);
         return () => clearInterval(id);
-    }, []);
+    }, [pollingActivo]);
 
     // Cerrar al hacer clic fuera
     useEffect(() => {
@@ -479,13 +488,11 @@ export default function BandejaMensajes() {
     const tabs = isAdminUser
         ? [
             { key: 'todas',   label: 'Todas',      count: notifs.length },
-            { key: 'unread',  label: 'Sin leer',   count: unreadAdmin },
             { key: 'pending', label: 'Pendientes', count: pendientesAdmin },
             { key: 'read',    label: 'Aprobadas',  count: aprobadasAdmin },
           ]
         : [
             { key: 'todas',   label: 'Todas',      count: notifs.length },
-            { key: 'unread',  label: 'Sin leer',   count: noLeidas },
             { key: 'pending', label: 'Pendientes', count: pendientes },
             { key: 'read',    label: 'Leídas',     count: leidas },
           ];

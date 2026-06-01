@@ -1,9 +1,8 @@
-﻿import { MdDeleteForever, MdInfo, MdPublishedWithChanges, MdVerified } from "react-icons/md";
+import { MdDeleteForever, MdInfo, MdPublishedWithChanges, MdVerified } from "react-icons/md";
 import useFetch from "../../hooks/useFetch";
 import { useEffect, useState } from "react";
 import { toast } from "react-toastify";
 import { useNavigate } from 'react-router';
-import { ToastContainer } from "react-toastify";
 import storeProfile from "../../context/storeProfile";
 
 const tableStyles = `
@@ -76,16 +75,16 @@ const tableStyles = `
 const ConfirmModal = ({ nombre, esCliente, onConfirm, onCancel }) => (
     <div className="confirm-overlay" onClick={onCancel}>
         <div className="confirm-box" onClick={e => e.stopPropagation()}>
-            <div className="confirm-icon">⚠️</div>
-            <p className="confirm-title">¿Estás seguro?</p>
+            <div className="confirm-icon">??</div>
+            <p className="confirm-title">�Est�s seguro?</p>
             <p className="confirm-text">
                 Vas a eliminar {esCliente ? 'al cliente' : 'al vendedor'}{' '}
                 <span className="confirm-name">{nombre}</span>{' '}
-                de forma permanente. Esta acción no se puede deshacer.
+                de forma permanente. Esta acci�n no se puede deshacer.
             </p>
             <div className="confirm-actions">
                 <button className="confirm-btn cancel" onClick={onCancel}>Cancelar</button>
-                <button className="confirm-btn danger" onClick={onConfirm}>Sí, eliminar</button>
+                <button className="confirm-btn danger" onClick={onConfirm}>S�, eliminar</button>
             </div>
         </div>
     </div>
@@ -104,7 +103,7 @@ const Table = ({ tipo = 'clientes' }) => {
     const listData = async () => {
         try {
             const storedUser = JSON.parse(localStorage.getItem("auth-token"));
-            if (!storedUser?.state?.token) { toast.error("No estás autenticado."); return; }
+            if (!storedUser?.state?.token) { toast.error("No est�s autenticado."); return; }
             const url = `${import.meta.env.VITE_BACKEND_URL}/${tipo}`;
             const response = await fetchDataBackend(url, null, "GET");
             setData(Array.isArray(response) ? response : []);
@@ -116,7 +115,7 @@ const Table = ({ tipo = 'clientes' }) => {
     const getNombre = (item) =>
         esClientes
             ? `${item.nombre || ''} ${item.apellido || ''}`.trim()
-            : item.nombrePropietario || item.nombre || '—';
+            : item.nombrePropietario || item.nombre || '�';
 
     const getEstadoBadge = (item) => {
         const s = item.status;
@@ -138,12 +137,10 @@ const Table = ({ tipo = 'clientes' }) => {
         if (!confirmTarget) return;
         const { id } = confirmTarget;
         setConfirmTarget(null);
-        try {
-            const url = `${import.meta.env.VITE_BACKEND_URL}/${tipo}/${id}`;
-            await fetchDataBackend(url, null, "DELETE");
-            setData(prev => prev.filter(item => item._id !== id));
-            toast.success(`${esClientes ? 'Cliente' : 'Vendedor'} eliminado correctamente.`);
-        } catch { toast.error("Error al eliminar."); }
+        const url = `${import.meta.env.VITE_BACKEND_URL}/${tipo}/${id}`;
+        const res = await fetchDataBackend(url, null, "DELETE");
+        if (!res) return; // useFetch already showed the error toast
+        setData(prev => prev.filter(item => item._id !== id));
     };
 
     if (data.length === 0) {
@@ -151,7 +148,7 @@ const Table = ({ tipo = 'clientes' }) => {
             <>
                 <style>{tableStyles}</style>
                 <div className="tbl-empty">
-                    <div className="tbl-empty-icon">{esClientes ? '👤' : '🏪'}</div>
+                    <div className="tbl-empty-icon">{esClientes ? '??' : '??'}</div>
                     <p>{esClientes ? 'No existen clientes registrados.' : 'No existen vendedores registrados.'}</p>
                 </div>
             </>
@@ -161,7 +158,6 @@ const Table = ({ tipo = 'clientes' }) => {
     return (
         <>
             <style>{tableStyles}</style>
-            <ToastContainer />
 
             {confirmTarget && (
                 <ConfirmModal
@@ -177,10 +173,10 @@ const Table = ({ tipo = 'clientes' }) => {
                     <table className="tbl">
                         <thead>
                             <tr>
-                                <th>N°</th>
+                                <th>N�</th>
                                 <th>{esClientes ? 'Nombre / Apellido' : 'Propietario'}</th>
                                 <th>Email</th>
-                                <th>Teléfono</th>
+                                <th>Tel�fono</th>
                                 {esClientes ? (
                                     <>
                                         <th>Ciudad</th>
@@ -201,15 +197,15 @@ const Table = ({ tipo = 'clientes' }) => {
                                     <td className="tbl-num">{index + 1}</td>
                                     <td>
                                         <div className="tbl-cell-main">{getNombre(item)}</div>
-                                        {esClientes && item.empresa && <div className="tbl-cell-sub">🏢 {item.empresa}</div>}
-                                        {!esClientes && item.nombreTienda && <div className="tbl-cell-sub">🏪 {item.nombreTienda}</div>}
+                                        {esClientes && item.empresa && <div className="tbl-cell-sub">?? {item.empresa}</div>}
+                                        {!esClientes && item.nombreTienda && <div className="tbl-cell-sub">?? {item.nombreTienda}</div>}
                                     </td>
                                     <td className="tbl-email">{item.email}</td>
-                                    <td className="tbl-phone">{item.telefono || '—'}</td>
+                                    <td className="tbl-phone">{item.telefono || '�'}</td>
                                     {esClientes ? (
                                         <>
                                             <td style={{fontSize:'0.82rem',color:'#6b7280'}}>
-                                                {item.ciudad ? `📍 ${item.ciudad}` : '—'}
+                                                {item.ciudad ? `?? ${item.ciudad}` : '�'}
                                                 {item.direccion && <div style={{fontSize:'0.72rem'}}>{item.direccion}</div>}
                                             </td>
                                             <td>{getEstadoBadge(item)}</td>
@@ -226,7 +222,7 @@ const Table = ({ tipo = 'clientes' }) => {
                                                 <MdPublishedWithChanges size={20} />
                                             </button>
                                         )}
-                                        <button title="Más información" className="tbl-icon-btn blue" onClick={() => navigate(`/dashboard/visualizar/${item._id}`, { state: { tipo } })}>
+                                        <button title="M�s informaci�n" className="tbl-icon-btn blue" onClick={() => navigate(`/dashboard/visualizar/${item._id}`, { state: { tipo } })}>
                                             <MdInfo size={20} />
                                         </button>
                                         <button title="Eliminar" className="tbl-icon-btn red" onClick={() => pedirConfirmacion(item)}>
@@ -252,15 +248,15 @@ const Table = ({ tipo = 'clientes' }) => {
                                 <span className="tbl-card-value" style={{ fontSize: '0.78rem' }}>{item.email}</span>
                             </div>
                             <div className="tbl-card-row">
-                                <span className="tbl-card-label">Teléfono</span>
-                                <span className="tbl-card-value">{item.telefono || '—'}</span>
+                                <span className="tbl-card-label">Tel�fono</span>
+                                <span className="tbl-card-value">{item.telefono || '�'}</span>
                             </div>
                             {esClientes ? (
                                 <>
                                     {item.ciudad && (
                                         <div className="tbl-card-row">
                                             <span className="tbl-card-label">Ciudad</span>
-                                            <span className="tbl-card-value">📍 {item.ciudad}</span>
+                                            <span className="tbl-card-value">?? {item.ciudad}</span>
                                         </div>
                                     )}
                                     <div className="tbl-card-row">
@@ -271,7 +267,7 @@ const Table = ({ tipo = 'clientes' }) => {
                             ) : (
                                 <>
                                     <div className="tbl-card-row">
-                                        <span className="tbl-card-label">Verificación</span>
+                                        <span className="tbl-card-label">Verificaci�n</span>
                                         {getVerificadoBadge(item)}
                                     </div>
                                     <div className="tbl-card-row">

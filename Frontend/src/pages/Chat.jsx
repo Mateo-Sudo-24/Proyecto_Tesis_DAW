@@ -353,6 +353,7 @@ const Chat = () => {
     const [conversaciones, setConversaciones] = useState({});        // mensajes staff: { userId: [] }
     const [conversacionesCliente, setConversacionesCliente] = useState({}); // mensajes cliente: { contactId: [] }
     const [showConversacion, setShowConversacion] = useState(false);
+    const [vistoIds, setVistoIds] = useState(new Set()); // IDs de contactos que han visto mis mensajes
 
     const { register, handleSubmit, reset, watch } = useForm();
     const msgText = watch('mensaje', '');
@@ -425,8 +426,23 @@ const Chat = () => {
             }));
         });
 
+        // Alguien vio mis mensajes
+        sock.on('visto_por', ({ de }) => {
+            setVistoIds(prev => new Set([...prev, de]));
+        });
+
         return () => sock.disconnect();
     }, [token]);
+
+    // Emitir marcar_visto cuando hay mensajes del otro y yo los estoy viendo
+    useEffect(() => {
+        if (!socket) return;
+        const contactId = isStaff ? clienteActivo?.id : (contactoActivo?.id || null);
+        if (!contactId) return;
+        const msgs = isStaff ? (conversaciones[contactId] || []) : (conversacionesCliente[contactId] || []);
+        const hayMsgDelOtro = msgs.some(m => m.de?.id !== miId);
+        if (hayMsgDelOtro) socket.emit('marcar_visto', { para: contactId });
+    }, [conversaciones, conversacionesCliente, clienteActivo, contactoActivo, socket]);
 
     // Cuando el staff selecciona un cliente, pedir historial
     const seleccionarCliente = (cliente) => {
@@ -643,6 +659,9 @@ const Chat = () => {
                                 {mensajesActivos.map((msg, i) => {
                                     const esPropio = msg.de?.id === miId;
                                     const esStaffMsg = msg.de?.rol !== 'cliente';
+                                    const contactId = isStaff ? clienteActivo?.id : (contactoActivo?.id || 'soporte');
+                                    const esUltimoPropio = esPropio && mensajesActivos.slice(i + 1).every(m => m.de?.id !== miId);
+                                    const visto = esUltimoPropio && vistoIds.has(contactId);
                                     return (
                                         <div key={i} className={`ch-msg-row${esPropio ? ' own' : ''}`}>
                                             <div className={`ch-msg-mini-avatar${esStaffMsg ? ' staff-mini' : ''}`}>
@@ -655,7 +674,10 @@ const Chat = () => {
                                                 <div className={`ch-msg-bubble${esPropio ? ' own' : ' other'}`}>
                                                     {msg.texto}
                                                 </div>
-                                                <p className="ch-msg-time">{formatTime(msg.timestamp)}</p>
+                                                <p className="ch-msg-time">
+                                                    {formatTime(msg.timestamp)}
+                                                    {visto && <span style={{ color: '#22c55e', marginLeft: '0.4rem', fontWeight: 700 }}>✓✓ Visto</span>}
+                                                </p>
                                             </div>
                                         </div>
                                     );

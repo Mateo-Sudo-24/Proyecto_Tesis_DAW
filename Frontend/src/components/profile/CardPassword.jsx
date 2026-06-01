@@ -1,6 +1,5 @@
 import { useState } from "react"
 import { useForm } from "react-hook-form"
-import { ToastContainer } from 'react-toastify';
 import storeProfile from "../../context/storeProfile";
 import storeAuth from "../../context/storeAuth";
 
@@ -133,7 +132,6 @@ const CardPassword = () => {
     return (
         <>
             <style>{styles}</style>
-            <ToastContainer />
             <div className="pwd-card">
                 <div className="pwd-header">
                     {isAdmin ? (

@@ -1,5 +1,7 @@
 import { BrowserRouter, Route, Routes, Navigate } from 'react-router-dom';
 import { useEffect } from 'react';
+import { ToastContainer } from 'react-toastify';
+import 'react-toastify/dist/ReactToastify.css';
 
 import { Home } from './pages/Home';
 import Nosotros from './pages/Nosotros';
@@ -27,14 +29,16 @@ import ProductosAdmin from './pages/ProductosAdmin';
 import UpdateProducto from './pages/UpdateProducto';
 import Notificaciones from './pages/Notificaciones';
 import MisPedidos from './pages/MisPedidos';
-import Ventas from './pages/Ventas';import Usuarios from './pages/Usuarios'
+import Ventas from './pages/Ventas';
+import Usuarios from './pages/Usuarios';
+import OAuthSuccess from './pages/OAuthSuccess';
 import PublicRoute from './routes/PublicRoute';
 import ProtectedRoute from './routes/ProtectedRoute';
 import useProfileStore from './context/storeProfile';
 import useAuthStore from './context/storeAuth';
 
 function AppContent() {
-  const { profile } = useProfileStore();
+  const { profile, user } = useProfileStore();
   const { token } = useAuthStore();
 
   useEffect(() => {
@@ -43,8 +47,15 @@ function AppContent() {
     }
   }, [token, profile]);
 
+  // Admin lands on /ventas, everyone else on /perfil
+  const DashboardIndex = () => {
+    if (user?.rol === 'administrador') return <Navigate to="/dashboard/ventas" replace />;
+    return <Navigate to="/dashboard/perfil" replace />;
+  };
+
   const RootRedirect = () => {
-    return token ? <Navigate to="/dashboard" /> : <Navigate to="/home" />;
+    if (!token) return <Navigate to="/home" />;
+    return <Navigate to="/dashboard" />;
   };
 
   return (
@@ -83,7 +94,8 @@ function AppContent() {
               </ProtectedRoute>
             }
           >
-            <Route index element={<Profile />} />
+            <Route index element={<DashboardIndex />} />
+            <Route path="perfil" element={<Profile />} />
             <Route path="listar" element={<List />} />
             <Route path="visualizar/:id" element={<Details />} />
             <Route path="crear" element={<Create />} />
@@ -99,12 +111,16 @@ function AppContent() {
             <Route path="ventas" element={<Ventas />} />
           </Route>
 
+          {/* OAuth success */}
+          <Route path="oauth-success" element={<OAuthSuccess />} />
+
           {/* 404 */}
           <Route path="*" element={<NotFound />} />
         </Routes>
       </main>
 
       <ChatbotBubble />
+      <ToastContainer position="top-right" autoClose={4000} hideProgressBar={false} newestOnTop closeOnClick pauseOnFocusLoss draggable pauseOnHover limit={3} />
     </div>
   );
 }

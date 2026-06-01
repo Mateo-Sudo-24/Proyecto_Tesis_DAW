@@ -9,13 +9,14 @@ const itemSchema = new mongoose.Schema({
     cantidad: {
         type: Number,
         required: true,
-        min: [1, 'La cantidad no puede ser menor que 1.'],
-        validate: {
-            validator: Number.isInteger,
-            message: 'La cantidad debe ser un numero entero.'
-        },
+        min: [0.01, 'La cantidad debe ser mayor que 0.'],
         default: 1
     },
+    unidadSeleccionada: {
+        type: String,
+        enum: ['metro', 'rollo'],
+        default: 'metro'
+    }
 }, { _id: false });
 
 const carritoSchema = new mongoose.Schema({

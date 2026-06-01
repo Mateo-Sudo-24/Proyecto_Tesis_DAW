@@ -13,6 +13,8 @@ const styles = `
     }
     .dtl-page {
         max-width: 800px;
+        margin: 0 auto;
+        padding: 2rem 1.5rem;
     }
     /* ── Header ── */
     .dtl-header {

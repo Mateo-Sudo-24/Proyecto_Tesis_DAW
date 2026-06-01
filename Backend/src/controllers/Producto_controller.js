@@ -295,6 +295,13 @@ const eliminarProducto = async (req, res) => {
   }
 
   try {
+    // No eliminar si hay órdenes asociadas
+    const Orden = (await import('../models/Orden.js')).default;
+    const tieneOrdenes = await Orden.exists({ 'productoPedido.producto': id });
+    if (tieneOrdenes) {
+      return res.status(400).json({ msg: "No se puede eliminar el producto porque tiene órdenes asociadas." });
+    }
+
     const productoEliminado = await Producto.findByIdAndDelete(id);
     if (!productoEliminado) {
       return res.status(404).json({ msg: "Producto no encontrado." });

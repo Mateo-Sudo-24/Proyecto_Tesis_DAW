@@ -1,23 +1,237 @@
-import { ToastContainer, toast } from 'react-toastify';
+import { toast } from 'react-toastify';
 import 'react-toastify/dist/ReactToastify.css';
 import { useEffect, useState } from 'react';
 import useFetch from '../hooks/useFetch';
-import { useNavigate, useParams } from 'react-router-dom';
+import { useNavigate, useParams, Link } from 'react-router-dom';
 import { useForm } from 'react-hook-form';
+
+const resetStyles = `
+    /* ─── Layout ─── */
+    .reset-wrapper {
+        display: flex;
+        height: 100vh;
+        overflow: hidden;
+        font-family: 'Inter', system-ui, sans-serif;
+        background: #f8f7f4;
+        align-items: center;
+        justify-content: center;
+    }
+
+    /* ─── Card ─── */
+    .reset-card {
+        width: 100%;
+        max-width: 460px;
+        background: #ffffff;
+        border-radius: 1.5rem;
+        padding: 3rem 2.75rem;
+        box-shadow:
+            0 0 0 1px rgba(0,0,0,0.05),
+            0 10px 40px rgba(0,0,0,0.08),
+            0 2px 8px rgba(0,0,0,0.04);
+        margin: 1.5rem;
+    }
+
+    /* ─── Logo / Ícono ─── */
+    .reset-logo {
+        text-align: center;
+        font-size: 1.75rem;
+        font-weight: 900;
+        color: #92400e;
+        margin-bottom: 1.75rem;
+        letter-spacing: -0.02em;
+    }
+    .reset-logo span { color: #111827; }
+
+    .reset-icon {
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        width: 5rem;
+        height: 5rem;
+        border-radius: 50%;
+        background: #fef3c7;
+        border: 3px solid #fcd34d;
+        margin: 0 auto 1.75rem;
+    }
+    .reset-icon svg { color: #92400e; }
+
+    /* ─── Encabezado ─── */
+    .reset-title {
+        font-size: 2rem;
+        font-weight: 900;
+        color: #111827;
+        letter-spacing: -0.02em;
+        margin: 0 0 0.5rem;
+        text-align: center;
+    }
+    .reset-subtitle {
+        font-size: 0.95rem;
+        color: #6b7280;
+        margin: 0 0 2.5rem;
+        text-align: center;
+    }
+
+    /* ─── Token inválido ─── */
+    .reset-invalid {
+        text-align: center;
+        padding: 2rem 0 1rem;
+    }
+    .reset-invalid p {
+        color: #6b7280;
+        font-size: 0.95rem;
+        margin-bottom: 1.5rem;
+    }
+
+    /* ─── Grupos de campo ─── */
+    .reset-field {
+        margin-bottom: 1.75rem;
+    }
+    .reset-label {
+        display: block;
+        font-size: 0.875rem;
+        font-weight: 600;
+        color: #374151;
+        margin-bottom: 0.6rem;
+        letter-spacing: 0.01em;
+    }
+    .reset-input-wrapper {
+        position: relative;
+    }
+    .reset-input {
+        width: 100%;
+        box-sizing: border-box;
+        background: #f9fafb;
+        border: 1.5px solid #e5e7eb;
+        color: #111827;
+        font-size: 1rem;
+        border-radius: 0.875rem;
+        padding: 1rem 3.25rem 1rem 1.25rem;
+        outline: none;
+        transition: border-color 0.2s, box-shadow 0.2s, background 0.2s;
+        line-height: 1.5;
+    }
+    .reset-input:focus {
+        background: #fff;
+        border-color: #f59e0b;
+        box-shadow: 0 0 0 3.5px rgba(245,158,11,0.18);
+    }
+    .reset-input.input-error {
+        border-color: #f87171;
+        background: #fff8f8;
+    }
+    .reset-input.input-error:focus {
+        box-shadow: 0 0 0 3.5px rgba(248,113,113,0.18);
+    }
+    .reset-toggle-btn {
+        position: absolute;
+        top: 50%;
+        right: 1rem;
+        transform: translateY(-50%);
+        background: none;
+        border: none;
+        padding: 0.25rem;
+        cursor: pointer;
+        color: #9ca3af;
+        display: flex;
+        align-items: center;
+        transition: color 0.18s;
+        border-radius: 0.375rem;
+    }
+    .reset-toggle-btn:hover { color: #b45309; }
+    .reset-error-msg {
+        display: flex;
+        align-items: center;
+        gap: 0.375rem;
+        color: #ef4444;
+        font-size: 0.8rem;
+        margin-top: 0.5rem;
+        font-weight: 500;
+    }
+
+    /* ─── Botón principal ─── */
+    .reset-btn-primary {
+        width: 100%;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        gap: 0.5rem;
+        padding: 1.05rem 1.5rem;
+        background: linear-gradient(135deg, #f59e0b 0%, #e8760a 100%);
+        color: #fff;
+        font-weight: 800;
+        font-size: 1.05rem;
+        border-radius: 0.875rem;
+        border: none;
+        cursor: pointer;
+        box-shadow: 0 4px 16px rgba(232,118,10,0.38);
+        transition: transform 0.15s, box-shadow 0.18s, filter 0.18s;
+        letter-spacing: 0.01em;
+        margin-top: 0.5rem;
+    }
+    .reset-btn-primary:hover:not(:disabled) {
+        filter: brightness(1.07);
+        transform: translateY(-2px);
+        box-shadow: 0 8px 22px rgba(232,118,10,0.42);
+    }
+    .reset-btn-primary:active:not(:disabled) { transform: scale(0.97); }
+    .reset-btn-primary:disabled { opacity: 0.6; cursor: not-allowed; }
+
+    /* ─── Footer del card ─── */
+    .reset-footer {
+        display: flex;
+        justify-content: center;
+        margin-top: 1.75rem;
+        padding-top: 1.5rem;
+        border-top: 1.5px solid #f3f4f6;
+    }
+    .reset-back-link {
+        font-size: 0.875rem;
+        color: #9ca3af;
+        text-decoration: none;
+        font-weight: 500;
+        display: flex;
+        align-items: center;
+        gap: 0.35rem;
+        transition: color 0.18s;
+    }
+    .reset-back-link:hover { color: #b45309; }
+`;
+
+const EyeIcon = () => (
+    <svg width="20" height="20" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0zm-9.95 0a9.96 9.96 0 0119.9 0m-19.9 0a9.96 9.96 0 0119.9 0M3 3l18 18" />
+    </svg>
+);
+
+const EyeOffIcon = () => (
+    <svg width="20" height="20" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M13.875 18.825A9.956 9.956 0 0112 19c-4.418 0-8.165-2.928-9.53-7a10.005 10.005 0 0119.06 0 9.956 9.956 0 01-1.845 3.35M9.9 14.32a3 3 0 114.2-4.2m.5 3.5l3.8 3.8m-3.8-3.8L5.5 5.5" />
+    </svg>
+);
+
+const LockIcon = () => (
+    <svg width="32" height="32" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="1.8"
+            d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z" />
+    </svg>
+);
 
 const Reset = () => {
     const { fetchDataBackend } = useFetch();
     const { token } = useParams();
     const navigate = useNavigate();
     const [tokenback, setTokenBack] = useState(false);
+    const [showPassword, setShowPassword] = useState(false);
+    const [showConfirm, setShowConfirm] = useState(false);
+    const [isLoading, setIsLoading] = useState(false);
     const { register, handleSubmit, formState: { errors } } = useForm();
 
     const changePassword = async (data) => {
         if (data.password !== data.confirmpassword) {
-            toast.error("Las contrasenas no coinciden");
+            toast.error("Las contraseñas no coinciden");
             return;
         }
-
+        setIsLoading(true);
         try {
             const url = `${import.meta.env.VITE_BACKEND_URL}/clientes/nuevo-password/${token}`;
             const response = await fetchDataBackend(url, data, 'POST');
@@ -26,10 +240,12 @@ const Reset = () => {
                 toast.success(response.msg);
                 setTimeout(() => navigate('/login'), 3000);
             } else {
-                toast.error("Hubo un error al cambiar la contrasena");
+                toast.error("Hubo un error al cambiar la contraseña");
             }
         } catch (error) {
-            toast.error("Error inesperado al cambiar la contrasena");
+            toast.error("Error inesperado al cambiar la contraseña");
+        } finally {
+            setIsLoading(false);
         }
     };
 
@@ -42,7 +258,7 @@ const Reset = () => {
                     toast.success(response.msg);
                     setTokenBack(true);
                 } else {
-                    toast.error("Token invalido o expirado");
+                    toast.error("Token inválido o expirado");
                 }
             } catch (error) {
                 toast.error("Error al verificar el token");
@@ -52,54 +268,106 @@ const Reset = () => {
     }, []);
 
     return (
-        <div className="flex flex-col items-center justify-center h-screen bg-white">
-            <ToastContainer position="top-right" autoClose={5000} hideProgressBar={false} />
+        <div className="reset-wrapper">
+            <style>{resetStyles}</style>
 
-            <h1 className="text-3xl font-semibold mb-2 text-center text-gray-500">
-                Bienvenido nuevamente
-            </h1>
-            <small className="text-gray-400 block my-4 text-sm">
-                Por favor, ingrese los siguientes datos
-            </small>
+            <div className="reset-card">
+                {/* Logo */}
+                <p className="reset-logo">In<span>tex</span></p>
 
-            <div className="w-32 h-32 bg-amber-100 rounded-full flex items-center justify-center mb-6 border-4 border-amber-300">
-                <span className="text-amber-800 font-bold text-xl">IN</span>
-            </div>
+                {/* Ícono candado */}
+                <div className="reset-icon">
+                    <LockIcon />
+                </div>
 
-            {tokenback && (
-                <form className="w-80" onSubmit={handleSubmit(changePassword)}>
-                    <div className="mb-1">
-                        <label className="mb-2 block text-sm font-semibold">
-                            Nueva contrasena
-                        </label>
-                        <input
-                            type="password"
-                            placeholder="Ingresa tu nueva contrasena"
-                            className="block w-full rounded-md border border-gray-300 focus:border-purple-700 focus:outline-none focus:ring-1 focus:ring-purple-700 py-1 px-1.5 text-gray-500"
-                            {...register("password", { required: "La contrasena es obligatoria" })}
-                        />
-                        {errors.password && <p className="text-red-500 text-xs mt-1">{errors.password.message}</p>}
-                        <label className="mb-2 block text-sm font-semibold mt-4">
-                            Confirmar contrasena
-                        </label>
-                        <input
-                            type="password"
-                            placeholder="Repite tu contrasena"
-                            className="block w-full rounded-md border border-gray-300 focus:border-purple-700 focus:outline-none focus:ring-1 focus:ring-purple-700 py-1 px-1.5 text-gray-500"
-                            {...register("confirmpassword", { required: "La confirmacion es obligatoria" })}
-                        />
-                        {errors.confirmpassword && <p className="text-red-500 text-xs mt-1">{errors.confirmpassword.message}</p>}
-                    </div>
-                    <div className="mb-3">
-                        <button
-                            type="submit"
-                            className="bg-gray-600 text-slate-300 border py-2 w-full rounded-xl mt-5 hover:scale-105 duration-300 hover:bg-gray-900 hover:text-white"
-                        >
-                            Enviar
+                {/* Encabezado */}
+                <h1 className="reset-title">Nueva contraseña</h1>
+                <p className="reset-subtitle">Ingresa y confirma tu nueva contraseña</p>
+
+                {tokenback ? (
+                    <form onSubmit={handleSubmit(changePassword)} noValidate>
+                        {/* Nueva contraseña */}
+                        <div className="reset-field">
+                            <label htmlFor="password" className="reset-label">
+                                Nueva contraseña
+                            </label>
+                            <div className="reset-input-wrapper">
+                                <input
+                                    id="password"
+                                    type={showPassword ? "text" : "password"}
+                                    placeholder="••••••••"
+                                    className={`reset-input${errors.password ? ' input-error' : ''}`}
+                                    {...register("password", { required: "La contraseña es obligatoria" })}
+                                />
+                                <button
+                                    type="button"
+                                    onClick={() => setShowPassword(!showPassword)}
+                                    className="reset-toggle-btn"
+                                    aria-label="Mostrar u ocultar contraseña"
+                                >
+                                    {showPassword ? <EyeOffIcon /> : <EyeIcon />}
+                                </button>
+                            </div>
+                            {errors.password && (
+                                <p className="reset-error-msg">
+                                    <svg width="14" height="14" fill="currentColor" viewBox="0 0 20 20">
+                                        <path fillRule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7 4a1 1 0 11-2 0 1 1 0 012 0zm-1-9a1 1 0 00-1 1v4a1 1 0 102 0V6a1 1 0 00-1-1z" clipRule="evenodd" />
+                                    </svg>
+                                    {errors.password.message}
+                                </p>
+                            )}
+                        </div>
+
+                        {/* Confirmar contraseña */}
+                        <div className="reset-field">
+                            <label htmlFor="confirmpassword" className="reset-label">
+                                Confirmar contraseña
+                            </label>
+                            <div className="reset-input-wrapper">
+                                <input
+                                    id="confirmpassword"
+                                    type={showConfirm ? "text" : "password"}
+                                    placeholder="••••••••"
+                                    className={`reset-input${errors.confirmpassword ? ' input-error' : ''}`}
+                                    {...register("confirmpassword", { required: "La confirmación es obligatoria" })}
+                                />
+                                <button
+                                    type="button"
+                                    onClick={() => setShowConfirm(!showConfirm)}
+                                    className="reset-toggle-btn"
+                                    aria-label="Mostrar u ocultar confirmación"
+                                >
+                                    {showConfirm ? <EyeOffIcon /> : <EyeIcon />}
+                                </button>
+                            </div>
+                            {errors.confirmpassword && (
+                                <p className="reset-error-msg">
+                                    <svg width="14" height="14" fill="currentColor" viewBox="0 0 20 20">
+                                        <path fillRule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7 4a1 1 0 11-2 0 1 1 0 012 0zm-1-9a1 1 0 00-1 1v4a1 1 0 102 0V6a1 1 0 00-1-1z" clipRule="evenodd" />
+                                    </svg>
+                                    {errors.confirmpassword.message}
+                                </p>
+                            )}
+                        </div>
+
+                        {/* Botón */}
+                        <button type="submit" disabled={isLoading} className="reset-btn-primary">
+                            {isLoading ? 'Guardando…' : 'Cambiar contraseña'}
                         </button>
+                    </form>
+                ) : (
+                    <div className="reset-invalid">
+                        <p>Verificando el enlace de recuperación...</p>
                     </div>
-                </form>
-            )}
+                )}
+
+                {/* Footer */}
+                <div className="reset-footer">
+                    <Link to="/login" className="reset-back-link">
+                        ← Volver al inicio de sesión
+                    </Link>
+                </div>
+            </div>
         </div>
     );
 };

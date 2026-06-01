@@ -357,7 +357,7 @@ const Dashboard = () => {
                     <nav className="dsb-nav">
                         <span className="dsb-nav-section">Principal</span>
 
-                        <Link to="/dashboard" className={lc('/dashboard')} onClick={closeSidebar}>
+                        <Link to="/dashboard/perfil" className={lc('/dashboard/perfil')} onClick={closeSidebar}>
                             <span className="dsb-icon">👤</span> Perfil
                         </Link>
 

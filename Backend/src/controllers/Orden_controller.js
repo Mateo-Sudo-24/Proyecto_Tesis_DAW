@@ -80,17 +80,18 @@ const crearNotificacionConfirmacionVendedores = async (orden) => {
 // Crear una nueva orden
 const registrarOrden = async (req, res) => {
     const clienteId = req.usuario._id;
-    const { direccionEnvio, metodoPago, tipoEntrega, datosFacturacion } = req.body;
+    const { direccionEnvio, metodoPago, tipoEntrega, datosFacturacion, desglose } = req.body;
 
-    // --- ¡VALIDACIÓN AÑADIDA! ---
-    // Verificar que direccionEnvio sea un objeto antes de continuar.
-    if (typeof direccionEnvio !== 'object' || direccionEnvio === null) {
-        return res.status(400).json({ msg: "El campo 'direccionEnvio' debe ser un objeto con los detalles de la dirección." });
+    // Para venta_local o establecimiento, direccionEnvio puede ser null/vacío
+    const tipoEntregaFinal = tipoEntrega || 'domicilio';
+    const requiereDireccion = ['domicilio'].includes(tipoEntregaFinal);
+
+    if (requiereDireccion && (typeof direccionEnvio !== 'object' || direccionEnvio === null)) {
+        return res.status(400).json({ msg: "El campo 'direccionEnvio' es obligatorio para entregas a domicilio." });
     }
-    // --- FIN DE LA VALIDACIÓN ---
 
-    if (!direccionEnvio || !metodoPago) {
-        return res.status(400).json({ msg: "La dirección de envío y el método de pago son obligatorios." });
+    if (!metodoPago) {
+        return res.status(400).json({ msg: "El método de pago es obligatorio." });
     }
 
     try {
@@ -99,21 +100,53 @@ const registrarOrden = async (req, res) => {
             return res.status(400).json({ msg: "Tu carrito está vacío. No se puede crear una orden." });
         }
 
-        let precioTotal = 0;
         const productosPedido = carrito.items.map(item => {
             if (!item.producto) throw new Error(`Un producto en tu carrito ya no está disponible.`);
-            if (item.producto.stock < item.cantidad) throw new Error(`Stock insuficiente para: ${item.producto.nombre}`);
-            
-            precioTotal += item.cantidad * item.producto.precio;
+            const unidad = item.unidadSeleccionada || 'metro';
+            const precioUnitario = unidad === 'rollo'
+                ? (item.producto.precioPorRollo || item.producto.precio)
+                : (item.producto.precioPorMetro || item.producto.precio);
+            const descuentoPct = item.producto.descuento || 0;
+            const precioConDesc = precioUnitario * (1 - descuentoPct / 100);
+            const subtotalItem = item.cantidad * precioConDesc;
+
+            // Validación de stock en metros
+            const metrosRequeridos = unidad === 'rollo'
+                ? item.cantidad * (item.producto.metrosPorRollo || 100)
+                : item.cantidad;
+            if ((item.producto.metrosDisponibles ?? 0) < metrosRequeridos) {
+                throw new Error(`Stock insuficiente para: ${item.producto.nombre}`);
+            }
+
             return {
                 nombre: item.producto.nombre,
                 cantidad: item.cantidad,
+                unidadSeleccionada: unidad,
                 imagen: item.producto.imagenUrl,
-                precio: item.producto.precio,
+                precio: precioUnitario,
+                precioUnitario,
+                descuento: descuentoPct,
+                subtotal: subtotalItem,
                 producto: item.producto._id
             };
         });
-        
+
+        // Desglose financiero: usar el enviado por frontend o recalcular
+        const IVA_RATE = 0.15;
+        const COMISION_STRIPE_PCT = 0.054;
+        const COMISION_STRIPE_FIJA = 0.30;
+        const subtotalBase = productosPedido.reduce((s, i) => s + i.subtotal, 0);
+        const descuentoTotal = desglose?.descuentoTotal ?? 0;
+        const subtotal = desglose?.subtotal ?? subtotalBase;
+        const iva = desglose?.iva ?? parseFloat((subtotal * IVA_RATE).toFixed(2));
+        const metodoPagoLower = (metodoPago || '').toLowerCase();
+        const comisionPago = desglose?.comisionPago ?? (
+            metodoPagoLower.includes('tarjeta') || metodoPagoLower === 'stripe'
+                ? parseFloat(((subtotal + iva) * COMISION_STRIPE_PCT + COMISION_STRIPE_FIJA).toFixed(2))
+                : 0
+        );
+        const totalFinal = desglose?.totalFinal ?? parseFloat((subtotal + iva + comisionPago).toFixed(2));
+
         const datosFacturacionLimpios = datosFacturacion && typeof datosFacturacion === 'object'
             ? {
                 nombre: limpiarTexto(datosFacturacion.nombre),
@@ -128,18 +161,28 @@ const registrarOrden = async (req, res) => {
         const orden = new Orden({
             cliente: clienteId,
             productoPedido: productosPedido,
-            direccionEnvio,
+            direccionEnvio: requiereDireccion ? direccionEnvio : undefined,
             metodoPago,
-            precioTotal,
-            tipoEntrega: tipoEntrega || 'domicilio',
+            precioTotal: totalFinal,
+            subtotal,
+            descuentoTotal,
+            iva,
+            comisionPago,
+            totalFinal,
+            tipoEntrega: tipoEntregaFinal,
             datosFacturacion: datosFacturacionLimpios,
         });
-        
+
         await orden.save();
-        
+
+        // Descontar stock en metros
         for (const item of carrito.items) {
+            const unidad = item.unidadSeleccionada || 'metro';
+            const metros = unidad === 'rollo'
+                ? item.cantidad * ((await Producto.findById(item.producto._id).select('metrosPorRollo'))?.metrosPorRollo || 100)
+                : item.cantidad;
             await Producto.findByIdAndUpdate(item.producto._id, {
-                $inc: { stock: -item.cantidad }
+                $inc: { metrosDisponibles: -metros }
             });
         }
 
@@ -232,8 +275,12 @@ const actualizarEstadoOrden = async (req, res) => {
     // ADMIN: Control total sobre todos los campos
     if (rol === 'administrador') {
       if (estadoPago !== undefined) {
-        orden.estadoPago = estadoPago;
-        orden.fechaPago = estadoPago ? new Date() : null;
+        // Aceptar string ('completado', 'pendiente', 'fallido') o legacy boolean
+        const nuevoEstadoPago = estadoPago === true || estadoPago === 'completado' ? 'completado'
+                              : estadoPago === false || estadoPago === 'pendiente' ? 'pendiente'
+                              : estadoPago;
+        orden.estadoPago = nuevoEstadoPago;
+        orden.fechaPago = nuevoEstadoPago === 'completado' ? new Date() : null;
       }
       if (estadoEnvio !== undefined) {
         orden.estadoEnvio = estadoEnvio;
@@ -442,19 +489,20 @@ const procesarPagoOrden = async (req, res) => {
         if (orden.cliente._id.toString() !== clienteId.toString()) {
             return res.status(403).json({ msg: "No tienes permiso para pagar esta orden." });
         }
-        if (orden.estadoPago) {
+        if (orden.estadoPago === 'completado') {
             return res.status(400).json({ msg: "Esta orden ya ha sido pagada." });
         }
 
         // ─── Métodos que no requieren pasarela externa ───────────────────────
-        const metodosInmediatos = ['Transferencia Bancaria', 'Efectivo', 'Contra Entrega', 'PayPal', 'De Una'];
+        const metodosInmediatos = ['Transferencia Bancaria', 'Efectivo', 'Contra Entrega', 'PayPal', 'De Una',
+                                   'Pago contra entrega', 'Pago efectivo / tarjeta débito'];
         if (metodosInmediatos.includes(orden.metodoPago)) {
-            orden.estadoPago = true;
+            orden.estadoPago = 'completado';
             orden.estadoOrden = 'pagado';
             orden.fechaPago = new Date();
             await orden.save();
             await crearNotificacionPago(orden);
-            return res.status(200).json({ msg: "Pago registrado exitosamente.", estadoPago: true, estadoOrden: 'pagado' });
+            return res.status(200).json({ msg: "Pago registrado exitosamente.", estadoPago: 'completado', estadoOrden: 'pagado' });
         }
 
         // ─── Pago con Stripe (Tarjeta de Crédito / Stripe) ──────────────────
@@ -487,14 +535,16 @@ const procesarPagoOrden = async (req, res) => {
         });
 
         if (paymentIntent.status === 'succeeded') {
-            orden.estadoPago = true;
+            orden.estadoPago = 'completado';
             orden.estadoOrden = 'pagado';
             orden.fechaPago = new Date();
             orden.pagoStripeId = paymentIntent.id;
             await orden.save();
             await crearNotificacionPago(orden);
-            return res.status(200).json({ msg: "El pago se realizó exitosamente.", estadoPago: true, estadoOrden: 'pagado' });
+            return res.status(200).json({ msg: "El pago se realizó exitosamente.", estadoPago: 'completado', estadoOrden: 'pagado' });
         } else {
+            orden.estadoPago = 'fallido';
+            await orden.save();
             return res.status(400).json({ msg: "El pago no pudo ser procesado por Stripe." });
         }
     } catch (error) {

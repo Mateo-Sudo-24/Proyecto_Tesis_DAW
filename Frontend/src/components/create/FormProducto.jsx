@@ -1,7 +1,7 @@
 import { useState, useEffect, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useForm } from 'react-hook-form';
-import { toast, ToastContainer } from 'react-toastify';
+import { toast } from 'react-toastify';
 import { editCloudinaryImage, getPreviewUrl, revokePreviewUrl, checkDuplicateProductName } from '../../services/cloudinary';
 
 const fpStyles = `
@@ -283,7 +283,7 @@ export const FormProducto = ({ productoToUpdate, onSuccess, onCancel }) => {
     return (
         <>
             <style>{fpStyles}</style>
-            {!onCancel && <ToastContainer />}
+            {!onCancel &&}
             <form onSubmit={handleSubmit(onSubmit)} className="fp-form" noValidate>
             <div className="fp-form-body">
                 {/* Nombre */}

@@ -424,19 +424,7 @@ const Nosotros = () => {
                     <div className="nos-footer-top">
                         <div className="nos-footer-contact">
                             <h3>Contáctanos</h3>
-                            <p>Email: contacto@intex.com</p>
-                            <p>Teléfono: +593 99 564 4186</p>
-                        </div>
-                        <div className="nos-footer-nl">
-                            <form onSubmit={(e) => e.preventDefault()}>
-                                <fieldset>
-                                    <legend>Suscríbete a nuestro newsletter</legend>
-                                    <div className="nos-nl-row">
-                                        <input type="email" placeholder="Ingresa tu correo" />
-                                        <button type="button">Enviar</button>
-                                    </div>
-                                </fieldset>
-                            </form>
+                            <p>📧 contacto@intex.com &nbsp;|&nbsp; 📞 +593 99 564 4186</p>
                         </div>
                     </div>
                     <hr className="nos-footer-hr" />

@@ -408,19 +408,7 @@ const Contact = () => {
                     <div className="con-footer-top">
                         <div className="con-footer-contact">
                             <h3>Contáctanos</h3>
-                            <p>Email: contacto@intex.com</p>
-                            <p>Teléfono: +593 99 564 4186</p>
-                        </div>
-                        <div className="con-footer-nl">
-                            <form onSubmit={(e) => e.preventDefault()}>
-                                <fieldset>
-                                    <legend>Suscríbete a nuestro newsletter</legend>
-                                    <div className="con-nl-row">
-                                        <input type="email" placeholder="Ingresa tu correo" />
-                                        <button type="button">Enviar</button>
-                                    </div>
-                                </fieldset>
-                            </form>
+                            <p>📧 contacto@intex.com &nbsp;|&nbsp; 📞 +593 99 564 4186</p>
                         </div>
                     </div>
                     <hr className="con-footer-hr" />

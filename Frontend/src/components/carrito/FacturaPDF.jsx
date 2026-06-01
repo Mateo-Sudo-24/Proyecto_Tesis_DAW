@@ -11,6 +11,8 @@ const normalizarItemsOrden = (orden) => {
         nombre: it.nombre ?? it.descripcion ?? it.producto?.nombre ?? 'Producto',
         cantidad: Number(it.cantidad || 1),
         precio: Number(it.precio ?? it.precioUnitario ?? it.producto?.precio ?? 0),
+        unidad: it.unidadSeleccionada ?? null,
+        subtotal: Number(it.subtotal ?? 0),
     }));
 };
 
@@ -122,9 +124,10 @@ const FacturaPDF = ({ orden, facturacion, label = '📄 Descargar factura' }) =>
     const pdfRef = useRef(null);
 
     const items = normalizarItemsOrden(orden);
-    const subtotal = orden?.precioTotal ?? items.reduce((s, it) => s + ((it.precio || 0) * (it.cantidad || 1)), 0);
-    const iva = subtotal * IVA;
-    const total = subtotal + iva;
+    const subtotal = orden?.subtotal ?? items.reduce((s, it) => s + (it.subtotal || (it.precio * it.cantidad)), 0);
+    const iva = orden?.iva ?? subtotal * IVA;
+    const comisionPago = orden?.comisionPago ?? 0;
+    const total = orden?.totalFinal ?? (subtotal + iva + comisionPago);
 
     const nombreCliente = facturacion
         ? `${facturacion.nombre || ''} ${facturacion.apellido || ''}`.trim()
@@ -227,9 +230,9 @@ const FacturaPDF = ({ orden, facturacion, label = '📄 Descargar factura' }) =>
                         {items.length > 0 ? items.map((it, i) => (
                             <tr key={i}>
                                 <td>{it.nombre}</td>
-                                <td>{it.cantidad}</td>
+                                <td>{it.cantidad}{it.unidad ? ` ${it.unidad}` : ''}</td>
                                 <td>{fmt(it.precio)}</td>
-                                <td>{fmt(it.precio * it.cantidad)}</td>
+                                <td>{fmt(it.subtotal || it.precio * it.cantidad)}</td>
                             </tr>
                         )) : (
                             <tr>
@@ -243,6 +246,7 @@ const FacturaPDF = ({ orden, facturacion, label = '📄 Descargar factura' }) =>
                 <div className="fpdf-totals">
                     <div className="fpdf-total-row"><span>Subtotal</span><span>{fmt(subtotal)}</span></div>
                     <div className="fpdf-total-row"><span>IVA (15%)</span><span>{fmt(iva)}</span></div>
+                    {comisionPago > 0 && <div className="fpdf-total-row"><span>Comisión pago</span><span>{fmt(comisionPago)}</span></div>}
                     <div className="fpdf-total-row grand"><span>Total a pagar</span><span>{fmt(total)}</span></div>
                 </div>
 

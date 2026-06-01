@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react';
-import { toast, ToastContainer } from 'react-toastify';
+import { toast } from 'react-toastify';
 
 /* ── Estilos internos ─────────────────────────────────────────── */
 const styles = `
@@ -480,7 +480,6 @@ const Notificaciones = () => {
             <style>{styles}</style>
             <div className="notif-page">
                 <div className="notif-inner">
-                    <ToastContainer position="top-right" autoClose={3000} />
 
                     {/* ── Cabecera ───────────────────────────────────────── */}
                     <div className="notif-header">

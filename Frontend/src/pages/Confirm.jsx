@@ -1,6 +1,6 @@
 import { Link, useParams, useLocation } from 'react-router-dom';
 import { useEffect, useState } from 'react';
-import { ToastContainer, toast } from 'react-toastify';
+import { toast } from 'react-toastify';
 import 'react-toastify/dist/ReactToastify.css';
 
 export const Confirm = () => {
@@ -61,7 +61,6 @@ export const Confirm = () => {
 
     return (
         <div className="min-h-screen flex">
-            <ToastContainer />
 
             {/* Panel izquierdo - imagen */}
             <div className="hidden lg:flex w-1/2 relative overflow-hidden">

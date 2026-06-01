@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import { toast, ToastContainer } from "react-toastify";
+import { toast } from "react-toastify";
 import storeProfile from "../context/storeProfile";
 import storeAuth from "../context/storeAuth";
 import FacturaPDF from "../components/carrito/FacturaPDF.jsx";
@@ -73,14 +73,20 @@ const pageStyles = `
     .mp-factura-row { display:flex; justify-content:flex-end; margin-top:0.875rem; padding-top:0.75rem; border-top:1px solid #f3f4f6; }
 `;
 
-const ORDER_STEPS = ['procesando', 'listo', 'entregado'];
-const getSteps = () => ORDER_STEPS;
+const STEPS_DOMICILIO = ['procesando', 'enviado', 'entregado'];
+const STEPS_ESTABLECIMIENTO = ['procesando', 'listo', 'entregado'];
+const STEPS_VENTA_LOCAL = ['procesando', 'listo', 'entregado'];
+
+const getSteps = (tipoEntrega) => {
+    if (tipoEntrega === 'domicilio') return STEPS_DOMICILIO;
+    return STEPS_ESTABLECIMIENTO; // venta_local / establecimiento / retiro
+};
 const ITEMS_PER_PAGE = 3;
 
 const estadoIcono = { pendiente:'⏳', procesando:'⚙️', enviado:'🚚', entregado:'✅', cancelado:'❌', pagado:'💰' };
 
 const ProgressBar = ({ estadoOrden, tipoEntrega, isVendedor, ordenId, token, onStatusUpdate }) => {
-    const ORDER_STEPS = getSteps();
+    const ORDER_STEPS = getSteps(tipoEntrega);
     const [updating, setUpdating] = useState(false);
 
     if (estadoOrden === 'cancelado') {
@@ -336,7 +342,6 @@ const MisPedidos = () => {
     return (
         <>
             <style>{pageStyles}</style>
-            <ToastContainer />
             <div className="mp-container">
                 <div className="mp-header">
                     <div>

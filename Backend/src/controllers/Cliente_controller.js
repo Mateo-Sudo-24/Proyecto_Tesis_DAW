@@ -293,8 +293,9 @@ const eliminarCliente = async (req, res) => {
     const { id } = req.params;
     if (!mongoose.Types.ObjectId.isValid(id)) return res.status(400).json({ msg: "ID de cliente no válido." });
     try {
-        // Se elimina la búsqueda previa y la verificación de propiedad.
-        // Se elimina el documento directamente.
+        const Orden = (await import('../models/Orden.js')).default;
+        const tieneOrdenes = await Orden.exists({ cliente: id });
+        if (tieneOrdenes) return res.status(400).json({ msg: "No se puede eliminar: el cliente tiene órdenes asociadas." });
         const clienteEliminado = await Cliente.findByIdAndDelete(id);
         if (!clienteEliminado) return res.status(404).json({ msg: "Cliente no encontrado." });
         res.status(200).json({ msg: "Cliente eliminado exitosamente." });

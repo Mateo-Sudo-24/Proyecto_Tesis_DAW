@@ -6,14 +6,14 @@ const itemPedidoSchema = new Schema({
     cantidad: {
         type: Number,
         required: true,
-        min: [1, 'La cantidad debe ser mayor que 0.'],
-        validate: {
-            validator: Number.isInteger,
-            message: 'La cantidad debe ser un numero entero.'
-        }
+        min: [0.01, 'La cantidad debe ser mayor que 0.']
     },
+    unidadSeleccionada: { type: String, enum: ['metro', 'rollo'], default: 'metro' },
     imagen: { type: String, required: false, trim: true },
     precio: { type: Number, required: true, min: [0, 'El precio no puede ser negativo.'] },
+    precioUnitario: { type: Number, default: 0 },
+    descuento: { type: Number, default: 0 },
+    subtotal: { type: Number, default: 0 },
     producto: { type: mongoose.Schema.Types.ObjectId, ref: 'Producto', required: true }
 }, { _id: false });
 
@@ -55,22 +55,38 @@ const ordenSchema = new Schema({
     metodoPago: {
         type: String,
         required: true,
-        enum: ['Tarjeta de Crédito', 'Transferencia Bancaria', 'PayPal', 'Contra Entrega', 'Efectivo', 'Stripe', 'De Una']
+        enum: ['Pago por tarjeta en línea', 'De Una', 'Pago contra entrega', 'Pago efectivo / tarjeta débito',
+               // legacy compat
+               'Tarjeta de Crédito', 'Transferencia Bancaria', 'PayPal', 'Contra Entrega', 'Efectivo', 'Stripe']
     },
-    pagoStripeId: { type: String }, // <-- NUEVO CAMPO PARA ID DE PAGO
-    precioTotal: { type: Number, required: true, min: [0, 'El precio total no puede ser negativo.'] },
+    metodoPagoInterno: { type: String }, // 'stripe' | 'de_una' | 'contra_entrega' | 'efectivo'
+    pagoStripeId: { type: String },
+    // --- Desglose financiero ---
+    subtotal: { type: Number, default: 0 },
+    descuentoTotal: { type: Number, default: 0 },
+    iva: { type: Number, default: 0 },
+    comisionPago: { type: Number, default: 0 },
+    totalFinal: { type: Number, default: 0 },
+    // Legacy compat
+    precioTotal: { type: Number, default: 0 },
     datosFacturacion: datosFacturacionSchema,
     estadoOrden: {
         type: String,
         default: 'pendiente',
-        enum: ['pendiente', 'pagado', 'procesando', 'enviado', 'listo', 'completado', 'entregado', 'cancelado']
+        enum: ['pendiente', 'pagado', 'procesando', 'enviado', 'listo',
+               'pedido_recibido', 'buscando_pedido', 'pedido_recepcion',
+               'motorizado_camino', 'completado', 'entregado', 'cancelado']
     },
     tipoEntrega: {
         type: String,
-        enum: ['domicilio', 'retiro'],
+        enum: ['domicilio', 'retiro', 'establecimiento', 'venta_local'],
         default: 'domicilio'
     },
-    estadoPago: { type: Boolean, default: false },
+    estadoPago: {
+        type: String,
+        enum: ['pendiente', 'completado', 'fallido'],
+        default: 'pendiente'
+    },
     fechaPago: { type: Date },
     estadoEnvio: { type: Boolean, default: false },
     fechaEnvio: { type: Date },

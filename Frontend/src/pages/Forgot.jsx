@@ -1,7 +1,6 @@
 import { Link } from 'react-router'
 import useFetch from '../hooks/useFetch'
 import { useForm } from 'react-hook-form';
-import { ToastContainer } from 'react-toastify'
 import forgotImg from '../assets/login.jpg';
 
 const forgotStyles = `
@@ -230,7 +229,6 @@ export const Forgot = () => {
     return (
         <div className="forgot-wrapper">
             <style>{forgotStyles}</style>
-            <ToastContainer position="top-right" autoClose={5000} hideProgressBar={false} />
 
             {/* ── Panel imagen ── */}
             <div

@@ -1,7 +1,6 @@
 import { useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import { useForm } from "react-hook-form";
-import { ToastContainer } from 'react-toastify';
 import useFetch from '../hooks/useFetch';
 
 const registerStyles = `
@@ -279,7 +278,6 @@ export const Register = () => {
     return (
         <div className="reg-wrapper">
             <style>{registerStyles}</style>
-            <ToastContainer position="top-right" autoClose={5000} hideProgressBar={false} />
 
             {/* ── Panel formulario (izquierda) ── */}
             <div className="reg-form-panel">

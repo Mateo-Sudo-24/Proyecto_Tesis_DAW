@@ -2,7 +2,7 @@
 import { useState } from 'react';
 import { useParams, useNavigate, useLocation } from 'react-router-dom';
 import { useForm } from 'react-hook-form';
-import { ToastContainer, toast } from 'react-toastify';
+import { toast } from 'react-toastify';
 import useFetch from '../hooks/useFetch';
 
 const setupStyles = `
@@ -295,7 +295,6 @@ const SetupAccount = () => {
     return (
         <>
             <style>{setupStyles}</style>
-            <ToastContainer position="top-right" autoClose={5000} hideProgressBar={false} />
 
             <div className="su-wrapper">
 

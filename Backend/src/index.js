@@ -153,6 +153,13 @@ io.on('connection', async (socket) => {
         socket.emit('historial_chat', { clienteId, historial });
     });
 
+    // ── Marcar mensajes como vistos ──
+    socket.on('marcar_visto', ({ para }) => {
+        if (!para) return;
+        // Notifica al usuario "para" que sus mensajes fueron vistos por quien emitió
+        io.to(para).emit('visto_por', { de: socket.usuario.id });
+    });
+
     // ── Desconexión ──
     socket.on('disconnect', () => {
         const { id, rol, nombre: n } = socket.usuario;

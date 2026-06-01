@@ -3,7 +3,6 @@ import { CardProfile } from '../components/profile/CardProfile';
 import { CardProfileOwner } from '../components/profile/CardProfileOwner';
 import FormProfile from '../components/profile/FormProfile';
 import storeProfile from '../context/storeProfile';
-import { ToastContainer } from 'react-toastify';
 
 const styles = `
     /* ── Título con barrita naranja ── */
@@ -80,7 +79,6 @@ const Profile = () => {
     return (
         <>
             <style>{styles}</style>
-            <ToastContainer />
             <div style={{ marginBottom: '1.25rem' }}>
                 <h1 className='prf-page-title'>Perfil</h1>
                 <p className='prf-page-sub'>Administra tu información personal y seguridad.</p>
