@@ -1,5 +1,6 @@
 import { BrowserRouter, Route, Routes, Navigate } from 'react-router-dom';
 import { useEffect } from 'react';
+import PropTypes from 'prop-types';
 import { ToastContainer } from 'react-toastify';
 import 'react-toastify/dist/ReactToastify.css';
 
@@ -47,11 +48,24 @@ function AppContent() {
     }
   }, [token, profile]);
 
-  // Admin and sellers land on /ventas, everyone else on /perfil
   const DashboardIndex = () => {
     if (user?.rol === 'administrador' || user?.rol === 'vendedor') return <Navigate to="/dashboard/ventas" replace />;
+    if (user?.rol === 'cliente') return <Navigate to="/dashboard/productos" replace />;
     return <Navigate to="/dashboard/perfil" replace />;
   };
+
+  const AdminVendorOnly = ({ children }) => {
+    if (user?.rol === 'cliente') return <Navigate to="/dashboard/productos" replace />;
+    return children;
+  };
+
+  const ClienteOnly = ({ children }) => {
+    if (user?.rol === 'administrador' || user?.rol === 'vendedor') return <Navigate to="/dashboard/ventas" replace />;
+    return children;
+  };
+
+  AdminVendorOnly.propTypes = { children: PropTypes.node };
+  ClienteOnly.propTypes = { children: PropTypes.node };
 
   const RootRedirect = () => {
     if (!token) return <Navigate to="/home" />;
@@ -103,12 +117,12 @@ function AppContent() {
             <Route path="actualizar/:id" element={<Update />} />
             <Route path="chat" element={<Chat />} />
             <Route path="carrito" element={<Carrito />} />
-            <Route path="productos" element={<Productos />} />
-            <Route path="productos-admin" element={<ProductosAdmin />} />
+            <Route path="productos" element={<ClienteOnly><Productos /></ClienteOnly>} />
+            <Route path="productos-admin" element={<AdminVendorOnly><ProductosAdmin /></AdminVendorOnly>} />
             <Route path="actualizar-producto/:id" element={<UpdateProducto />} />
             <Route path="notificaciones" element={<Notificaciones />} />
             <Route path="mis-pedidos" element={<MisPedidos />} />
-            <Route path="ventas" element={<Ventas />} />
+            <Route path="ventas" element={<AdminVendorOnly><Ventas /></AdminVendorOnly>} />
           </Route>
 
           {/* OAuth success */}

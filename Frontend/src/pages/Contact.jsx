@@ -1,5 +1,7 @@
 import bannerImage from '../assets/home3.png';
 import { Link } from 'react-router-dom';
+import { useState } from 'react';
+import { toast } from 'react-toastify';
 import { MdEmail, MdPhone, MdBusiness } from 'react-icons/md';
 import { FaMapMarkerAlt, FaClock } from 'react-icons/fa';
 import { BsSendFill } from 'react-icons/bs';
@@ -247,9 +249,10 @@ const styles = `
     /* ── FOOTER ── */
     .con-footer { background: #fff8f0; border-radius: 2rem 2rem 0 0; margin-top: 4rem; }
     .con-footer-inner { max-width: 1200px; margin: 0 auto; padding: 3rem; }
-    .con-footer-top { display: flex; flex-wrap: wrap; gap: 2rem; justify-content: space-between; margin-bottom: 2rem; }
-    .con-footer-contact h3 { font-size: 1.5rem; font-weight: 900; color: var(--orange-dark); margin-bottom: 0.75rem; }
-    .con-footer-contact p  { font-weight: 600; color: #374151; margin: 0.3rem 0; }
+    .con-footer-top { display: flex; flex-wrap: wrap; gap: 1rem; justify-content: center; margin-bottom: 1rem; }
+    .con-footer-contact { display:flex; align-items:center; justify-content:center; gap:1rem; flex-wrap:wrap; text-align:center; }
+    .con-footer-contact h3 { font-size: 1.5rem; font-weight: 900; color: var(--orange-dark); margin: 0; }
+    .con-footer-contact p  { font-weight: 600; color: #374151; margin: 0; }
     .con-footer-nl { flex: 1; max-width: 440px; }
     .con-footer-nl fieldset { border: 2px solid var(--orange-border); padding: 1rem; border-radius: 0.5rem; }
     .con-footer-nl legend { background: var(--orange-dark); color: #fff; padding: 0.35rem 0.75rem; font-size: 0.85rem; font-weight: 700; border-radius: 0.25rem; }
@@ -274,6 +277,34 @@ const styles = `
 `;
 
 const Contact = () => {
+    const [form, setForm] = useState({ nombre: '', email: '', asunto: '', mensaje: '' });
+    const [enviando, setEnviando] = useState(false);
+
+    const handleChange = (e) => {
+        const { name, value } = e.target;
+        setForm(prev => ({ ...prev, [name]: value }));
+    };
+
+    const handleSubmit = async (e) => {
+        e.preventDefault();
+        setEnviando(true);
+        try {
+            const res = await fetch(`${import.meta.env.VITE_BACKEND_URL}/contacto`, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify(form),
+            });
+            const data = await res.json().catch(() => ({}));
+            if (!res.ok) throw new Error(data.msg || 'No se pudo enviar el mensaje.');
+            toast.success(data.msg || 'Mensaje enviado correctamente.');
+            setForm({ nombre: '', email: '', asunto: '', mensaje: '' });
+        } catch (error) {
+            toast.error(error.message);
+        } finally {
+            setEnviando(false);
+        }
+    };
+
     return (
         <>
             <style>{styles}</style>
@@ -366,33 +397,45 @@ const Contact = () => {
                         <div className="con-form-panel">
                             <h3>Envíanos un mensaje</h3>
                             <p className="sub">Todos los campos son requeridos.</p>
-                            <form onSubmit={(e) => e.preventDefault()}>
+                            <form onSubmit={handleSubmit}>
                                 <div className="con-form-group">
                                     <input
                                         type="text"
+                                        name="nombre"
                                         placeholder="Nombre completo"
                                         className="con-input"
+                                        value={form.nombre}
+                                        onChange={handleChange}
                                         required
                                     />
                                     <input
                                         type="email"
+                                        name="email"
                                         placeholder="Correo electrónico"
                                         className="con-input"
+                                        value={form.email}
+                                        onChange={handleChange}
                                         required
                                     />
                                     <input
                                         type="text"
+                                        name="asunto"
                                         placeholder="Asunto"
                                         className="con-input"
+                                        value={form.asunto}
+                                        onChange={handleChange}
                                     />
                                     <textarea
+                                        name="mensaje"
                                         placeholder="Tu mensaje..."
                                         rows={5}
                                         className="con-input con-textarea"
+                                        value={form.mensaje}
+                                        onChange={handleChange}
                                         required
                                     />
-                                    <button type="submit" className="btn-send">
-                                        <BsSendFill /> Enviar mensaje
+                                    <button type="submit" className="btn-send" disabled={enviando}>
+                                        <BsSendFill /> {enviando ? 'Enviando...' : 'Enviar mensaje'}
                                     </button>
                                 </div>
                             </form>
@@ -408,8 +451,7 @@ const Contact = () => {
                     <div className="con-footer-top">
                         <div className="con-footer-contact">
                             <h3>Contáctanos</h3>
-                            <p>📧 intex@gmail.com &nbsp;|&nbsp; 📞 0998434399</p>
-                            <p>📍 Av De los Granados y Río Coca</p>
+                            <p>intex@gmail.com | 0998434399 | Av. De los Granados y Río Coca</p>
                         </div>
                     </div>
                     <hr className="con-footer-hr" />

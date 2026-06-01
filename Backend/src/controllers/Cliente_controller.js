@@ -287,8 +287,16 @@ const obtenerClientes = async (req, res) => {
     try {
         // Se elimina la lógica 'if (req.usuario.rol === 'vendedor')'.
         // Ahora siempre busca todos los clientes.
-        const clientes = await Cliente.find().select("-password -token -__v");
-        res.status(200).json(clientes);
+        const Orden = (await import('../models/Orden.js')).default;
+        const [clientes, pedidosPorCliente] = await Promise.all([
+            Cliente.find().select("-password -token -__v").lean(),
+            Orden.aggregate([{ $group: { _id: '$cliente', pedidosCount: { $sum: 1 } } }])
+        ]);
+        const pedidosMap = new Map(pedidosPorCliente.map(p => [String(p._id), p.pedidosCount]));
+        res.status(200).json(clientes.map(cliente => ({
+            ...cliente,
+            pedidosCount: pedidosMap.get(String(cliente._id)) || 0,
+        })));
     } catch (error) {
         res.status(500).json({ msg: "Error al obtener los clientes." });
     }

@@ -72,6 +72,18 @@ const pageStyles = `
     .mp-terminado-radio::after { content:''; width:8px; height:8px; border-radius:50%; background:#10b981; }
     .mp-terminado-label { font-size:0.8rem; font-weight:700; color:#065f46; background:#d1fae5; padding:0.25rem 0.75rem; border-radius:999px; border:1.5px solid #10b981; }
     .mp-factura-row { display:flex; justify-content:flex-end; margin-top:0.875rem; padding-top:0.75rem; border-top:1px solid #f3f4f6; }
+    .mp-actions-row { display:flex; justify-content:flex-end; gap:0.6rem; margin-top:0.875rem; padding-top:0.75rem; border-top:1px solid #f3f4f6; flex-wrap:wrap; }
+    .mp-pay-btn { border:none; border-radius:0.6rem; background:#16a34a; color:#fff; font-size:0.8rem; font-weight:800; padding:0.55rem 0.95rem; cursor:pointer; }
+    .mp-pay-btn:hover:not(:disabled) { background:#15803d; }
+    .mp-pay-btn:disabled { opacity:0.55; cursor:not-allowed; }
+    .mp-modal-overlay { position:fixed; inset:0; background:rgba(0,0,0,0.55); z-index:1000; display:flex; align-items:center; justify-content:center; padding:1rem; }
+    .mp-modal { background:#fff; width:min(420px, 96vw); border-radius:1rem; padding:1.5rem; box-shadow:0 20px 60px rgba(0,0,0,0.22); }
+    .mp-modal-title { font-size:1.05rem; font-weight:900; color:#111827; margin:0 0 0.45rem; }
+    .mp-modal-text { font-size:0.875rem; color:#6b7280; line-height:1.5; margin:0 0 1.25rem; }
+    .mp-modal-actions { display:flex; justify-content:flex-end; gap:0.75rem; }
+    .mp-modal-cancel, .mp-modal-confirm { border:none; border-radius:0.6rem; padding:0.6rem 1rem; font-size:0.85rem; font-weight:800; cursor:pointer; }
+    .mp-modal-cancel { background:#f3f4f6; color:#374151; }
+    .mp-modal-confirm { background:#16a34a; color:#fff; }
 `;
 
 const STEPS_DOMICILIO      = ['Pedido recibido', 'Procesando', 'Motorizado en camino a su hogar', 'Entregado'];
@@ -248,6 +260,8 @@ const ProgressBar = ({ estadoOrden, tipoEntrega, isVendedor, ordenId, token, onS
 const OrdenCard = ({ orden: ordenInicial, index, isVendedor, token }) => {
     const [orden, setOrden] = useState(ordenInicial);
     const [open, setOpen] = useState(false);
+    const [confirmPago, setConfirmPago] = useState(false);
+    const [actualizandoPago, setActualizandoPago] = useState(false);
     const fecha = new Date(orden.createdAt).toLocaleDateString('es-ES', { day:'2-digit', month:'short', year:'numeric' });
     const itemsOrden = orden.productoPedido ?? orden.items ?? [];
     const totalesOrden = calcularTotalesOrden(orden);
@@ -264,12 +278,51 @@ const OrdenCard = ({ orden: ordenInicial, index, isVendedor, token }) => {
         setOrden(prev => ({ ...prev, ...ordenActualizada }));
     };
 
+    const confirmarPago = async () => {
+        setActualizandoPago(true);
+        try {
+            const res = await fetch(`${import.meta.env.VITE_BACKEND_URL}/ordenes/${orden._id}`, {
+                method: 'PATCH',
+                headers: {
+                    'Content-Type': 'application/json',
+                    Authorization: `Bearer ${token}`,
+                },
+                body: JSON.stringify({ estadoPago: 'completado' }),
+            });
+            const data = await res.json().catch(() => ({}));
+            if (!res.ok) throw new Error(data.msg || 'No se pudo confirmar el pago.');
+            setOrden(prev => ({ ...prev, ...(data.orden ?? {}), estadoPago: 'completado' }));
+            toast.success('Pago confirmado correctamente.');
+            setConfirmPago(false);
+        } catch (error) {
+            toast.error(error.message);
+        } finally {
+            setActualizandoPago(false);
+        }
+    };
+
     const vendedorNombre = orden.vendedor
         ? `${orden.vendedor.nombrePropietario || orden.vendedor.nombre || ''} ${orden.vendedor.apellido || ''}`.trim()
         : '';
 
     return (
         <div className="mp-card">
+            {confirmPago && (
+                <div className="mp-modal-overlay" onClick={() => setConfirmPago(false)}>
+                    <div className="mp-modal" onClick={e => e.stopPropagation()}>
+                        <p className="mp-modal-title">Confirmar pago</p>
+                        <p className="mp-modal-text">
+                            Esta acción marcará el pedido como pagado y permitirá continuar la gestión del pedido.
+                        </p>
+                        <div className="mp-modal-actions">
+                            <button className="mp-modal-cancel" type="button" onClick={() => setConfirmPago(false)}>Cancelar</button>
+                            <button className="mp-modal-confirm" type="button" onClick={confirmarPago} disabled={actualizandoPago}>
+                                {actualizandoPago ? 'Confirmando...' : 'Confirmar pago'}
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            )}
             <div className="mp-card-top">
                 <div>
                     <p className="mp-order-id">Pedido #{String(index + 1).padStart(3,'0')} · {orden._id?.slice(-8).toUpperCase()}</p>
@@ -344,7 +397,12 @@ const OrdenCard = ({ orden: ordenInicial, index, isVendedor, token }) => {
                     )}
                 </>
             )}
-            <div className="mp-factura-row">
+            <div className="mp-actions-row">
+                {isVendedor && orden.estadoPago !== 'completado' && (
+                    <button className="mp-pay-btn" type="button" onClick={() => setConfirmPago(true)}>
+                        Marcar pago como completado
+                    </button>
+                )}
                 <FacturaPDF
                     orden={ordenFactura}
                     facturacion={

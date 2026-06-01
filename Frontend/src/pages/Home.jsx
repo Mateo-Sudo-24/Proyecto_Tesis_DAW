@@ -252,9 +252,10 @@ const styles = `
     /* ── FOOTER ── */
     .home-footer { background: #fff8f0; margin-top: 4rem; border-radius: 2rem 2rem 0 0; }
     .home-footer-inner { max-width: 1200px; margin: 0 auto; padding: 3rem; }
-    .footer-top { display: flex; flex-wrap: wrap; gap: 2rem; justify-content: space-between; margin-bottom: 2rem; }
-    .footer-contact h3 { font-size: 1.5rem; font-weight: 900; color: var(--orange-dark); margin-bottom: 0.75rem; }
-    .footer-contact p  { font-weight: 600; color: #374151; margin: 0.3rem 0; }
+    .footer-top { display: flex; flex-wrap: wrap; gap: 1rem; justify-content: center; margin-bottom: 1rem; }
+    .footer-contact { display:flex; align-items:center; justify-content:center; gap:1rem; flex-wrap:wrap; text-align:center; }
+    .footer-contact h3 { font-size: 1.5rem; font-weight: 900; color: var(--orange-dark); margin: 0; }
+    .footer-contact p  { font-weight: 600; color: #374151; margin: 0; }
     .footer-hr { border: 1px solid var(--orange-border); margin: 1.5rem 0; }
     .footer-copy { text-align: center; font-weight: 600; color: #6b7280; font-size: 0.875rem; }
 
@@ -375,8 +376,7 @@ export const Home = () => {
                     <div className="footer-top">
                         <div className="footer-contact">
                             <h3>Contáctanos</h3>
-                            <p>📧 intex@gmail.com &nbsp;|&nbsp; 📞 0998434399</p>
-                            <p>📍 Av De los Granados y Río Coca</p>
+                            <p>intex@gmail.com | 0998434399 | Av. De los Granados y Río Coca</p>
                         </div>
                     </div>
                     <hr className="footer-hr" />

@@ -548,13 +548,15 @@ const Notificaciones = () => {
 
                                             {/* Botón eliminar rápido */}
                                             <div className="notif-actions">
-                                                <button
-                                                    className="notif-btn-accion notif-btn-del"
-                                                    onClick={(e) => eliminarNotificacion(e, notif._id)}
-                                                    title="Eliminar"
-                                                >
-                                                    Eliminar
-                                                </button>
+                                                {notif.estadoGestion === 'aprobado' && (
+                                                    <button
+                                                        className="notif-btn-accion notif-btn-del"
+                                                        onClick={(e) => eliminarNotificacion(e, notif._id)}
+                                                        title="Eliminar"
+                                                    >
+                                                        Eliminar
+                                                    </button>
+                                                )}
                                                 <span className={`notif-chevron${estaExpandido ? ' open' : ''}`}>▾</span>
                                             </div>
                                         </button>

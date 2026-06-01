@@ -211,8 +211,16 @@ const configurarCuentaYPassword = async (req, res) => {
 
 const obtenerVendedores = async (req, res) => {
     try {
-        const vendedores = await Vendedor.find().select("-password -token -__v");
-        res.status(200).json(vendedores);
+        const Orden = (await import('../models/Orden.js')).default;
+        const [vendedores, pedidosPorVendedor] = await Promise.all([
+            Vendedor.find().select("-password -token -__v").lean(),
+            Orden.aggregate([{ $match: { vendedor: { $ne: null } } }, { $group: { _id: '$vendedor', pedidosCount: { $sum: 1 } } }])
+        ]);
+        const pedidosMap = new Map(pedidosPorVendedor.map(p => [String(p._id), p.pedidosCount]));
+        res.status(200).json(vendedores.map(vendedor => ({
+            ...vendedor,
+            pedidosCount: pedidosMap.get(String(vendedor._id)) || 0,
+        })));
     } catch (error) {
         res.status(500).json({ msg: "Error al obtener los vendedores." });
     }

@@ -20,6 +20,7 @@ import routerBot from './routers/Bot_routers.js';
 import routerChatbot from './routers/Chatbot_routers.js';
 import notificacionRouter from './routers/Notificacion_router.js';
 import routerAuth from './routers/Auth_routers.js';
+import { sendMailToContact } from './config/nodemailer.js';
 
 
 // =======================================================================
@@ -94,6 +95,24 @@ app.use('/api/carrito', routerCarrito);
 app.use('/api/bot', routerBot);
 app.use('/api/chatbot', routerChatbot);
 app.use('/api/notificaciones', notificacionRouter);
+
+app.post('/api/contacto', async (req, res) => {
+    const { nombre, email, asunto, mensaje } = req.body;
+    if (!nombre || !email || !mensaje) {
+        return res.status(400).json({ msg: 'Nombre, correo y mensaje son obligatorios.' });
+    }
+    if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(String(email).trim())) {
+        return res.status(400).json({ msg: 'Ingresa un correo válido.' });
+    }
+
+    try {
+        await sendMailToContact({ nombre, email, asunto, mensaje });
+        res.status(200).json({ msg: 'Mensaje enviado correctamente.' });
+    } catch (error) {
+        console.error('Error al enviar contacto:', error);
+        res.status(500).json({ msg: 'No se pudo enviar el mensaje.' });
+    }
+});
 
 // =======================================================================
 // ==                 MANEJO DE ERRORES Y EXPORTACIÓN                   ==

@@ -96,9 +96,30 @@ const sendMailToInviteCliente = async (userMail, token) => {
         </div></body></html>`);
 };
 
+const sendMailToContact = async ({ nombre, email, asunto, mensaje }) => {
+    const destino = process.env.CONTACT_EMAIL || process.env.BREVO_CONTACT_EMAIL || 'mateo.paredes.0012@gmail.com';
+    const safeNombre = String(nombre ?? '').trim();
+    const safeEmail = String(email ?? '').trim().toLowerCase();
+    const safeAsunto = String(asunto ?? 'Nuevo mensaje de contacto').trim();
+    const safeMensaje = String(mensaje ?? '').trim().replace(/\n/g, '<br>');
+
+    await sendBrevo(destino, `Intex - ${safeAsunto}`, `
+        <!DOCTYPE html><html lang="es"><head><meta charset="UTF-8">${baseStyle}</head><body>
+        <div class="container">
+            <h2>Nuevo mensaje de contacto</h2>
+            <p><strong>Nombre:</strong> ${safeNombre}</p>
+            <p><strong>Correo:</strong> ${safeEmail}</p>
+            <p><strong>Asunto:</strong> ${safeAsunto}</p>
+            <hr>
+            <p>${safeMensaje}</p>
+            <hr><footer>© ${new Date().getFullYear()} Intex. Todos los derechos reservados.</footer>
+        </div></body></html>`);
+};
+
 export {
     sendMailToRegister,
     sendMailToRecoveryPassword,
     sendMailToInviteUser,
-    sendMailToInviteCliente
+    sendMailToInviteCliente,
+    sendMailToContact
 };

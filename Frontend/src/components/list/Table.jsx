@@ -1,5 +1,5 @@
 /* eslint-disable react/prop-types */
-import { MdDeleteForever, MdInfo, MdPublishedWithChanges, MdVerified } from "react-icons/md";
+import { MdDeleteForever, MdInfo, MdPublishedWithChanges } from "react-icons/md";
 import useFetch from "../../hooks/useFetch";
 import { useEffect, useState } from "react";
 import { toast } from "react-toastify";
@@ -74,15 +74,15 @@ const ConfirmModal = ({ nombre, esCliente, onConfirm, onCancel }) => (
     <div className="confirm-overlay" onClick={onCancel}>
         <div className="confirm-box" onClick={e => e.stopPropagation()}>
             <div className="confirm-icon">!</div>
-            <p className="confirm-title">Estas seguro?</p>
+            <p className="confirm-title">¿Estás seguro?</p>
             <p className="confirm-text">
                 Vas a eliminar {esCliente ? "al cliente" : "al vendedor"}{" "}
                 <span className="confirm-name">{nombre}</span>{" "}
-                de forma permanente. Esta accion no se puede deshacer.
+                de forma permanente. Esta acción no se puede deshacer.
             </p>
             <div className="confirm-actions">
                 <button className="confirm-btn cancel" onClick={onCancel}>Cancelar</button>
-                <button className="confirm-btn danger" onClick={onConfirm}>Si, eliminar</button>
+                <button className="confirm-btn danger" onClick={onConfirm}>Sí, eliminar</button>
             </div>
         </div>
     </div>
@@ -102,7 +102,7 @@ const Table = ({ tipo = "clientes" }) => {
         try {
             const storedUser = JSON.parse(localStorage.getItem("auth-token"));
             if (!storedUser?.state?.token) {
-                toast.error("No estas autenticado.");
+                toast.error("No estás autenticado.");
                 return;
             }
             const url = `${import.meta.env.VITE_BACKEND_URL}/${tipo}`;
@@ -117,21 +117,19 @@ const Table = ({ tipo = "clientes" }) => {
 
     const getNombre = (item) =>
         esClientes
-            ? `${item.nombre || ""} ${item.apellido || ""}`.trim() || "N/D"
-            : item.nombrePropietario || item.nombre || "N/D";
+            ? `${item.nombre || ""} ${item.apellido || ""}`.trim() || "Sin nombre"
+            : `${item.nombre || ""} ${item.apellido || ""}`.trim() || "Sin nombre";
 
     const getEstadoBadge = (item) => {
         const s = item.status;
-        const cls = s === true || s === "activo" ? "activo" : s === "pendiente" ? "pendiente" : "inactivo";
-        const label = typeof s === "boolean" ? (s ? "Activo" : "Inactivo") : s ? s.charAt(0).toUpperCase() + s.slice(1) : "N/A";
+        const tienePedidos = Number(item.pedidosCount || 0) > 0;
+        const cls = esClientes
+            ? (s === false ? "inactivo" : "activo")
+            : (s === "activo" ? "activo" : "inactivo");
+        const label = esClientes
+            ? (tienePedidos ? "Activo con pedido" : (s === false ? "Inactivo" : "Activo"))
+            : (s === "activo" ? "Activo" : "Offline");
         return <span className={`tbl-badge ${cls}`}>{label}</span>;
-    };
-
-    const getVerificadoBadge = (item) => {
-        const ok = item.confirmado === true || item.emailConfirmado === true || item.verificado === true;
-        return ok
-            ? <span className="tbl-badge verificado"><MdVerified size={11} /> Verificado</span>
-            : <span className="tbl-badge no-verificado">Sin verificar</span>;
     };
 
     const pedirConfirmacion = (item) => setConfirmTarget({ id: item._id, nombre: getNombre(item) });
@@ -177,9 +175,9 @@ const Table = ({ tipo = "clientes" }) => {
                         <thead>
                             <tr>
                                 <th>No.</th>
-                                <th>{esClientes ? "Nombre / Apellido" : "Propietario"}</th>
+                                <th>Nombre y apellido</th>
                                 <th>Email</th>
-                                <th>Telefono</th>
+                                <th>Teléfono</th>
                                 {esClientes ? (
                                     <>
                                         <th>Ciudad</th>
@@ -187,7 +185,7 @@ const Table = ({ tipo = "clientes" }) => {
                                     </>
                                 ) : (
                                     <>
-                                        <th>Email verificado</th>
+                                        <th>Pedido</th>
                                         <th>Estado</th>
                                     </>
                                 )}
@@ -204,18 +202,18 @@ const Table = ({ tipo = "clientes" }) => {
                                         {!esClientes && item.nombreTienda && <div className="tbl-cell-sub">{item.nombreTienda}</div>}
                                     </td>
                                     <td className="tbl-email">{item.email}</td>
-                                    <td className="tbl-phone">{item.telefono || "N/D"}</td>
+                                    <td className="tbl-phone">{item.telefono || "Sin teléfono"}</td>
                                     {esClientes ? (
                                         <>
                                             <td style={{ fontSize: "0.82rem", color: "#6b7280" }}>
-                                                {item.ciudad || "N/D"}
+                                                {item.ciudad || "Sin ciudad"}
                                                 {item.direccion && <div style={{ fontSize: "0.72rem" }}>{item.direccion}</div>}
                                             </td>
                                             <td>{getEstadoBadge(item)}</td>
                                         </>
                                     ) : (
                                         <>
-                                            <td>{getVerificadoBadge(item)}</td>
+                                            <td>{Number(item.pedidosCount || 0)} pedido{Number(item.pedidosCount || 0) !== 1 ? "s" : ""}</td>
                                             <td>{getEstadoBadge(item)}</td>
                                         </>
                                     )}
@@ -225,7 +223,7 @@ const Table = ({ tipo = "clientes" }) => {
                                                 <MdPublishedWithChanges size={20} />
                                             </button>
                                         )}
-                                        <button title="Mas informacion" className="tbl-icon-btn blue" onClick={() => navigate(`/dashboard/visualizar/${item._id}`, { state: { tipo } })}>
+                                        <button title="Más información" className="tbl-icon-btn blue" onClick={() => navigate(`/dashboard/visualizar/${item._id}`, { state: { tipo } })}>
                                             <MdInfo size={20} />
                                         </button>
                                         <button title="Eliminar" className="tbl-icon-btn red" onClick={() => pedirConfirmacion(item)}>
@@ -251,8 +249,8 @@ const Table = ({ tipo = "clientes" }) => {
                                 <span className="tbl-card-value" style={{ fontSize: "0.78rem" }}>{item.email}</span>
                             </div>
                             <div className="tbl-card-row">
-                                <span className="tbl-card-label">Telefono</span>
-                                <span className="tbl-card-value">{item.telefono || "N/D"}</span>
+                                <span className="tbl-card-label">Teléfono</span>
+                                <span className="tbl-card-value">{item.telefono || "Sin teléfono"}</span>
                             </div>
                             {esClientes ? (
                                 <>
@@ -270,8 +268,8 @@ const Table = ({ tipo = "clientes" }) => {
                             ) : (
                                 <>
                                     <div className="tbl-card-row">
-                                        <span className="tbl-card-label">Verificacion</span>
-                                        {getVerificadoBadge(item)}
+                                        <span className="tbl-card-label">Pedido</span>
+                                        <span className="tbl-card-value">{Number(item.pedidosCount || 0)} pedido{Number(item.pedidosCount || 0) !== 1 ? "s" : ""}</span>
                                     </div>
                                     <div className="tbl-card-row">
                                         <span className="tbl-card-label">Estado</span>

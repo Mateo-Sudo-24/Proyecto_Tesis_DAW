@@ -373,7 +373,17 @@ const actualizarEstadoOrden = async (req, res) => {
     // VENDEDOR: Solo puede actualizar estadoEnvio y estadoOrden (envío)
     else if (rol === 'vendedor') {
       if (estadoPago !== undefined) {
-        return res.status(403).json({ msg: "Los vendedores no pueden actualizar el estado de pago." });
+        const nuevoEstadoPago = estadoPago === true || estadoPago === 'completado' ? 'completado'
+                              : estadoPago === false || estadoPago === 'pendiente' ? 'pendiente'
+                              : estadoPago;
+        if (nuevoEstadoPago !== 'completado') {
+          return res.status(403).json({ msg: "El vendedor solo puede confirmar pagos pendientes." });
+        }
+        if (orden.estadoPago !== 'completado') {
+          orden.estadoPago = 'completado';
+          orden.fechaPago = new Date();
+          if (orden.estadoOrden === 'pendiente') orden.estadoOrden = 'pagado';
+        }
       }
       if (estadoEnvio !== undefined) {
         orden.estadoEnvio = estadoEnvio;

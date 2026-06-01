@@ -1,6 +1,8 @@
 import { useEffect, useState } from "react";
 import { Link } from "react-router-dom";
 import { FaSearch, FaFilter, FaTimes } from "react-icons/fa";
+import { toast } from "react-toastify";
+import storeAuth from "../context/storeAuth";
 
 /* ── CSS interno (mismo sistema que Home, Nosotros y Contact) ── */
 const styles = `
@@ -268,6 +270,21 @@ const styles = `
         box-shadow: 0 3px 10px rgba(232,118,10,0.25);
     }
     .btn-ver-detalles:hover { background: var(--orange-dark); transform: translateY(-1px); }
+    .btn-add-cart {
+        width: 100%;
+        border: none;
+        border-radius: 0.625rem;
+        padding: 0.65rem 1rem;
+        background: #111827;
+        color: #fff;
+        font-weight: 800;
+        font-size: 0.875rem;
+        cursor: pointer;
+        margin-top: 0.5rem;
+        transition: background 0.18s, transform 0.15s;
+    }
+    .btn-add-cart:hover:not(:disabled) { background: var(--orange-dark); transform: translateY(-1px); }
+    .btn-add-cart:disabled { opacity: 0.55; cursor: not-allowed; }
 
     /* ── ESTADO VACÍO ── */
     .prod-empty {
@@ -296,6 +313,8 @@ const Products = () => {
     const [selectedColor, setSelectedColor]       = useState("");
     const [showFilters, setShowFilters]           = useState(false);
     const [colors, setColors]                     = useState([]);
+    const [agregando, setAgregando]               = useState(null);
+    const token = storeAuth(state => state.token);
 
     useEffect(() => {
         const fetchProductos = async () => {
@@ -332,6 +351,31 @@ const Products = () => {
     }, [searchTerm, priceRange, selectedColor, allProductos]);
 
     const handlePriceChange = (e) => setPriceRange([priceRange[0], parseInt(e.target.value)]);
+
+    const agregarAlCarrito = async (producto) => {
+        if (!token) {
+            toast.info('Inicia sesión para agregar productos al carrito.');
+            return;
+        }
+        const productoId = producto?._id;
+        if (!productoId) return;
+        const unidadSeleccionada = producto?.unidadVenta === 'rollo' ? 'rollo' : 'metro';
+        setAgregando(productoId);
+        try {
+            const res = await fetch(`${import.meta.env.VITE_BACKEND_URL}/carrito/items`, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
+                body: JSON.stringify({ productoId, cantidad: 1, unidadSeleccionada }),
+            });
+            const data = await res.json().catch(() => ({}));
+            if (!res.ok) throw new Error(data.msg || 'No se pudo agregar al carrito.');
+            toast.success(`${producto.nombre} agregado al carrito.`);
+        } catch (error) {
+            toast.error(error.message);
+        } finally {
+            setAgregando(null);
+        }
+    };
 
     return (
         <>
@@ -492,9 +536,21 @@ const Products = () => {
                                     <p style={{ margin: '0 0 0.75rem', color: '#6b7280', fontSize: '0.78rem', fontWeight: 700 }}>
                                         Unidad: {producto.unidadVenta || 'metro'}
                                     </p>
-                                    <Link to="/login" className="btn-ver-detalles">
+                                    <Link to={`/products/${producto._id}`} className="btn-ver-detalles">
                                         Ver Detalles
                                     </Link>
+                                    <button
+                                        type="button"
+                                        className="btn-add-cart"
+                                        disabled={agregando === producto._id || (producto.metrosDisponibles ?? 0) <= 0}
+                                        onClick={() => agregarAlCarrito(producto)}
+                                    >
+                                        {(producto.metrosDisponibles ?? 0) <= 0
+                                            ? 'Sin stock'
+                                            : agregando === producto._id
+                                                ? 'Agregando...'
+                                                : 'Añadir al carrito'}
+                                    </button>
                                 </div>
                             </div>
                         ))}
