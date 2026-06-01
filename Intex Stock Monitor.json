@@ -1,0 +1,440 @@
+{
+  "name": "Intex Stock Monitor",
+  "nodes": [
+    {
+      "parameters": {
+        "triggerTimes": {
+          "item": [
+            {}
+          ]
+        }
+      },
+      "id": "7e386093-7ec5-4bd3-8b53-1cc9b669d606",
+      "name": "Cron Trigger",
+      "type": "n8n-nodes-base.cron",
+      "typeVersion": 1,
+      "position": [
+        -4464,
+        64
+      ]
+    },
+    {
+      "parameters": {
+        "url": "https://intex-backend.onrender.com/api/productos/stock-critico",
+        "options": {
+          "fullResponse": false
+        },
+        "queryParametersUi": {
+          "parameter": [
+            {
+              "name": "umbral",
+              "value": "5"
+            }
+          ]
+        }
+      },
+      "id": "3dcbb501-628c-4d7a-a776-64ffc172e735",
+      "name": "Consultar stock critico",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 1,
+      "position": [
+        -4240,
+        64
+      ]
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "number": [
+            {
+              "value1": "={{ Array.isArray($json) ? $json.length : 0 }}",
+              "operation": "larger"
+            }
+          ]
+        }
+      },
+      "id": "7b2d9cdb-5a74-419a-9e49-e5559eeca749",
+      "name": "Hay productos criticos",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 1,
+      "position": [
+        -4016,
+        64
+      ]
+    },
+    {
+      "parameters": {
+        "functionCode": "var resp = $node[\"Consultar stock critico\"].json;\nvar productosCriticos = Array.isArray(resp) ? resp : (resp.productos || resp.data || []);\nif (!productosCriticos || productosCriticos.length === 0) return [];\nvar productosFormato = productosCriticos.map(function(p) {\n  return {\n    _id: p._id,\n    nombre: p.nombre || 'Producto',\n    descripcion: p.descripcion || '',\n    stock: p.stock || 0,\n    umbral: p.umbral != null ? p.umbral : (p.umbralCritico != null ? p.umbralCritico : 5),\n    precio: p.precio || 0\n  };\n});\nvar productosDetalle = productosFormato.map(function(p) {\n  return p.nombre + ' (Stock: ' + p.stock + ', umbral: ' + p.umbral + ')';\n}).join('; ');\nvar mensaje = 'ALERTA STOCK CRITICO: ' + productosFormato.length + ' producto(s) con stock bajo. ' + productosDetalle;\nreturn [{ json: { mensaje: mensaje, productos: productosFormato, tipo: 'stock_critico', cantidad: productosFormato.length } }];"
+      },
+      "id": "c84a9c2d-82cc-47ca-a764-d379d65179d3",
+      "name": "Preparar notificacion admin",
+      "type": "n8n-nodes-base.function",
+      "typeVersion": 1,
+      "position": [
+        -3792,
+        -32
+      ]
+    },
+    {
+      "parameters": {
+        "requestMethod": "POST",
+        "url": "https://intex-backend.onrender.com/api/notificaciones/webhook",
+        "jsonParameters": true,
+        "options": {
+          "fullResponse": false
+        },
+        "bodyParametersJson": "={{ { tipo: $json.tipo, mensaje: $json.mensaje, productos: $json.productos } }}"
+      },
+      "id": "8e8b38b7-23d9-4c3d-a81e-4c704c97df19",
+      "name": "Notificar al admin",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 1,
+      "position": [
+        -3568,
+        -32
+      ]
+    },
+    {
+      "parameters": {
+        "values": {
+          "string": [
+            {
+              "name": "estado",
+              "value": "Notificacion de stock critico enviada al administrador."
+            }
+          ]
+        },
+        "options": {}
+      },
+      "id": "654e1f5a-4e34-48b2-91aa-cd3e973b5d9d",
+      "name": "Log - Notificacion enviada",
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 1,
+      "position": [
+        -3344,
+        -32
+      ]
+    },
+    {
+      "parameters": {
+        "values": {
+          "string": [
+            {
+              "name": "estado",
+              "value": "Revision completada. Sin productos con stock critico."
+            }
+          ]
+        },
+        "options": {}
+      },
+      "id": "a07e7671-6c57-4a89-982a-f93a67a8dd92",
+      "name": "Log - Sin alertas",
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 1,
+      "position": [
+        -3792,
+        160
+      ]
+    },
+    {
+      "parameters": {
+        "triggerTimes": {
+          "item": [
+            {}
+          ]
+        }
+      },
+      "id": "99fcc423-0eb4-4119-9f02-c02feb867114",
+      "name": "Cron - Polling Aprobadas",
+      "type": "n8n-nodes-base.cron",
+      "typeVersion": 1,
+      "position": [
+        -4464,
+        480
+      ]
+    },
+    {
+      "parameters": {
+        "url": "https://intex-backend.onrender.com/api/notificaciones/webhook/aprobadas",
+        "options": {
+          "fullResponse": false
+        }
+      },
+      "id": "aba2a4c9-ca99-452c-95d6-daaa3005146e",
+      "name": "Consultar aprobadas",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 1,
+      "position": [
+        -4240,
+        480
+      ]
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "number": [
+            {
+              "value1": "={{ $json.total }}",
+              "operation": "larger"
+            }
+          ]
+        }
+      },
+      "id": "f116d493-bd73-4041-89e8-6de82a657110",
+      "name": "Hay aprobadas pendientes",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 1,
+      "position": [
+        -4016,
+        480
+      ]
+    },
+    {
+      "parameters": {
+        "functionCode": "var data = $json.notificaciones || [];\nif (data.length === 0) return [];\nreturn data.map(function(n) {\n  return { json: {\n    idNotificacion: String(n._id),\n    mensaje: n.mensaje || '',\n    productos: Array.isArray(n.productos) ? n.productos : []\n  }};\n});"
+      },
+      "id": "cb35dd50-f5d4-46e9-bbb0-fb62172c9127",
+      "name": "Separar por notificacion",
+      "type": "n8n-nodes-base.function",
+      "typeVersion": 1,
+      "position": [
+        -3792,
+        384
+      ]
+    },
+    {
+      "parameters": {
+        "functionCode": "var productos = $json.productos || [];\nvar idNotificacion = $json.idNotificacion || '';\nvar ahora = new Date();\nvar opciones = { timeZone: 'America/Guayaquil', day: '2-digit', month: '2-digit', year: 'numeric', hour: '2-digit', minute: '2-digit' };\nvar fechaStr = ahora.toLocaleDateString('es-EC', opciones);\nvar listaProductos = productos.length > 0\n  ? productos.map(function(p) {\n      return '  - ' + p.nombre\n        + ' | Stock actual: ' + p.stock + ' unidades'\n        + ' | Umbral minimo: ' + (p.umbral || 5) + ' unidades'\n        + (p.descripcion ? ' | ' + p.descripcion : '');\n    }).join('\\n')\n  : '  - (Ver detalle en el sistema Intex)';\nvar asunto = 'Solicitud de reposicion de stock - Intex - ' + ahora.toLocaleDateString('es-EC', { timeZone: 'America/Guayaquil', day: '2-digit', month: '2-digit', year: 'numeric' });\nvar cuerpo = [\n  'Estimado proveedor,',\n  '',\n  'Le informamos que tras la revision automatica de inventario del ' + fechaStr + ',',\n  'los siguientes productos requieren reposicion urgente:',\n  '',\n  listaProductos,\n  '',\n  'Solicitamos amablemente confirmar:',\n  '  1. Disponibilidad de los productos listados',\n  '  2. Cantidad maxima disponible para entrega inmediata',\n  '  3. Tiempo estimado de entrega',\n  '  4. Precio unitario actualizado si hubiera cambios',\n  '',\n  'Este pedido fue aprobado por el administrador de Intex.',\n  '',\n  'Saludos cordiales,',\n  'Sistema Intex - Gestion de Inventario',\n  'Referencia: ' + idNotificacion,\n  'Fecha: ' + fechaStr\n].join('\\n');\nreturn [{ json: { asunto: asunto, cuerpo: cuerpo, idNotificacion: idNotificacion, cantidadProductos: productos.length } }];"
+      },
+      "id": "328db712-38e4-4fd0-8ede-047aceeeea40",
+      "name": "Construir email poll",
+      "type": "n8n-nodes-base.function",
+      "typeVersion": 1,
+      "position": [
+        -3568,
+        384
+      ]
+    },
+    {
+      "parameters": {
+        "requestMethod": "POST",
+        "url": "https://api.brevo.com/v3/smtp/email",
+        "options": {
+          "fullResponse": false
+        },
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            { "name": "api-key", "value": "={{ $env.BREVO_API_KEY }}" },
+            { "name": "Content-Type", "value": "application/json" }
+          ]
+        },
+        "sendBody": true,
+        "bodyParameters": {
+          "parameters": []
+        },
+        "specifyBody": "json",
+        "jsonBody": "={{ JSON.stringify({ \"sender\": { \"name\": \"Intex Stock Monitor\", \"email\": \"{{ $env.BREVO_SENDER_EMAIL }}\" }, \"to\": [{ \"email\": \"mateokabuto@gmail.com\" }], \"subject\": $json.asunto, \"textContent\": $json.cuerpo }) }}"
+      },
+      "id": "c53bd2b4-be74-4644-8aa2-218c38057cc9",
+      "name": "Enviar email proveedor poll",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4,
+      "position": [
+        -3344,
+        384
+      ]
+    },
+    {
+      "parameters": {
+        "requestMethod": "PATCH",
+        "url": "={{ `https://intex-backend.onrender.com/api/notificaciones/webhook/${$node[\"Construir email poll\"].json.idNotificacion}/leida` }}",
+        "options": {
+          "fullResponse": false
+        }
+      },
+      "id": "c806e611-4cde-4e58-b21b-2d45ce71f4fa",
+      "name": "Marcar como completada",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 1,
+      "position": [
+        -3120,
+        384
+      ]
+    },
+    {
+      "parameters": {
+        "values": {
+          "string": [
+            {
+              "name": "estado",
+              "value": "Polling: sin notificaciones aprobadas pendientes."
+            }
+          ]
+        },
+        "options": {}
+      },
+      "id": "e94ba66c-2b9e-44b7-a852-01c63033c4c7",
+      "name": "Log - Sin aprobaciones",
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 1,
+      "position": [
+        -3792,
+        576
+      ]
+    }
+  ],
+  "pinData": {},
+  "connections": {
+    "Cron Trigger": {
+      "main": [
+        [
+          {
+            "node": "Consultar stock critico",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Consultar stock critico": {
+      "main": [
+        [
+          {
+            "node": "Hay productos criticos",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Hay productos criticos": {
+      "main": [
+        [
+          {
+            "node": "Preparar notificacion admin",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Log - Sin alertas",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Preparar notificacion admin": {
+      "main": [
+        [
+          {
+            "node": "Notificar al admin",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Notificar al admin": {
+      "main": [
+        [
+          {
+            "node": "Log - Notificacion enviada",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Cron - Polling Aprobadas": {
+      "main": [
+        [
+          {
+            "node": "Consultar aprobadas",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Consultar aprobadas": {
+      "main": [
+        [
+          {
+            "node": "Hay aprobadas pendientes",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Hay aprobadas pendientes": {
+      "main": [
+        [
+          {
+            "node": "Separar por notificacion",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Log - Sin aprobaciones",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Separar por notificacion": {
+      "main": [
+        [
+          {
+            "node": "Construir email poll",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Construir email poll": {
+      "main": [
+        [
+          {
+            "node": "Enviar email proveedor poll",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Enviar email proveedor poll": {
+      "main": [
+        [
+          {
+            "node": "Marcar como completada",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "active": true,
+  "settings": {
+    "executionOrder": "v1",
+    "binaryMode": "separate",
+    "timeSavedMode": "fixed",
+    "callerPolicy": "workflowsFromSameOwner",
+    "availableInMCP": false
+  },
+  "versionId": "86357149-b3c6-4147-ae5e-8fdd746302cc",
+  "meta": {
+    "templateCredsSetupCompleted": true,
+    "instanceId": "93a0f1c257b8d6d147bd1754ee1f668e4d869dc02ba4759be09c4ea4f1afba51"
+  },
+  "id": "YhMaqyZpX1y2G9Jy",
+  "tags": []
+}
