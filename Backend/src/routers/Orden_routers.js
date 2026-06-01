@@ -1,6 +1,7 @@
 import { Router } from "express";
 import {
   registrarOrden,
+  registrarOrdenTienda,
   listarOrdenes,
   detalleOrden,
   actualizarEstadoOrden,
@@ -28,6 +29,7 @@ router.get('/reporte', esAdmin, reporteVentas);
 router.post('/pagar', procesarPagoOrden);
 
 // --- RUTAS CRUD DE ÓRDENES Y CANCELACIÓN ---
+router.post('/tienda', esVendedor, registrarOrdenTienda);
 router.post('/', registrarOrden);
 router.get('/', listarOrdenes);
 router.get('/:id', detalleOrden);

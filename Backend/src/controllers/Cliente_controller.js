@@ -182,7 +182,8 @@ const actualizarPerfil = async (req, res) => {
                 Vendedor.findOne({ email: emailNuevo }).lean(),
             ]);
             if (cliConf || adminConf || vendConf) {
-                return res.status(400).json({ msg: "Este correo ya está registrado en el sistema." });
+                const rolExistente = adminConf ? 'administrador' : vendConf ? 'vendedor' : 'cliente';
+                return res.status(400).json({ msg: `Este correo ya está registrado como ${rolExistente}. No se puede usar en otro rol.` });
             }
             datosActualizar.email = emailNuevo;
         }
@@ -326,7 +327,21 @@ const actualizarClientePorAdmin = async (req, res) => {
     try {
         // Se elimina la búsqueda previa y la verificación de propiedad.
         // Se actualiza el documento directamente.
-        const clienteActualizado = await Cliente.findByIdAndUpdate(id, req.body, { new: true }).select("-password -token -__v");
+        const datosActualizar = { ...req.body };
+        if (datosActualizar.email) {
+            const emailNuevo = datosActualizar.email.toLowerCase().trim();
+            const [cliConf, adminConf, vendConf] = await Promise.all([
+                Cliente.findOne({ email: emailNuevo, _id: { $ne: id } }).lean(),
+                Administrador.findOne({ email: emailNuevo }).lean(),
+                Vendedor.findOne({ email: emailNuevo }).lean(),
+            ]);
+            if (cliConf || adminConf || vendConf) {
+                const rolExistente = adminConf ? 'administrador' : vendConf ? 'vendedor' : 'cliente';
+                return res.status(400).json({ msg: `Este correo ya está registrado como ${rolExistente}. No se puede usar en otro rol.` });
+            }
+            datosActualizar.email = emailNuevo;
+        }
+        const clienteActualizado = await Cliente.findByIdAndUpdate(id, datosActualizar, { new: true }).select("-password -token -__v");
         if (!clienteActualizado) return res.status(404).json({ msg: "Cliente no encontrado." });
         res.status(200).json({ msg: "Cliente actualizado exitosamente.", cliente: clienteActualizado });
     } catch (error) {

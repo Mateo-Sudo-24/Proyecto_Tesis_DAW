@@ -98,7 +98,8 @@ const actualizar = async (req, res) => {
                 Cliente.findOne({ email: emailNuevo }).lean(),
             ]);
             if (adminConf || vendConf || cliConf) {
-                return res.status(400).json({ msg: "Este correo ya está registrado en el sistema." });
+                const rolExistente = adminConf ? 'administrador' : vendConf ? 'vendedor' : 'cliente';
+                return res.status(400).json({ msg: `Este correo ya está registrado como ${rolExistente}. Usa un correo distinto para este usuario.` });
             }
             datosActualizar.email = emailNuevo;
         }

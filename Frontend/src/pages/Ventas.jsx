@@ -15,6 +15,8 @@ const pageStyles = `
     .vt-metric-value { font-size:1.75rem; font-weight:900; color:#111827; margin:0; }
     .vt-metric-value.orange { color:var(--orange-main); }
     .vt-filters { display:flex; gap:0.75rem; flex-wrap:wrap; align-items:center; margin-bottom:1.25rem; }
+    .vt-refresh-btn { padding:0.55rem 0.9rem; border-radius:0.625rem; border:none; background:var(--orange-main); color:#fff; font-size:0.85rem; font-weight:800; cursor:pointer; }
+    .vt-refresh-btn:hover { background:var(--orange-dark); }
     .vt-select { padding:0.55rem 0.9rem; border:1.5px solid #e5e7eb; border-radius:0.625rem; font-size:0.875rem; color:#374151; background:#fff; outline:none; cursor:pointer; }
     .vt-select:focus { border-color:var(--orange-main); }
     .vt-table-wrap { background:#fff; border:1px solid #e5e7eb; border-radius:1rem; overflow:hidden; box-shadow:0 1px 6px rgba(0,0,0,0.06); }
@@ -31,6 +33,8 @@ const pageStyles = `
     .vt-badge.listo      { background:#e0f2fe; color:#075985; }
     .vt-badge.entregado  { background:#d1fae5; color:#065f46; }
     .vt-badge.cancelado  { background:#fee2e2; color:#991b1b; }
+    .vt-badge.realizado  { background:#d1fae5; color:#065f46; }
+    .vt-badge.fallido    { background:#fee2e2; color:#991b1b; }
     .vt-empty { text-align:center; padding:3rem 1rem; color:#9ca3af; }
     .vt-spinner { text-align:center; padding:3rem; color:#9ca3af; }
     .vt-pagination { display:flex; align-items:center; justify-content:center; gap:0.5rem; padding:0.875rem; border-top:1px solid #f3f4f6; flex-wrap:wrap; }
@@ -43,12 +47,12 @@ const pageStyles = `
 const ITEMS_PER_PAGE = 10;
 const getOrderTotal = (orden) => Number(orden?.totalFinal ?? orden?.precioTotal ?? orden?.total ?? 0) || 0;
 const getPagoEstado = (estadoPago) => {
-    if (estadoPago === true || estadoPago === 'true' || estadoPago === 'completado' || estadoPago === 'pagado') return 'completado';
+    if (estadoPago === true || estadoPago === 'true' || estadoPago === 'completado' || estadoPago === 'pagado') return 'realizado';
     if (estadoPago === 'fallido') return 'fallido';
     return 'pendiente';
 };
 const cuentaComoIngreso = (orden) =>
-    orden.estadoOrden === 'entregado' || (orden.tipoEntrega === 'venta_local' && getPagoEstado(orden.estadoPago) === 'completado');
+    orden.estadoOrden === 'entregado' || (orden.tipoEntrega === 'venta_local' && getPagoEstado(orden.estadoPago) === 'realizado');
 
 const Ventas = () => {
     const { token } = storeAuth();
@@ -107,6 +111,9 @@ const Ventas = () => {
                         <h1 className="vt-title">Reporte de Ventas</h1>
                         <p className="vt-sub">Historial de pedidos y facturacion</p>
                     </div>
+                    <button className="vt-refresh-btn" type="button" onClick={() => window.location.reload()}>
+                        Refrescar ventas
+                    </button>
                 </div>
 
                 <div className="vt-metrics">
@@ -132,7 +139,7 @@ const Ventas = () => {
                     <select className="vt-select" value={filtroPago} onChange={e => { setFiltroPago(e.target.value); setPage(1); }}>
                         <option value="">Todos los pagos</option>
                         <option value="pendiente">Pago pendiente</option>
-                        <option value="completado">Pago completado</option>
+                        <option value="realizado">Pago realizado</option>
                         <option value="fallido">Pago fallido</option>
                     </select>
                     <select className="vt-select" value={filtroTipo} onChange={e => { setFiltroTipo(e.target.value); setPage(1); }}>

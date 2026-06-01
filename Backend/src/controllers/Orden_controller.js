@@ -45,6 +45,35 @@ const validarAvanceManualOrden = (estadoActualRaw, estadoSiguiente) => {
         && indiceSiguiente === indiceActual + 1;
 };
 
+const crearEmailGuest = () => `guest.${Date.now()}.${Math.random().toString(36).slice(2, 7)}@intex.local`;
+
+const normalizarDatosFacturacion = (datos = {}) => {
+    const ruc = soloDigitos(datos.ruc);
+    const telefono = soloDigitos(datos.telefono);
+    return {
+        nombre: limpiarTexto(datos.nombre),
+        apellido: limpiarTexto(datos.apellido),
+        correo: limpiarTexto(datos.correo).toLowerCase(),
+        direccion: limpiarTexto(datos.direccion),
+        ruc: /^(\d{10}|\d{13})$/.test(ruc) ? ruc : undefined,
+        telefono: /^0\d{8,9}$/.test(telefono) ? telefono : '',
+    };
+};
+
+const seleccionarVendedorRotativo = async () => {
+    const vendedoresActivos = await Vendedor.find({ status: 'activo' }).select('_id').sort({ createdAt: 1 }).lean();
+    if (vendedoresActivos.length === 0) return undefined;
+    if (vendedoresActivos.length === 1) return vendedoresActivos[0]._id;
+
+    const ultimaOrdenConVendedor = await Orden.findOne({ vendedor: { $exists: true, $ne: null } })
+        .select('vendedor')
+        .sort({ createdAt: -1 })
+        .lean();
+    const ultimoIndex = vendedoresActivos.findIndex(v => String(v._id) === String(ultimaOrdenConVendedor?.vendedor));
+    const siguienteIndex = ultimoIndex === -1 ? 0 : (ultimoIndex + 1) % vendedoresActivos.length;
+    return vendedoresActivos[siguienteIndex]._id;
+};
+
 // ─── Helper: crear notificación de pago para todos los admins ───────────────
 const crearNotificacionNuevaOrden = async (orden) => {
     try {
@@ -145,7 +174,7 @@ const crearNotificacionConfirmacionVendedores = async (orden) => {
 // Crear una nueva orden
 const registrarOrden = async (req, res) => {
     const clienteId = req.usuario._id;
-    const { direccionEnvio, metodoPago, tipoEntrega, datosFacturacion, desglose, vendedorId } = req.body;
+    const { direccionEnvio, metodoPago, tipoEntrega, datosFacturacion, desglose } = req.body;
 
     // Para venta_local o establecimiento, direccionEnvio puede ser null/vacío
     const tipoEntregaFinal = tipoEntrega || 'domicilio';
@@ -223,11 +252,9 @@ const registrarOrden = async (req, res) => {
             }
             : undefined;
 
-        let vendedorAsignado = req.usuario.rol === 'vendedor' ? req.usuario._id : vendedorId;
-        if (!vendedorAsignado) {
-            const vendedorActivo = await Vendedor.findOne({ status: 'activo' }).select('_id');
-            vendedorAsignado = vendedorActivo?._id;
-        }
+        const vendedorAsignado = req.usuario.rol === 'vendedor'
+            ? req.usuario._id
+            : await seleccionarVendedorRotativo();
 
         const orden = new Orden({
             cliente: clienteId,
@@ -272,6 +299,156 @@ const registrarOrden = async (req, res) => {
         }
         console.error("Error al registrar la orden:", error);
         res.status(500).json({ msg: "Error en el servidor al registrar la orden." });
+    }
+};
+
+const registrarOrdenTienda = async (req, res) => {
+    if (req.usuario.rol !== 'vendedor') {
+        return res.status(403).json({ msg: "Solo los vendedores pueden registrar pedidos en tienda." });
+    }
+
+    const { items = [], cliente = {}, metodoPago = 'Pago efectivo / tarjeta debito', desglose } = req.body;
+    if (!Array.isArray(items) || items.length === 0) {
+        return res.status(400).json({ msg: "Agrega al menos un producto para registrar la venta." });
+    }
+
+    const nombreCliente = limpiarTexto(cliente.nombre);
+    if (!nombreCliente) {
+        return res.status(400).json({ msg: "El nombre del cliente es obligatorio." });
+    }
+
+    const emailCliente = limpiarTexto(cliente.email).toLowerCase();
+
+    try {
+        const ids = items.map(item => item.productoId).filter(Boolean);
+        const productos = await Producto.find({ _id: { $in: ids } });
+        const productosMap = new Map(productos.map(producto => [String(producto._id), producto]));
+
+        const productosPedido = items.map(item => {
+            const producto = productosMap.get(String(item.productoId));
+            if (!producto) throw new Error("Uno de los productos seleccionados ya no existe.");
+
+            const cantidad = Number(item.cantidad);
+            const unidad = item.unidadSeleccionada === 'rollo' ? 'rollo' : 'metro';
+            if (!Number.isFinite(cantidad) || cantidad <= 0) {
+                throw new Error(`Cantidad inválida para ${producto.nombre}.`);
+            }
+
+            const cantidadFinal = unidad === 'rollo' ? Math.ceil(cantidad) : cantidad;
+            const metrosRequeridos = unidad === 'rollo'
+                ? cantidadFinal * (producto.metrosPorRollo || 100)
+                : cantidadFinal;
+            if ((producto.metrosDisponibles ?? 0) < metrosRequeridos) {
+                throw new Error(`Stock insuficiente para: ${producto.nombre}`);
+            }
+
+            const precioUnitario = unidad === 'rollo'
+                ? (producto.precioPorRollo || producto.precio)
+                : (producto.precioPorMetro || producto.precio);
+            const descuentoPct = producto.descuento || 0;
+            const precioConDesc = precioUnitario * (1 - descuentoPct / 100);
+
+            return {
+                nombre: producto.nombre,
+                cantidad: cantidadFinal,
+                unidadSeleccionada: unidad,
+                imagen: producto.imagenUrl,
+                precio: precioUnitario,
+                precioUnitario,
+                descuento: descuentoPct,
+                subtotal: cantidadFinal * precioConDesc,
+                producto: producto._id,
+                metrosRequeridos
+            };
+        });
+
+        let clienteOrden = emailCliente
+            ? await Cliente.findOne({ email: emailCliente })
+            : null;
+
+        if (emailCliente && !clienteOrden) {
+            const [adminConCorreo, vendedorConCorreo] = await Promise.all([
+                Administrador.findOne({ email: emailCliente }).lean(),
+                Vendedor.findOne({ email: emailCliente }).lean()
+            ]);
+            if (adminConCorreo || vendedorConCorreo) {
+                const rolExistente = adminConCorreo ? 'administrador' : 'vendedor';
+                return res.status(400).json({ msg: `Este correo ya está registrado como ${rolExistente}. Usa otro correo para el cliente guest.` });
+            }
+        }
+
+        if (!clienteOrden) {
+            clienteOrden = new Cliente({
+                nombre: nombreCliente,
+                apellido: limpiarTexto(cliente.apellido),
+                email: emailCliente || crearEmailGuest(),
+                telefono: soloDigitos(cliente.telefono),
+                direccion: limpiarTexto(cliente.direccion),
+                password: Math.random().toString(36).slice(2) + Date.now(),
+                confirmEmail: false,
+                creadoPor: req.usuario._id
+            });
+            clienteOrden.crearToken();
+            await clienteOrden.save();
+        }
+
+        const IVA_RATE = 0.15;
+        const subtotalBase = productosPedido.reduce((s, item) => s + item.subtotal, 0);
+        const subtotal = Number(desglose?.subtotal) || subtotalBase;
+        const descuentoTotal = Number(desglose?.descuentoTotal) || 0;
+        const iva = Number(desglose?.iva) || Number((subtotal * IVA_RATE).toFixed(2));
+        const envio = Number(desglose?.envio) || 0;
+        const comisionPago = Number(desglose?.comisionPago) || 0;
+        const totalFinal = Number(desglose?.totalFinal) || Number((subtotal + iva + envio + comisionPago).toFixed(2));
+
+        const datosFacturacion = normalizarDatosFacturacion({
+            nombre: clienteOrden.nombre,
+            apellido: clienteOrden.apellido,
+            correo: clienteOrden.email,
+            direccion: clienteOrden.direccion,
+            telefono: clienteOrden.telefono,
+            ruc: cliente.ruc
+        });
+
+        const orden = await Orden.create({
+            cliente: clienteOrden._id,
+            vendedor: req.usuario._id,
+            productoPedido: productosPedido.map(({ metrosRequeridos, ...item }) => item),
+            metodoPago,
+            precioTotal: totalFinal,
+            subtotal,
+            descuentoTotal,
+            iva,
+            envio,
+            comisionPago,
+            totalFinal,
+            tipoEntrega: 'venta_local',
+            origenPedido: 'tienda',
+            clienteGuest: !emailCliente || !clienteOrden.confirmEmail,
+            datosFacturacion,
+            estadoPago: 'completado',
+            estadoOrden: 'pagado',
+            fechaPago: new Date()
+        });
+
+        await Promise.all(productosPedido.map(item =>
+            Producto.findByIdAndUpdate(item.producto, { $inc: { metrosDisponibles: -item.metrosRequeridos } })
+        ));
+
+        crearNotificacionNuevaOrden(orden).catch(() => {});
+
+        const ordenPopulada = await Orden.findById(orden._id)
+            .populate("cliente", "nombre apellido email")
+            .populate("vendedor", "nombre apellido nombrePropietario email")
+            .populate("productoPedido.producto", "nombre");
+
+        res.status(201).json({ msg: "Pedido en tienda registrado correctamente.", orden: ordenPopulada, cliente: clienteOrden });
+    } catch (error) {
+        if (error.message.includes('Stock insuficiente') || error.message.includes('inválida') || error.message.includes('ya no existe')) {
+            return res.status(400).json({ msg: error.message });
+        }
+        console.error("Error al registrar la orden en tienda:", error);
+        res.status(500).json({ msg: "Error en el servidor al registrar el pedido en tienda." });
     }
 };
 
@@ -390,6 +567,9 @@ const actualizarEstadoOrden = async (req, res) => {
         orden.fechaEnvio = estadoEnvio ? new Date() : null;
       }
       if (estadoOrden) {
+        if (orden.estadoPago !== 'completado') {
+          return res.status(400).json({ msg: "Primero marca el pago como realizado para avanzar el pedido." });
+        }
         // Vendedor gestiona manualmente el flujo pagado -> procesando -> listo -> entregado.
         if (!validarAvanceManualOrden(orden.estadoOrden, estadoOrden)) {
           return res.status(400).json({ msg: "El estado de la orden solo puede avanzar al siguiente paso: procesando, listo, entregado." });
@@ -584,12 +764,16 @@ const procesarPagoOrden = async (req, res) => {
         const metodosInmediatos = ['Transferencia Bancaria', 'Efectivo', 'Contra Entrega', 'PayPal', 'De Una',
                                    'Pago contra entrega', 'Pago efectivo / tarjeta débito', 'Pago efectivo / tarjeta debito'];
         if (metodosInmediatos.includes(orden.metodoPago) || esPagoPresencial(orden.metodoPago)) {
-            orden.estadoPago = 'completado';
-            orden.estadoOrden = 'pagado';
-            orden.fechaPago = new Date();
+            orden.estadoPago = 'pendiente';
+            orden.estadoOrden = 'pendiente';
+            orden.fechaPago = null;
             await orden.save();
-            await crearNotificacionPago(orden);
-            return res.status(200).json({ msg: "Pago registrado exitosamente.", estadoPago: 'completado', estadoOrden: 'pagado' });
+            return res.status(200).json({
+                msg: "Pedido registrado. El vendedor debe comprobar el pago antes de marcarlo como realizado.",
+                orden,
+                estadoPago: 'pendiente',
+                estadoOrden: 'pendiente'
+            });
         }
 
         // ─── Pago con Stripe (Tarjeta de Crédito / Stripe) ──────────────────
@@ -706,6 +890,7 @@ const reporteVentas = async (req, res) => {
 
 export {
   registrarOrden,
+  registrarOrdenTienda,
   listarOrdenes,
   detalleOrden,
   actualizarEstadoOrden,

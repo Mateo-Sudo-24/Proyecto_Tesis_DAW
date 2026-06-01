@@ -1,6 +1,7 @@
 import { useEffect, useState, useRef } from 'react'
 import PropTypes from 'prop-types'
 import { toast } from 'react-toastify'
+import { useNavigate } from 'react-router-dom'
 import useFetch from '../../hooks/useFetch.js'
 import storeProfile from '../../context/storeProfile'
 import deUnaQr from '../../assets/deuna.jpg'
@@ -21,9 +22,10 @@ const numeroSeguro = (value) => {
 }
 
 const metodosCliente = [
-    { value: 'Pago por tarjeta en linea', label: 'Tarjeta en linea', helper: 'Pago con Stripe para tarjeta de credito o debito.' },
-    { value: 'De Una', label: 'De Una', helper: 'Pago por QR. Conserva el comprobante para validacion.' },
-    { value: 'Pago efectivo / tarjeta debito', label: 'Efectivo / tarjeta debito', helper: 'Pago presencial en efectivo o tarjeta de debito.' },
+    { value: 'Pago por tarjeta en linea', label: 'Tarjeta en línea', helper: 'Pago con Stripe para tarjeta de crédito o débito.' },
+    { value: 'De Una', label: 'De Una', helper: 'Pago por QR. Conserva el comprobante para validación del vendedor.' },
+    { value: 'Transferencia Bancaria', label: 'Transferencia bancaria', helper: 'El vendedor comprobará el pago antes de marcarlo como realizado.' },
+    { value: 'Pago efectivo / tarjeta debito', label: 'Efectivo / tarjeta débito', helper: 'Pago presencial comprobado por el vendedor.' },
 ]
 
 const metodosVendedor = metodosCliente
@@ -484,16 +486,19 @@ const ModalOrdenPago = ({
 }) => {
     const { fetchDataBackend } = useFetch()
     const { user } = storeProfile()
+    const navigate = useNavigate()
     const [form, setForm] = useState({ nombre: '', apellido: '', ruc: '', email: '', telefono: '', direccion: '' })
     const isVendedor = user?.rol === 'vendedor'
     const metodosPago = isVendedor ? metodosVendedor : metodosCliente
     const [metodoPago, setMetodoPago] = useState(metodosPago[0].value)
-    const [direccionDomicilio] = useState('CAVA CORP - Almacenes Intex')
+    const [direccionDomicilio, setDireccionDomicilio] = useState('CAVA CORP - Almacenes Intex')
+    const [coordsDomicilio, setCoordsDomicilio] = useState(CAVA_COORDS)
     const [mapaVisible, setMapaVisible] = useState(false)
     const [isCreating, setIsCreating] = useState(false)
     const [errors, setErrors] = useState({})
     const mapContainerRef = useRef(null)
     const leafletMapRef = useRef(null)
+    const leafletMarkerRef = useRef(null)
     const nombreVendedor = vendedorAsignado
         ? `${vendedorAsignado.nombrePropietario || vendedorAsignado.nombre || ''} ${vendedorAsignado.apellido || ''}`.trim()
         : 'Asignacion automatica'
@@ -532,17 +537,27 @@ const ModalOrdenPago = ({
                 if (!leafletMapRef.current) {
                     leafletMapRef.current = L.map(mapContainerRef.current, {
                         scrollWheelZoom: false,
-                    }).setView(CAVA_COORDS, 17)
+                    }).setView(coordsDomicilio, 17)
 
                     L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
                         maxZoom: 19,
                         attribution: '&copy; OpenStreetMap',
                     }).addTo(leafletMapRef.current)
 
-                    L.marker(CAVA_COORDS)
+                    leafletMarkerRef.current = L.marker(coordsDomicilio)
                         .addTo(leafletMapRef.current)
                         .bindPopup('CAVA CORP - Almacenes Intex')
                         .openPopup()
+
+                    leafletMapRef.current.on('click', (event) => {
+                        const nextCoords = [event.latlng.lat, event.latlng.lng]
+                        setCoordsDomicilio(nextCoords)
+                        setDireccionDomicilio(`Ubicación seleccionada (${event.latlng.lat.toFixed(6)}, ${event.latlng.lng.toFixed(6)})`)
+                        leafletMarkerRef.current
+                            ?.setLatLng(nextCoords)
+                            .bindPopup('Tu ubicación de entrega')
+                            .openPopup()
+                    })
                 }
 
                 setTimeout(() => leafletMapRef.current?.invalidateSize(), 80)
@@ -554,7 +569,7 @@ const ModalOrdenPago = ({
         return () => {
             cancelled = true
         }
-    }, [mapaVisible])
+    }, [mapaVisible, coordsDomicilio])
 
     const validate = () => {
         const errs = {}
@@ -641,12 +656,11 @@ const ModalOrdenPago = ({
         setIsCreating(false)
 
         if (pagoRes) {
-            const msg = ['domicilio'].includes(tipoEntrega)
-                ? 'Pedido enviado. Tu pedido esta en camino.'
-                : tipoEntrega === 'venta_local'
-                ? 'Venta registrada exitosamente.'
-                : 'Pedido listo. Pasa a retirarlo en nuestros almacenes.'
-            toast.success(msg)
+            const requiereComprobacion = metodoPago !== 'Pago por tarjeta en linea'
+            const msg = requiereComprobacion
+                ? 'Pedido registrado. Comunícate con tu vendedor por el chat para comprobar el pago.'
+                : 'Pedido registrado exitosamente.'
+            toast[requiereComprobacion ? 'info' : 'success'](msg)
             onOrdenCreada(pagoRes.orden ?? ordenRecien, {
                 nombre: form.nombre,
                 apellido: form.apellido,
@@ -655,6 +669,13 @@ const ModalOrdenPago = ({
                 ruc: form.ruc,
                 telefono: form.telefono,
             })
+            if (requiereComprobacion) {
+                localStorage.setItem('intex-chat-prefill', JSON.stringify({
+                    vendedorId: vendedorAsignado?.id || vendedorAsignado?._id || null,
+                    texto: `Hola, realicé mi pedido con ${metodoPago}. Por favor ayúdame a comprobar el pago para que el vendedor lo marque como pago realizado.`
+                }))
+                setTimeout(() => navigate('/dashboard/chat'), 1400)
+            }
         }
     }
 
@@ -692,7 +713,7 @@ const ModalOrdenPago = ({
                                     <span style={{ flex:1 }}>{direccionDomicilio}</span>
                                 </div>
                                 {errors.mapaDireccion && (
-                                    <span className="op-error-msg" style={{ display:'block', marginTop:'0.4rem' }}>? {errors.mapaDireccion}</span>
+                                    <span className="op-error-msg" style={{ display:'block', marginTop:'0.4rem' }}>! {errors.mapaDireccion}</span>
                                 )}
                             </div>
                             <button
@@ -700,8 +721,8 @@ const ModalOrdenPago = ({
                                 className="mop-mapa-toggle"
                                 onClick={() => setMapaVisible(v => !v)}
                             >
-                                Ver ubicación en el mapa
-                                <span className={`mop-mapa-chevron${mapaVisible ? ' open' : ''}`}>â–¼</span>
+                                Aplasta aquí para poner tu ubicación
+                                <span className={`mop-mapa-chevron${mapaVisible ? ' open' : ''}`}>▼</span>
                             </button>
                             <div className={`mop-mapa-body${mapaVisible ? ' open' : ''}`}>
                                 <div className="mop-mapa-iframe-wrap">

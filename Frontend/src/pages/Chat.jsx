@@ -392,6 +392,23 @@ const Chat = () => {
             .catch(() => {});
     }, [token, isStaff]);
 
+    useEffect(() => {
+        if (isStaff || vendedores.length === 0) return;
+        const rawPrefill = localStorage.getItem('intex-chat-prefill');
+        if (!rawPrefill) return;
+        try {
+            const prefill = JSON.parse(rawPrefill);
+            const vendedor = vendedores.find(v => String(v.id || v._id) === String(prefill.vendedorId)) || vendedores[0];
+            setContactoActivo(vendedor);
+            setShowConversacion(true);
+            reset({ mensaje: prefill.texto || '' });
+        } catch {
+            reset({ mensaje: '' });
+        } finally {
+            localStorage.removeItem('intex-chat-prefill');
+        }
+    }, [isStaff, vendedores, reset]);
+
     // Conexión al socket
     useEffect(() => {
         if (!token) return;

@@ -130,7 +130,7 @@ const defaultCategorias = [
 
 export const FormProducto = ({ productoToUpdate, onSuccess, onCancel }) => {
     const navigate = useNavigate();
-    const { register, handleSubmit, formState: { errors }, reset } = useForm();
+    const { register, handleSubmit, formState: { errors }, reset, watch, setValue } = useForm();
     const [isSubmitting, setIsSubmitting] = useState(false);
     const [imagen, setImagen] = useState(null);
     const [previewImagen, setPreviewImagen] = useState(null);
@@ -186,6 +186,31 @@ export const FormProducto = ({ productoToUpdate, onSuccess, onCancel }) => {
             }
         }
     }, [productoToUpdate, reset]);
+
+    const metrosPorRolloActual = Number(watch('metrosPorRollo') || 100) || 100;
+
+    const syncStockToMetros = (value) => {
+        const rollos = Number(value);
+        if (!Number.isFinite(rollos) || rollos < 0) return;
+        setValue('metrosDisponibles', Number((rollos * metrosPorRolloActual).toFixed(2)), { shouldDirty: true, shouldValidate: true });
+    };
+
+    const syncMetrosToStock = (value) => {
+        const metros = Number(value);
+        if (!Number.isFinite(metros) || metros < 0 || metrosPorRolloActual <= 0) return;
+        setValue('stock', Number((metros / metrosPorRolloActual).toFixed(2)), { shouldDirty: true, shouldValidate: true });
+    };
+
+    const syncMetrosPorRollo = (value) => {
+        const metrosPorRollo = Number(value) || 100;
+        const stock = Number(watch('stock'));
+        const metros = Number(watch('metrosDisponibles'));
+        if (Number.isFinite(stock) && stock >= 0) {
+            setValue('metrosDisponibles', Number((stock * metrosPorRollo).toFixed(2)), { shouldDirty: true, shouldValidate: true });
+        } else if (Number.isFinite(metros) && metros >= 0) {
+            setValue('stock', Number((metros / metrosPorRollo).toFixed(2)), { shouldDirty: true, shouldValidate: true });
+        }
+    };
 
     const onSubmit = async (data) => {
         setIsSubmitting(true);
@@ -347,12 +372,14 @@ export const FormProducto = ({ productoToUpdate, onSuccess, onCancel }) => {
                         {errors.precio && <p className="fp-error">⚠ {errors.precio.message}</p>}
                     </div>
                     <div className="fp-field" style={{ marginBottom: 0 }}>
-                        <label className="fp-label">Stock (unidades)</label>
+                        <label className="fp-label">Stock (rollos/unidades)</label>
                         <input
                             type="number"
                             placeholder="0"
                             className="fp-input"
-                            {...register('stock')}
+                            {...register('stock', {
+                                onChange: (e) => syncStockToMetros(e.target.value)
+                            })}
                         />
                     </div>
                 </div>
@@ -367,7 +394,10 @@ export const FormProducto = ({ productoToUpdate, onSuccess, onCancel }) => {
                             step="0.01"
                             min="0"
                             className="fp-input"
-                            {...register('metrosDisponibles', { min: 0 })}
+                            {...register('metrosDisponibles', {
+                                min: 0,
+                                onChange: (e) => syncMetrosToStock(e.target.value)
+                            })}
                         />
                         {errors.metrosDisponibles && <p className="fp-error">⚠ {errors.metrosDisponibles.message}</p>}
                     </div>
@@ -379,7 +409,10 @@ export const FormProducto = ({ productoToUpdate, onSuccess, onCancel }) => {
                             step="1"
                             min="1"
                             className="fp-input"
-                            {...register('metrosPorRollo', { min: 1 })}
+                            {...register('metrosPorRollo', {
+                                min: 1,
+                                onChange: (e) => syncMetrosPorRollo(e.target.value)
+                            })}
                         />
                     </div>
                 </div>

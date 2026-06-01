@@ -83,6 +83,12 @@ const ordenSchema = new Schema({
         enum: ['domicilio', 'retiro', 'establecimiento', 'venta_local'],
         default: 'domicilio'
     },
+    origenPedido: {
+        type: String,
+        enum: ['online', 'tienda'],
+        default: 'online'
+    },
+    clienteGuest: { type: Boolean, default: false },
     estadoPago: {
         type: String,
         enum: ['pendiente', 'completado', 'fallido'],

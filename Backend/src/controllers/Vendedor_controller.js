@@ -51,7 +51,8 @@ const actualizarPerfil = async (req, res) => {
                 Cliente.findOne({ email: emailNuevo }).lean(),
             ]);
             if (vendConf || adminConf || cliConf) {
-                return res.status(400).json({ msg: "Este correo ya está registrado en el sistema." });
+                const rolExistente = adminConf ? 'administrador' : cliConf ? 'cliente' : 'vendedor';
+                return res.status(400).json({ msg: `Este correo ya está registrado como ${rolExistente}. No se puede usar en otro rol.` });
             }
             datosActualizar.email = emailNuevo;
         }
@@ -243,6 +244,19 @@ const actualizarVendedor = async (req, res) => {
     const { password, ...datosActualizar } = req.body; // No se actualiza el password desde aquí
     if (!mongoose.Types.ObjectId.isValid(id)) return res.status(400).json({ msg: "ID de vendedor no válido." });
     try {
+        if (datosActualizar.email) {
+            const emailNuevo = datosActualizar.email.toLowerCase().trim();
+            const [vendConf, adminConf, cliConf] = await Promise.all([
+                Vendedor.findOne({ email: emailNuevo, _id: { $ne: id } }).lean(),
+                Administrador.findOne({ email: emailNuevo }).lean(),
+                Cliente.findOne({ email: emailNuevo }).lean(),
+            ]);
+            if (vendConf || adminConf || cliConf) {
+                const rolExistente = adminConf ? 'administrador' : cliConf ? 'cliente' : 'vendedor';
+                return res.status(400).json({ msg: `Este correo ya está registrado como ${rolExistente}. No se puede usar en otro rol.` });
+            }
+            datosActualizar.email = emailNuevo;
+        }
         const vendedorActualizado = await Vendedor.findByIdAndUpdate(id, datosActualizar, { new: true }).select("-password -token -__v");
         if (!vendedorActualizado) return res.status(404).json({ msg: "Vendedor no encontrado." });
         res.status(200).json({ msg: "Vendedor actualizado exitosamente.", vendedor: vendedorActualizado });

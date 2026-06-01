@@ -1,4 +1,5 @@
 import { useState, useCallback } from 'react'
+import { useNavigate } from 'react-router-dom'
 import Table from '../components/list/Table'
 import FormCliente from '../components/create/FormCliente'
 import storeProfile from '../context/storeProfile'
@@ -138,6 +139,7 @@ const styles = `
 `;
 
 const Usuarios = () => {
+    const navigate = useNavigate()
     const { user } = storeProfile()
     const isVendedor = user?.rol === 'vendedor'
 
@@ -197,6 +199,14 @@ const Usuarios = () => {
                         >
                             ➕ Crear {tipoEfectivo === 'clientes' ? 'cliente' : 'vendedor'}
                         </button>
+                        {isVendedor && (
+                            <button
+                                className="usu-btn-crear"
+                                onClick={() => navigate('/dashboard/tienda')}
+                            >
+                                🛒 Crear cliente con pedido
+                            </button>
+                        )}
                     </div>
                 </div>
 

@@ -307,7 +307,7 @@ const Dashboard = () => {
     const navigate = useNavigate()
     const urlActual = location.pathname
     const { clearToken } = storeAuth()
-    const { user } = storeProfile()
+    const { user, clearUser } = storeProfile()
     const [sidebarOpen, setSidebarOpen] = useState(false)
 
     const closeSidebar = () => setSidebarOpen(false)
@@ -395,6 +395,9 @@ const Dashboard = () => {
                                 <Link to="/dashboard/productos-admin" className={lc('/dashboard/productos-admin')} onClick={closeSidebar}>
                                     <span className="dsb-icon">🧵</span> Productos
                                 </Link>
+                                <Link to="/dashboard/tienda" className={lc('/dashboard/tienda')} onClick={closeSidebar}>
+                                    <span className="dsb-icon">🏪</span> Tienda
+                                </Link>
                                 <Link to="/dashboard/carrito" className={lc('/dashboard/carrito')} onClick={closeSidebar}>
                                     <span className="dsb-icon">🛒</span> Carrito
                                 </Link>
@@ -428,7 +431,7 @@ const Dashboard = () => {
                     <div className="dsb-sidebar-footer">
                         <button
                             className="btn-dsb-logout"
-                            onClick={() => { clearToken(); navigate('/login'); }}
+                            onClick={() => { clearToken(); clearUser(); navigate('/login'); }}
                         >
                             🚪 Cerrar sesión
                         </button>

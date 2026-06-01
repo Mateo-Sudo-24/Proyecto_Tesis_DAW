@@ -33,13 +33,14 @@ import MisPedidos from './pages/MisPedidos';
 import Ventas from './pages/Ventas';
 import Usuarios from './pages/Usuarios';
 import OAuthSuccess from './pages/OAuthSuccess';
+import TiendaVendedor from './pages/TiendaVendedor';
 import PublicRoute from './routes/PublicRoute';
 import ProtectedRoute from './routes/ProtectedRoute';
 import useProfileStore from './context/storeProfile';
 import useAuthStore from './context/storeAuth';
 
 function AppContent() {
-  const { profile, user } = useProfileStore();
+  const { profile, user, isLoading } = useProfileStore();
   const { token } = useAuthStore();
 
   useEffect(() => {
@@ -64,13 +65,42 @@ function AppContent() {
     return children;
   };
 
+  const VendedorOnly = ({ children }) => {
+    if (user?.rol !== 'vendedor') return <Navigate to="/dashboard" replace />;
+    return children;
+  };
+
   AdminVendorOnly.propTypes = { children: PropTypes.node };
   ClienteOnly.propTypes = { children: PropTypes.node };
+  VendedorOnly.propTypes = { children: PropTypes.node };
 
   const RootRedirect = () => {
     if (!token) return <Navigate to="/home" />;
     return <Navigate to="/dashboard" />;
   };
+
+  if (token && (isLoading || !user)) {
+    return (
+      <div className="min-h-screen flex items-center justify-center bg-gray-50">
+        <div style={{ textAlign: 'center', color: '#374151' }}>
+          <div
+            style={{
+              width: 46,
+              height: 46,
+              border: '4px solid #fde8ce',
+              borderTopColor: '#e8760a',
+              borderRadius: '50%',
+              animation: 'spin 0.8s linear infinite',
+              margin: '0 auto 1rem',
+            }}
+          />
+          <style>{'@keyframes spin { to { transform: rotate(360deg); } }'}</style>
+          <p style={{ fontWeight: 800, margin: 0 }}>Optimizando tu experiencia...</p>
+          <p style={{ fontSize: '0.85rem', color: '#6b7280', marginTop: '0.35rem' }}>Preparando tu panel según tu rol.</p>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="min-h-screen bg-gray-50 flex flex-col">
@@ -118,6 +148,7 @@ function AppContent() {
             <Route path="chat" element={<Chat />} />
             <Route path="carrito" element={<Carrito />} />
             <Route path="productos" element={<ClienteOnly><Productos /></ClienteOnly>} />
+            <Route path="tienda" element={<VendedorOnly><TiendaVendedor /></VendedorOnly>} />
             <Route path="productos-admin" element={<AdminVendorOnly><ProductosAdmin /></AdminVendorOnly>} />
             <Route path="actualizar-producto/:id" element={<UpdateProducto />} />
             <Route path="notificaciones" element={<Notificaciones />} />

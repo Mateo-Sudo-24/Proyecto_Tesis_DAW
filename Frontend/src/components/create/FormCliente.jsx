@@ -143,8 +143,8 @@ const styles = `
 `;
 
 /**
- * âœ… FORMULARIO DE USUARIO
- * Crea o edita CLIENTE o VENDEDOR a travÃ©s de un selector de tipo
+ * FORMULARIO DE USUARIO
+ * Crea o edita CLIENTE o VENDEDOR a través de un selector de tipo
  */
 const FormCliente = ({ clienteToUpdate, onSuccess, tipoInicial }) => {
     const navigate = useNavigate();
@@ -186,11 +186,11 @@ const FormCliente = ({ clienteToUpdate, onSuccess, tipoInicial }) => {
             const response = await fetchDataBackend(url, data, method);
             if (response) {
                 const tipoNombre = tipo === "cliente" ? "Cliente" : "Vendedor";
-                toast.success(clienteToUpdate ? `${tipoNombre} actualizado correctamente` : `InvitaciÃ³n enviada a ${data.email}`);
+                toast.success(clienteToUpdate ? `${tipoNombre} actualizado correctamente` : `Invitación enviada a ${data.email}`);
                 setTimeout(() => { if (onSuccess) onSuccess(); else navigate("/dashboard/listar"); }, 1500);
             }
         } catch (error) {
-            toast.error(error.message || "OcurriÃ³ un error al guardar.");
+            toast.error(error.message || "Ocurrió un error al guardar.");
         } finally {
             setIsSubmitting(false);
         }
@@ -210,7 +210,7 @@ const FormCliente = ({ clienteToUpdate, onSuccess, tipoInicial }) => {
                     <p>
                         {isEditing
                             ? "Modifica los datos del usuario y guarda los cambios."
-                            : "Completa el formulario. Se enviarÃ¡ un correo de activaciÃ³n al usuario."}
+                            : "Completa el formulario. Se enviará un correo de activación al usuario."}
                     </p>
                 </div>
 
@@ -223,14 +223,14 @@ const FormCliente = ({ clienteToUpdate, onSuccess, tipoInicial }) => {
                                 className={`ux-type-btn${tipoUsuario === "cliente" ? " active" : ""}`}
                                 onClick={() => setTipoUsuario("cliente")}
                             >
-                                ðŸ‘¤ Cliente
+                                👤 Cliente
                             </button>
                             <button
                                 type="button"
                                 className={`ux-type-btn${tipoUsuario === "vendedor" ? " active" : ""}`}
                                 onClick={() => setTipoUsuario("vendedor")}
                             >
-                                ðŸª Vendedor
+                                🏪 Vendedor
                             </button>
                         </div>
                     )}
@@ -246,74 +246,74 @@ const FormCliente = ({ clienteToUpdate, onSuccess, tipoInicial }) => {
                                 className="ux-input"
                                 {...register("nombre", { required: "El nombre es obligatorio" })}
                             />
-                            {errors.nombre && <p className="ux-error">âš  {errors.nombre.message}</p>}
+                            {errors.nombre && <p className="ux-error">⚠ {errors.nombre.message}</p>}
                         </div>
 
-                        {/* Apellido â€” siempre visible para vendedor; opcional para cliente */}
+                        {/* Apellido: siempre visible para vendedor; opcional para cliente */}
                         {(tipoUsuario === "vendedor" || isEditing) && (
                             <div className="ux-field">
                                 <label className="ux-label">Apellido {tipoUsuario === "vendedor" ? "*" : ""}</label>
                                 <input
                                     type="text"
-                                    placeholder="Ej: GarcÃ­a"
+                                    placeholder="Ej: García"
                                     className="ux-input"
                                     {...register("apellido", tipoUsuario === "vendedor"
                                         ? { required: "El apellido es obligatorio para vendedores" }
                                         : {}
                                     )}
                                 />
-                                {errors.apellido && <p className="ux-error">âš  {errors.apellido.message}</p>}
+                                {errors.apellido && <p className="ux-error">⚠ {errors.apellido.message}</p>}
                             </div>
                         )}
 
                         {/* Email */}
                         <div className="ux-field">
-                            <label className="ux-label">Correo electrÃ³nico *</label>
+                            <label className="ux-label">Correo electrónico *</label>
                             <input
                                 type="email"
                                 placeholder="ejemplo@correo.com"
                                 className="ux-input"
                                 {...register("email", {
-                                    required: "El correo electrÃ³nico es obligatorio",
+                                    required: "El correo electrónico es obligatorio",
                                     pattern: {
                                         value: /^[A-Z0-9._%+-]+@[A-Z0-9.-]+\.[A-Z]{2,}$/i,
-                                        message: "Correo invÃ¡lido"
+                                        message: "Correo inválido"
                                     }
                                 })}
                             />
-                            {errors.email && <p className="ux-error">âš  {errors.email.message}</p>}
+                            {errors.email && <p className="ux-error">⚠ {errors.email.message}</p>}
                         </div>
 
                         <div className="ux-divider" />
 
-                        {/* DirecciÃ³n */}
+                        {/* Dirección */}
                         <div className="ux-field">
-                            <label className="ux-label">DirecciÃ³n *</label>
+                            <label className="ux-label">Dirección *</label>
                             <input
                                 type="text"
-                                placeholder="Calle, nÃºmero, ciudad"
+                                placeholder="Calle, número, ciudad"
                                 className="ux-input"
-                                {...register("direccion", { required: "La direcciÃ³n es obligatoria" })}
+                                {...register("direccion", { required: "La dirección es obligatoria" })}
                             />
-                            {errors.direccion && <p className="ux-error">âš  {errors.direccion.message}</p>}
+                            {errors.direccion && <p className="ux-error">⚠ {errors.direccion.message}</p>}
                         </div>
 
-                        {/* TelÃ©fono */}
+                        {/* Teléfono */}
                         <div className="ux-field">
-                            <label className="ux-label">TelÃ©fono *</label>
+                            <label className="ux-label">Teléfono *</label>
                             <input
                                 type="tel"
                                 placeholder="Ej: 0987654321"
                                 className="ux-input"
                                 {...register("telefono", {
-                                    required: "El telÃ©fono es obligatorio",
+                                    required: "El teléfono es obligatorio",
                                     pattern: {
                                         value: /^[0-9]{7,15}$/,
-                                        message: "Debe tener entre 7 y 15 dÃ­gitos"
+                                        message: "Debe tener entre 7 y 15 dígitos"
                                     }
                                 })}
                             />
-                            {errors.telefono && <p className="ux-error">âš  {errors.telefono.message}</p>}
+                            {errors.telefono && <p className="ux-error">⚠ {errors.telefono.message}</p>}
                         </div>
 
                         {/* Acciones */}
@@ -323,7 +323,7 @@ const FormCliente = ({ clienteToUpdate, onSuccess, tipoInicial }) => {
                                     ? "Guardando..."
                                     : isEditing
                                         ? `Actualizar ${tipoLabel}`
-                                        : `Enviar invitaciÃ³n`}
+                                        : `Enviar invitación`}
                             </button>
                             <button
                                 type="button"

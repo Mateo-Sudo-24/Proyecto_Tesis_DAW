@@ -425,6 +425,7 @@ const Carrito = () => {
     // Rol del usuario
     const getRol = () => { try { return JSON.parse(localStorage.getItem('auth-token'))?.state?.rol ?? null; } catch { return null; } };
     const isVendedor = getRol() === 'vendedor';
+    const tiendaLink = isVendedor ? "/dashboard/tienda" : "/dashboard/productos";
 
     // Tipo de entrega
     const [tipoEntrega, setTipoEntrega] = useState(''); // 'domicilio' | 'retiro' | 'establecimiento' | 'venta_local'
@@ -468,7 +469,10 @@ const Carrito = () => {
 
             const vendedores = await fetchDataBackend(`${import.meta.env.VITE_BACKEND_URL}/vendedores/publicos`);
             if (Array.isArray(vendedores) && vendedores.length > 0) {
-                setVendedorAsignado(vendedores[0]);
+                const currentIndex = Number(localStorage.getItem('intex-vendedor-rotacion') || 0);
+                const vendedor = vendedores[currentIndex % vendedores.length];
+                localStorage.setItem('intex-vendedor-rotacion', String((currentIndex + 1) % vendedores.length));
+                setVendedorAsignado(vendedor);
             }
         };
 
@@ -570,7 +574,7 @@ const Carrito = () => {
                             <Link to="/dashboard/mis-pedidos" className="cart-success-link" style={{ background: '#e8760a', color: '#fff' }}>
                                 Ver mis pedidos →
                             </Link>
-                            <Link to="/dashboard/productos" className="cart-success-link">
+                            <Link to={tiendaLink} className="cart-success-link">
                                 Seguir comprando
                             </Link>
                         </div>
@@ -606,7 +610,7 @@ const Carrito = () => {
                         <div className="cart-empty-icon">🛍️</div>
                         <h3>Tu carrito está vacío</h3>
                         <p>Explora nuestros productos y agrega lo que más te guste</p>
-                        <Link to="/dashboard/productos" className="cart-shop-link">
+                        <Link to={tiendaLink} className="cart-shop-link">
                             Ver productos
                         </Link>
                     </div>
@@ -696,7 +700,7 @@ const Carrito = () => {
                                 <button className="cart-clear-btn" onClick={() => setConfirmVaciar(true)}>
                                     🗑️ Vaciar carrito
                                 </button>
-                                <Link to="/dashboard/productos" className="cart-continue-link">
+                                <Link to={tiendaLink} className="cart-continue-link">
                                     ← Seguir comprando
                                 </Link>
                             </div>

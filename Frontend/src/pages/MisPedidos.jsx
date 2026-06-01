@@ -87,12 +87,12 @@ const pageStyles = `
 `;
 
 const STEPS_DOMICILIO      = ['Pedido recibido', 'Procesando', 'Motorizado en camino a su hogar', 'Entregado'];
-const STEPS_ESTABLECIMIENTO = ['Procesando pedido', 'Buscando pedido', 'Pedido en recepción'];
+const STEPS_ESTABLECIMIENTO = ['Pedido recibido', 'Procesando pedido', 'Pedido listo', 'Pedido en recepción'];
 const STEPS_VENTA_LOCAL    = ['Listo'];
 
 // Maps display label → backend estadoOrden value
-const DOMICILIO_MAP      = { 'Pedido recibido': 'pendiente', 'Procesando': 'procesando', 'Motorizado en camino a su hogar': 'enviado', 'Entregado': 'entregado' };
-const ESTABLECIMIENTO_MAP = { 'Procesando pedido': 'procesando', 'Buscando pedido': 'buscando', 'Pedido en recepción': 'entregado' };
+const DOMICILIO_MAP      = { 'Pedido recibido': 'pagado', 'Procesando': 'procesando', 'Motorizado en camino a su hogar': 'listo', 'Entregado': 'entregado' };
+const ESTABLECIMIENTO_MAP = { 'Pedido recibido': 'pagado', 'Procesando pedido': 'procesando', 'Pedido listo': 'listo', 'Pedido en recepción': 'entregado' };
 const VENTA_LOCAL_MAP     = { 'Listo': 'listo' };
 
 const getStepConfig = (tipoEntrega) => {
@@ -134,9 +134,9 @@ const calcularTotalesOrden = (orden = {}) => {
     return { subtotal, descuentoTotal, iva, envio, comisionPago, totalFinal };
 };
 
-const estadoIcono = { pendiente:'⏳', procesando:'⚙️', enviado:'🚚', entregado:'✅', cancelado:'❌', pagado:'💰' };
+const estadoIcono = { pendiente:'⏳', pagado:'💰', procesando:'⚙️', listo:'🚚', enviado:'🚚', entregado:'✅', cancelado:'❌' };
 
-const ProgressBar = ({ estadoOrden, tipoEntrega, isVendedor, ordenId, token, onStatusUpdate }) => {
+const ProgressBar = ({ estadoOrden, estadoPago, tipoEntrega, isVendedor, ordenId, token, onStatusUpdate }) => {
     const { steps: ORDER_STEPS, map: STEP_MAP } = getStepConfig(tipoEntrega);
     const [updating, setUpdating] = useState(false);
 
@@ -205,7 +205,8 @@ const ProgressBar = ({ estadoOrden, tipoEntrega, isVendedor, ordenId, token, onS
                     const isDone   = i < effectiveIdx;
                     const isActive = i === effectiveIdx;
                     // Solo el paso siguiente al actual es clickeable para el vendedor
-                    const isClickable = isVendedor && !updating && i === effectiveIdx + 1;
+                    const pagoRealizado = estadoPago === 'completado';
+                    const isClickable = isVendedor && pagoRealizado && !updating && i === effectiveIdx + 1;
                     const isUpdating  = updating && i === effectiveIdx + 1;
 
                     const dotClass = [
@@ -248,7 +249,12 @@ const ProgressBar = ({ estadoOrden, tipoEntrega, isVendedor, ordenId, token, onS
                     <span className="mp-terminado-label">✓ Terminado — No se puede modificar</span>
                 </div>
             )}
-            {isVendedor && estadoOrden !== 'entregado' && estadoOrden !== 'cancelado' && (
+            {isVendedor && estadoPago !== 'completado' && estadoOrden !== 'cancelado' && (
+                <p className="mp-vendor-hint">
+                    Primero confirma el pago para continuar con la gestión del pedido.
+                </p>
+            )}
+            {isVendedor && estadoPago === 'completado' && estadoOrden !== 'entregado' && estadoOrden !== 'cancelado' && (
                 <p className="mp-vendor-hint">
                     💡 Haz clic en el siguiente círculo para avanzar el estado del pedido.
                 </p>
@@ -292,7 +298,7 @@ const OrdenCard = ({ orden: ordenInicial, index, isVendedor, token }) => {
             const data = await res.json().catch(() => ({}));
             if (!res.ok) throw new Error(data.msg || 'No se pudo confirmar el pago.');
             setOrden(prev => ({ ...prev, ...(data.orden ?? {}), estadoPago: 'completado' }));
-            toast.success('Pago confirmado correctamente.');
+            toast.success('Pago marcado como realizado.');
             setConfirmPago(false);
         } catch (error) {
             toast.error(error.message);
@@ -312,12 +318,12 @@ const OrdenCard = ({ orden: ordenInicial, index, isVendedor, token }) => {
                     <div className="mp-modal" onClick={e => e.stopPropagation()}>
                         <p className="mp-modal-title">Confirmar pago</p>
                         <p className="mp-modal-text">
-                            Esta acción marcará el pedido como pagado y permitirá continuar la gestión del pedido.
+                            Esta acción marcará el pedido como pago realizado y permitirá continuar la gestión del pedido.
                         </p>
                         <div className="mp-modal-actions">
                             <button className="mp-modal-cancel" type="button" onClick={() => setConfirmPago(false)}>Cancelar</button>
                             <button className="mp-modal-confirm" type="button" onClick={confirmarPago} disabled={actualizandoPago}>
-                                {actualizandoPago ? 'Confirmando...' : 'Confirmar pago'}
+                                {actualizandoPago ? 'Confirmando...' : 'Pago realizado'}
                             </button>
                         </div>
                     </div>
@@ -329,17 +335,21 @@ const OrdenCard = ({ orden: ordenInicial, index, isVendedor, token }) => {
                     <p className="mp-order-fecha">📅 {fecha}</p>
                 </div>
                 <div className="mp-badges">
+                    {orden.origenPedido === 'tienda' && (
+                        <span className="mp-badge pagado">Pedido en tienda</span>
+                    )}
                     <span className={`mp-badge ${orden.estadoOrden}`}>
                         {estadoIcono[orden.estadoOrden]} {orden.estadoOrden}
                     </span>
                     <span className={`mp-badge ${pagoClass}`}>
-                        💳 Pago {orden.estadoPago ?? 'pendiente'}
+                        💳 Pago {orden.estadoPago === 'completado' ? 'realizado' : (orden.estadoPago ?? 'pendiente')}
                     </span>
                 </div>
             </div>
 
             <ProgressBar
                 estadoOrden={orden.estadoOrden}
+                estadoPago={orden.estadoPago}
                 isVendedor={isVendedor}
                 tipoEntrega={orden.tipoEntrega}
                 ordenId={orden._id}
@@ -400,7 +410,7 @@ const OrdenCard = ({ orden: ordenInicial, index, isVendedor, token }) => {
             <div className="mp-actions-row">
                 {isVendedor && orden.estadoPago !== 'completado' && (
                     <button className="mp-pay-btn" type="button" onClick={() => setConfirmPago(true)}>
-                        Marcar pago como completado
+                        Marcar pago realizado
                     </button>
                 )}
                 <FacturaPDF
