@@ -15,9 +15,9 @@ const login = async (req, res) => {
     const { email, password } = req.body;
     if (!email || !password) return res.status(400).json({ msg: "Todos los campos son obligatorios." });
     const vendedor = await buscarDocumentoPorEmail(Vendedor, email);
-    if (!vendedor) return res.status(404).json({ msg: "Vendedor no encontrado." });
+    if (!vendedor) return res.status(404).json({ msg: "Credencial incorrecta: correo o contraseña." });
     if (vendedor.status !== 'activo') return res.status(403).json({ msg: "Tu cuenta no está activa. Por favor, revisa tu correo de invitación." });
-    if (!await vendedor.matchPassword(password)) return res.status(401).json({ msg: "Contraseña incorrecta." });
+    if (!await vendedor.matchPassword(password)) return res.status(401).json({ msg: "Credencial incorrecta: correo o contraseña." });
     const token = crearTokenJWT(vendedor._id, vendedor.rol);
     const { _id, nombre, rol } = vendedor;
     res.status(200).json({ token, _id, nombre, email: vendedor.email, rol });
@@ -25,7 +25,7 @@ const login = async (req, res) => {
 
 const perfil = async (req, res) => {
     const vendedor = await Vendedor.findById(req.usuario._id).select("-password -token -__v");
-    if (!vendedor) return res.status(404).json({ msg: "Vendedor no encontrado." });
+    if (!vendedor) return res.status(404).json({ msg: "Credencial incorrecta: correo o contraseña." });
     res.status(200).json(vendedor);
 };
 
@@ -74,7 +74,7 @@ const actualizarPassword = async (req, res) => {
 
     try {
         const vendedor = await Vendedor.findById(_id);
-        if (!vendedor) return res.status(404).json({ msg: "Vendedor no encontrado." });
+        if (!vendedor) return res.status(404).json({ msg: "Credencial incorrecta: correo o contraseña." });
         if (!await vendedor.matchPassword(passwordActual)) return res.status(401).json({ msg: "La contrasena actual es incorrecta." });
         if (await vendedor.matchPassword(passwordNuevo)) return res.status(400).json({ msg: "No puedes poner la misma contrasena." });
 
@@ -93,7 +93,7 @@ const verificarPasswordActual = async (req, res) => {
     if (!passwordActual) return res.status(400).json({ msg: "La contrasena actual es obligatoria." });
     try {
         const vendedor = await Vendedor.findById(_id);
-        if (!vendedor) return res.status(404).json({ msg: "Vendedor no encontrado." });
+        if (!vendedor) return res.status(404).json({ msg: "Credencial incorrecta: correo o contraseña." });
         if (!await vendedor.matchPassword(passwordActual)) return res.status(401).json({ msg: "La contrasena actual es incorrecta." });
         return res.status(200).json({ ok: true, msg: "Contrasena verificada." });
     } catch (error) {
@@ -240,7 +240,10 @@ const obtenerVendedores = async (req, res) => {
         const Orden = (await import('../models/Orden.js')).default;
         const [vendedores, pedidosPorVendedor] = await Promise.all([
             Vendedor.find().select("-password -token -__v").lean(),
-            Orden.aggregate([{ $match: { vendedor: { $ne: null } } }, { $group: { _id: '$vendedor', pedidosCount: { $sum: 1 } } }])
+            Orden.aggregate([
+                { $match: { vendedor: { $ne: null }, estadoOrden: { $nin: ['completado', 'entregado', 'cancelado'] } } },
+                { $group: { _id: '$vendedor', pedidosCount: { $sum: 1 } } }
+            ])
         ]);
         const pedidosMap = new Map(pedidosPorVendedor.map(p => [String(p._id), p.pedidosCount]));
         res.status(200).json(vendedores.map(vendedor => ({
@@ -257,7 +260,7 @@ const obtenerVendedorPorId = async (req, res) => {
     if (!mongoose.Types.ObjectId.isValid(id)) return res.status(400).json({ msg: "ID de vendedor no válido." });
     try {
         const vendedor = await Vendedor.findById(id).select("-password -token -__v");
-        if (!vendedor) return res.status(404).json({ msg: "Vendedor no encontrado." });
+        if (!vendedor) return res.status(404).json({ msg: "Credencial incorrecta: correo o contraseña." });
         res.status(200).json(vendedor);
     } catch (error) {
         res.status(500).json({ msg: "Error al obtener el vendedor." });
@@ -283,7 +286,7 @@ const actualizarVendedor = async (req, res) => {
             datosActualizar.email = emailNuevo;
         }
         const vendedorActualizado = await Vendedor.findByIdAndUpdate(id, datosActualizar, { new: true }).select("-password -token -__v");
-        if (!vendedorActualizado) return res.status(404).json({ msg: "Vendedor no encontrado." });
+        if (!vendedorActualizado) return res.status(404).json({ msg: "Credencial incorrecta: correo o contraseña." });
         res.status(200).json({ msg: "Vendedor actualizado exitosamente.", vendedor: vendedorActualizado });
     } catch (error) {
         res.status(500).json({ msg: "Error al actualizar el vendedor." });
@@ -295,10 +298,10 @@ const eliminarVendedor = async (req, res) => {
     if (!mongoose.Types.ObjectId.isValid(id)) return res.status(400).json({ msg: "ID de vendedor no válido." });
     try {
         const Orden = (await import('../models/Orden.js')).default;
-        const tieneOrdenes = await Orden.exists({ vendedor: id });
-        if (tieneOrdenes) return res.status(400).json({ msg: "No se puede eliminar este vendedor porque tiene pedidos asignados." });
+        const tieneOrdenesActivas = await Orden.exists({ vendedor: id, estadoOrden: { $nin: ['completado', 'entregado', 'cancelado'] } });
+        if (tieneOrdenesActivas) return res.status(400).json({ msg: "No se puede eliminar este vendedor porque tiene pedidos pendientes o en proceso." });
         const vendedorEliminado = await Vendedor.findByIdAndDelete(id);
-        if (!vendedorEliminado) return res.status(404).json({ msg: "Vendedor no encontrado." });
+        if (!vendedorEliminado) return res.status(404).json({ msg: "Credencial incorrecta: correo o contraseña." });
         res.status(200).json({ msg: "Vendedor eliminado exitosamente." });
     } catch (error) {
         res.status(500).json({ msg: "Error al eliminar el vendedor." });

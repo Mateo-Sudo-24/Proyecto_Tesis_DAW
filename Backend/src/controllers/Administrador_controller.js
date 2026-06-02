@@ -43,10 +43,10 @@ const login = async (req, res) => {
     }
     const admin = await buscarDocumentoPorEmail(Administrador, email);
     if (!admin) {
-        return res.status(404).json({ msg: "Usuario administrador no encontrado." });
+        return res.status(404).json({ msg: "Credencial incorrecta: correo o contraseña." });
     }
     if (!await admin.matchPassword(password)) {
-        return res.status(401).json({ msg: "Contraseña incorrecta." });
+        return res.status(401).json({ msg: "Credencial incorrecta: correo o contraseña." });
     }
     const token = crearTokenJWT(admin._id, admin.rol);
     const { _id, nombre, rol } = admin;

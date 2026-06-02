@@ -32,7 +32,7 @@ const resetStyles = `
         margin: 1.5rem;
     }
 
-    /* â”€â”€â”€ Logo / Ãcono â”€â”€â”€ */
+    /* â”€â”€â”€ Logo / Ícono â”€â”€â”€ */
     .reset-logo {
         text-align: center;
         font-size: 1.75rem;
@@ -72,7 +72,7 @@ const resetStyles = `
         text-align: center;
     }
 
-    /* â”€â”€â”€ Token invÃ¡lido â”€â”€â”€ */
+    /* â”€â”€â”€ Token inválido â”€â”€â”€ */
     .reset-invalid {
         text-align: center;
         padding: 2rem 0 1rem;
@@ -133,7 +133,7 @@ const resetStyles = `
         font-weight: 500;
     }
 
-    /* â”€â”€â”€ BotÃ³n principal â”€â”€â”€ */
+    /* â”€â”€â”€ Botón principal â”€â”€â”€ */
     .reset-btn-primary {
         width: 100%;
         display: flex;
@@ -200,7 +200,7 @@ const Reset = () => {
 
     const changePassword = async (data) => {
         if (data.password !== data.confirmPassword) {
-            toast.error("Las contraseÃ±as no coinciden");
+            toast.error("Las contraseñas no coinciden");
             return;
         }
         setIsLoading(true);
@@ -212,10 +212,10 @@ const Reset = () => {
                 toast.success(response.msg);
                 setTimeout(() => navigate('/login'), 3000);
             } else {
-                toast.error("Hubo un error al cambiar la contraseÃ±a");
+                toast.error("Hubo un error al cambiar la contraseña");
             }
         } catch (error) {
-            toast.error("Error inesperado al cambiar la contraseÃ±a");
+            toast.error("Error inesperado al cambiar la contraseña");
         } finally {
             setIsLoading(false);
         }
@@ -230,7 +230,7 @@ const Reset = () => {
                     toast.success(response.msg);
                     setTokenBack(true);
                 } else {
-                    toast.error("Token invÃ¡lido o expirado");
+                    toast.error("Token inválido o expirado");
                 }
             } catch (error) {
                 toast.error("Error al verificar el token");
@@ -247,21 +247,21 @@ const Reset = () => {
                 {/* Logo */}
                 <p className="reset-logo">In<span>tex</span></p>
 
-                {/* Ãcono candado */}
+                {/* Ícono candado */}
                 <div className="reset-icon">
                     <LockIcon />
                 </div>
 
                 {/* Encabezado */}
-                <h1 className="reset-title">Nueva contraseÃ±a</h1>
-                <p className="reset-subtitle">Ingresa y confirma tu nueva contraseÃ±a</p>
+                <h1 className="reset-title">Nueva contraseña</h1>
+                <p className="reset-subtitle">Ingresa y confirma tu nueva contraseña</p>
 
                 {tokenback ? (
                     <form onSubmit={handleSubmit(changePassword)} noValidate>
-                        {/* Nueva contraseÃ±a */}
+                        {/* Nueva contraseña */}
                         <div className="reset-field">
                             <label htmlFor="password" className="reset-label">
-                                Nueva contraseÃ±a
+                                Nueva contraseña
                             </label>
                             <div className="reset-input-wrapper">
                                 <PasswordInput
@@ -309,21 +309,21 @@ const Reset = () => {
                                 </p>
                             )}
                         </div>
-                        {/* BotÃ³n */}
+                        {/* Botón */}
                         <button type="submit" disabled={isLoading} className="reset-btn-primary">
-                            {isLoading ? 'Guardandoâ€¦' : 'Cambiar contraseÃ±a'}
+                            {isLoading ? 'Guardandoâ€¦' : 'Cambiar contraseña'}
                         </button>
                     </form>
                 ) : (
                     <div className="reset-invalid">
-                        <p>Verificando el enlace de recuperaciÃ³n...</p>
+                        <p>Verificando el enlace de recuperación...</p>
                     </div>
                 )}
 
                 {/* Footer */}
                 <div className="reset-footer">
                     <Link to="/login" className="reset-back-link">
-                        â† Volver al inicio de sesiÃ³n
+                        â† Volver al inicio de sesión
                     </Link>
                 </div>
             </div>

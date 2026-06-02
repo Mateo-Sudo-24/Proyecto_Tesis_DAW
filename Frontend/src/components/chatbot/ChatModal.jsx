@@ -21,13 +21,6 @@ const limpiarTextoChat = (value = '') => String(value)
     .replace(/\u00e2\u2020\u2019/g, '->')
     .replace(/\u00e2\u0153\u008d\u00ef\u00b8\u008f/g, '')
     .replace(/\u00e2\u0153\u2022/g, 'x')
-    .replace(/\u00c3\u00a1/g, 'a')
-    .replace(/\u00c3\u00a9/g, 'e')
-    .replace(/\u00c3\u00ad/g, 'i')
-    .replace(/\u00c3\u00b3/g, 'o')
-    .replace(/\u00c3\u00ba/g, 'u')
-    .replace(/\u00c3\u00b1/g, 'n')
-    .replace(/\u00c2/g, '')
     .replace(/\ufffd/g, '');
 
 const esSaludo = (texto = '') => /^(hola|buenas|buenos dias|buenas tardes|buenas noches|hey|saludos)[!. ]*$/i.test(normalizarTexto(texto).trim());

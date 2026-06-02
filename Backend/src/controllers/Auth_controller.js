@@ -47,7 +47,7 @@ const loginUnificado = async (req, res) => {
 
     try {
         const usuario = await buscarUsuarioPorEmail(email);
-        if (!usuario) return res.status(404).json({ msg: "Usuario no encontrado." });
+        if (!usuario) return res.status(404).json({ msg: "Credencial incorrecta: correo o contraseña." });
 
         if (usuario.rol === 'cliente' && usuario.proveedor && usuario.proveedor !== 'local') {
             return res.status(400).json({ msg: "Esta cuenta fue registrada con Google. Inicia sesion con Google." });
@@ -56,7 +56,7 @@ const loginUnificado = async (req, res) => {
             return res.status(403).json({ msg: "Tu cuenta no esta activa. Revisa el correo de invitacion." });
         }
         if (!await usuario.matchPassword(password)) {
-            return res.status(401).json({ msg: "Contrasena incorrecta." });
+            return res.status(401).json({ msg: "Credencial incorrecta: correo o contraseña." });
         }
         if (usuario.rol === 'cliente' && !usuario.confirmEmail) {
             if (usuario.token) {

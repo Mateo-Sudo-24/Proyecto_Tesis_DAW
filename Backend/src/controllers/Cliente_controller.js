@@ -8,7 +8,7 @@ import mongoose from 'mongoose';
 import { normalizarEmail, buscarDocumentoPorEmail } from "../utils/emailLookup.js";
 
 // ============================================================================
-// ==        BLOQUE 1: RUTAS PÃšBLICAS (Registro y AutenticaciÃ³n)           ==
+// ==        BLOQUE 1: RUTAS PíšBLICAS (Registro y Autenticación)           ==
 // ============================================================================
 
 const registro = async (req, res) => {
@@ -33,10 +33,10 @@ const registro = async (req, res) => {
         try {
             await sendMailToRegister(email, token);
         } catch (mailError) {
-            console.error("âŒ Error SMTP al enviar correo de confirmaciÃ³n:", mailError);
-            // El cliente ya se guardÃ³; informar que el correo fallÃ³ pero el registro sÃ­
+            console.error("âŒ Error SMTP al enviar correo de confirmación:", mailError);
+            // El cliente ya se guardó; informar que el correo falló pero el registro sí
             return res.status(200).json({
-                msg: `Cuenta creada, pero no se pudo enviar el correo de confirmaciÃ³n. Error SMTP: ${mailError.message}`
+                msg: `Cuenta creada, pero no se pudo enviar el correo de confirmación. Error SMTP: ${mailError.message}`
             });
         }
         
@@ -57,20 +57,20 @@ const confirmarEmail = async (req, res) => {
     try {
         const cliente = await Cliente.findOne({ token });
         if (!cliente) {
-            return res.status(404).json({ msg: "El enlace no es vÃ¡lido o la cuenta ya ha sido confirmada." });
+            return res.status(404).json({ msg: "El enlace no es válido o la cuenta ya ha sido confirmada." });
         }
 
         cliente.token = null;
         cliente.confirmEmail = true;
         await cliente.save();
         
-        res.status(200).json({ msg: "Â¡Cuenta confirmada exitosamente! Ya puedes iniciar sesiÃ³n." });
+        res.status(200).json({ msg: "¡Cuenta confirmada exitosamente! Ya puedes iniciar sesión." });
     } catch (error) {
         res.status(500).json({ msg: "Error en el servidor al confirmar la cuenta." });
     }
 };
 
-/*Iniciar sesiÃ³n para un cliente.
+/*Iniciar sesión para un cliente.
 POST /api/clientes/login*/
 const login = async (req, res) => {
     const { email, password } = req.body;
@@ -80,11 +80,11 @@ const login = async (req, res) => {
 
     try {
         const cliente = await buscarDocumentoPorEmail(Cliente, email);
-        if (!cliente) return res.status(404).json({ msg: "Usuario no encontrado." });
-        if (cliente.proveedor && cliente.proveedor !== 'local') return res.status(400).json({ msg: "Esta cuenta fue registrada usando Google. Por favor, inicia sesiÃ³n con Google." });
+        if (!cliente) return res.status(404).json({ msg: "Credencial incorrecta: correo o contraseña." });
+        if (cliente.proveedor && cliente.proveedor !== 'local') return res.status(400).json({ msg: "Esta cuenta fue registrada usando Google. Por favor, inicia sesión con Google." });
         
         if (!await cliente.matchPassword(password)) {
-            return res.status(401).json({ msg: "ContraseÃ±a incorrecta." });
+            return res.status(401).json({ msg: "Credencial incorrecta: correo o contraseña." });
         }
         if (!cliente.confirmEmail) {
             if (cliente.token) return res.status(403).json({ msg: "Debes confirmar tu cuenta antes de iniciar sesión." });
@@ -97,17 +97,17 @@ const login = async (req, res) => {
         
         res.status(200).json({ token, _id, nombre, email: cliente.email, rol });
     } catch (error) {
-        res.status(500).json({ msg: "Error en el servidor al iniciar sesiÃ³n." });
+        res.status(500).json({ msg: "Error en el servidor al iniciar sesión." });
     }
 };
 
 // ============================================================================
-// ==         BLOQUE 2: RUTAS PÃšBLICAS (RecuperaciÃ³n de ContraseÃ±a)        ==
+// ==         BLOQUE 2: RUTAS PíšBLICAS (Recuperación de Contraseña)        ==
 // ============================================================================
 
 const recuperarPassword = async (req, res) => {
     const { email } = req.body;
-    if (!email) return res.status(400).json({ msg: "El correo electrÃ³nico es obligatorio." });
+    if (!email) return res.status(400).json({ msg: "El correo electrónico es obligatorio." });
 
     try {
         const cliente = await buscarDocumentoPorEmail(Cliente, email, {
@@ -125,7 +125,7 @@ const recuperarPassword = async (req, res) => {
         
         res.status(200).json({ msg: "Se ha enviado un correo con las instrucciones." });
     } catch (error) {
-        res.status(500).json({ msg: "Error en el servidor durante la recuperaciÃ³n." });
+        res.status(500).json({ msg: "Error en el servidor durante la recuperación." });
     }
 };
 
@@ -133,9 +133,9 @@ const comprobarTokenPassword = async (req, res) => {
     const { token } = req.params;
     try {
         const cliente = await Cliente.findOne({ token });
-        if (!cliente) return res.status(404).json({ msg: "El enlace no es vÃ¡lido o ya ha expirado." });
+        if (!cliente) return res.status(404).json({ msg: "El enlace no es válido o ya ha expirado." });
         
-        res.status(200).json({ msg: "Token vÃ¡lido." });
+        res.status(200).json({ msg: "Token válido." });
     } catch (error) {
         res.status(500).json({ msg: "Error al validar el token." });
     }
@@ -144,23 +144,23 @@ const comprobarTokenPassword = async (req, res) => {
 const crearNuevoPassword = async (req, res) => {
     const { token } = req.params;
     const { password } = req.body;
-    if (!password || password.length < 8) return res.status(400).json({ msg: "La contraseÃ±a es obligatoria y debe tener al menos 8 caracteres." });
+    if (!password || password.length < 8) return res.status(400).json({ msg: "La contraseña es obligatoria y debe tener al menos 8 caracteres." });
     try {
         const cliente = await Cliente.findOne({ token });
-        if (!cliente) return res.status(404).json({ msg: "El enlace no es vÃ¡lido o ya ha expirado." });
+        if (!cliente) return res.status(404).json({ msg: "El enlace no es válido o ya ha expirado." });
         
         cliente.password = password;
         cliente.token = null;
         await cliente.save();
         
-        res.status(200).json({ msg: "Â¡ContraseÃ±a restablecida correctamente! Ya puedes iniciar sesiÃ³n." });
+        res.status(200).json({ msg: "¡Contraseña restablecida correctamente! Ya puedes iniciar sesión." });
     } catch (error) {
-        res.status(500).json({ msg: "Error al guardar la nueva contraseÃ±a." });
+        res.status(500).json({ msg: "Error al guardar la nueva contraseña." });
     }
 };
 
 // ============================================================================
-// ==          BLOQUE 3: RUTAS PRIVADAS (GestiÃ³n de Perfil Propio)         ==
+// ==          BLOQUE 3: RUTAS PRIVADAS (Gestión de Perfil Propio)         ==
 // ============================================================================
 
 const perfil = async (req, res) => {
@@ -194,7 +194,7 @@ const actualizarPerfil = async (req, res) => {
             ]);
             if (cliConf || adminConf || vendConf) {
                 const rolExistente = adminConf ? 'administrador' : vendConf ? 'vendedor' : 'cliente';
-                return res.status(400).json({ msg: `Este correo ya estÃ¡ registrado como ${rolExistente}. No se puede usar en otro rol.` });
+                return res.status(400).json({ msg: `Este correo ya está registrado como ${rolExistente}. No se puede usar en otro rol.` });
             }
             datosActualizar.email = emailNuevo;
         }
@@ -242,11 +242,11 @@ const verificarPasswordActual = async (req, res) => {
 };
 
 // ============================================================================
-// ==         BLOQUE 4: RUTAS PRIVADAS (GestiÃ³n por Vendedor/Admin)        ==
+// ==         BLOQUE 4: RUTAS PRIVADAS (Gestión por Vendedor/Admin)        ==
 // ============================================================================
 
-// Flujo de invitaciÃ³n: el admin crea el cliente sin password.
-// Se envÃ­a un correo para que el cliente active su cuenta y establezca su contraseÃ±a.
+// Flujo de invitación: el admin crea el cliente sin password.
+// Se envía un correo para que el cliente active su cuenta y establezca su contraseña.
 const crearClientePorAdmin = async (req, res) => {
     const { email, nombre, telefono, direccion } = req.body;
     if (!email || !nombre) return res.status(400).json({ msg: "Nombre y email son obligatorios." });
@@ -262,59 +262,59 @@ const crearClientePorAdmin = async (req, res) => {
         }
         if (existeCliente) {
             if (existeCliente.confirmEmail) {
-                return res.status(400).json({ msg: "Ya existe un cliente activo con ese correo electrÃ³nico." });
+                return res.status(400).json({ msg: "Ya existe un cliente activo con ese correo electrónico." });
             }
-            // Si estÃ¡ pendiente de activaciÃ³n, reenviar la invitaciÃ³n
+            // Si está pendiente de activación, reenviar la invitación
             const token = existeCliente.crearToken();
             await existeCliente.save();
             await sendMailToInviteCliente(emailNormalizado, token);
-            return res.status(200).json({ msg: "La invitaciÃ³n fue reenviada. El cliente debe revisar su correo para activar la cuenta." });
+            return res.status(200).json({ msg: "La invitación fue reenviada. El cliente debe revisar su correo para activar la cuenta." });
         }
 
         const nuevoCliente = new Cliente({
             email: emailNormalizado, nombre, telefono, direccion,
             confirmEmail: false,
             creadoPor: req.usuario._id,
-            // ContraseÃ±a temporal aleatoria (serÃ¡ reemplazada cuando el cliente active su cuenta)
+            // Contraseña temporal aleatoria (será reemplazada cuando el cliente active su cuenta)
             password: crypto.randomBytes(32).toString('hex'),
         });
         const token = nuevoCliente.crearToken();
         await nuevoCliente.save();
         await sendMailToInviteCliente(emailNormalizado, token);
-        res.status(201).json({ msg: "InvitaciÃ³n enviada al nuevo cliente. Debe revisar su correo para activar la cuenta." });
+        res.status(201).json({ msg: "Invitación enviada al nuevo cliente. Debe revisar su correo para activar la cuenta." });
     } catch (error) {
         console.error('Error al crear cliente por admin:', error);
         res.status(500).json({ msg: "Error al crear el cliente." });
     }
 };
 
-// POST /api/clientes/setup-account/:token -> El cliente activa su cuenta y establece su contraseÃ±a
+// POST /api/clientes/setup-account/:token -> El cliente activa su cuenta y establece su contraseña
 const configurarCuentaClienteYPassword = async (req, res) => {
     const { token } = req.params;
     const { password } = req.body;
     if (!password || password.length < 8) {
-        return res.status(400).json({ msg: "La contraseÃ±a debe tener al menos 8 caracteres." });
+        return res.status(400).json({ msg: "La contraseña debe tener al menos 8 caracteres." });
     }
     try {
         const cliente = await Cliente.findOne({ token, confirmEmail: false });
-        if (!cliente) return res.status(404).json({ msg: "El enlace de activaciÃ³n no es vÃ¡lido o la cuenta ya ha sido activada." });
+        if (!cliente) return res.status(404).json({ msg: "El enlace de activación no es válido o la cuenta ya ha sido activada." });
 
         cliente.password = password;
         cliente.confirmEmail = true;
         cliente.token = null;
         await cliente.save();
 
-        res.status(200).json({ msg: "Â¡Cuenta activada! Ahora puedes iniciar sesiÃ³n con tu nueva contraseÃ±a." });
+        res.status(200).json({ msg: "¡Cuenta activada! Ahora puedes iniciar sesión con tu nueva contraseña." });
     } catch (error) {
         res.status(500).json({ msg: "Error en el servidor al activar la cuenta." });
     }
 };
 
-// --- FUNCIÃ“N MODIFICADA ---
+// --- FUNCIí“N MODIFICADA ---
 // GET /api/clientes -> Obtener todos los clientes (sin filtro de propiedad)
 const obtenerClientes = async (req, res) => {
     try {
-        // Se elimina la lÃ³gica 'if (req.usuario.rol === 'vendedor')'.
+        // Se elimina la lógica 'if (req.usuario.rol === 'vendedor')'.
         // Ahora siempre busca todos los clientes.
         const Orden = (await import('../models/Orden.js')).default;
         const [clientes, pedidosPorCliente] = await Promise.all([
@@ -331,13 +331,13 @@ const obtenerClientes = async (req, res) => {
     }
 };
 
-// --- FUNCIÃ“N MODIFICADA ---
+// --- FUNCIí“N MODIFICADA ---
 // GET /api/clientes/:id -> Obtener un cliente por ID (sin filtro de propiedad)
 const obtenerClientePorId = async (req, res) => {
     const { id } = req.params;
-    if (!mongoose.Types.ObjectId.isValid(id)) return res.status(400).json({ msg: "ID de cliente no vÃ¡lido." });
+    if (!mongoose.Types.ObjectId.isValid(id)) return res.status(400).json({ msg: "ID de cliente no válido." });
     try {
-        // Se elimina la lÃ³gica de verificaciÃ³n de propiedad.
+        // Se elimina la lógica de verificación de propiedad.
         // Cualquier vendedor o admin puede ver a cualquier cliente.
         const cliente = await Cliente.findById(id).select("-password -token -__v");
         if (!cliente) return res.status(404).json({ msg: "Cliente no encontrado." });
@@ -347,13 +347,13 @@ const obtenerClientePorId = async (req, res) => {
     }
 };
 
-// --- FUNCIÃ“N MODIFICADA ---
+// --- FUNCIí“N MODIFICADA ---
 // PUT /api/clientes/:id -> Actualizar un cliente por ID (sin filtro de propiedad)
 const actualizarClientePorAdmin = async (req, res) => {
     const { id } = req.params;
-    if (!mongoose.Types.ObjectId.isValid(id)) return res.status(400).json({ msg: "ID de cliente no vÃ¡lido." });
+    if (!mongoose.Types.ObjectId.isValid(id)) return res.status(400).json({ msg: "ID de cliente no válido." });
     try {
-        // Se elimina la bÃºsqueda previa y la verificaciÃ³n de propiedad.
+        // Se elimina la búsqueda previa y la verificación de propiedad.
         // Se actualiza el documento directamente.
         const datosActualizar = { ...req.body };
         if (datosActualizar.email) {
@@ -365,7 +365,7 @@ const actualizarClientePorAdmin = async (req, res) => {
             ]);
             if (cliConf || adminConf || vendConf) {
                 const rolExistente = adminConf ? 'administrador' : vendConf ? 'vendedor' : 'cliente';
-                return res.status(400).json({ msg: `Este correo ya estÃ¡ registrado como ${rolExistente}. No se puede usar en otro rol.` });
+                return res.status(400).json({ msg: `Este correo ya está registrado como ${rolExistente}. No se puede usar en otro rol.` });
             }
             datosActualizar.email = emailNuevo;
         }
@@ -377,11 +377,11 @@ const actualizarClientePorAdmin = async (req, res) => {
     }
 };
 
-// --- FUNCIÃ“N MODIFICADA ---
+// --- FUNCIí“N MODIFICADA ---
 // DELETE /api/clientes/:id -> Eliminar un cliente por ID (sin filtro de propiedad)
 const eliminarCliente = async (req, res) => {
     const { id } = req.params;
-    if (!mongoose.Types.ObjectId.isValid(id)) return res.status(400).json({ msg: "ID de cliente no vÃ¡lido." });
+    if (!mongoose.Types.ObjectId.isValid(id)) return res.status(400).json({ msg: "ID de cliente no válido." });
     try {
         const Orden = (await import('../models/Orden.js')).default;
         const tieneOrdenes = await Orden.exists({ cliente: id });

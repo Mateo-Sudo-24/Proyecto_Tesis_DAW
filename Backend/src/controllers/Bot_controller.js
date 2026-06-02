@@ -36,7 +36,10 @@ const agregarAlCarrito = async (req, res) => {
     try {
         // Reutilizamos la misma lógica segura del Carrito_controller
         const producto = await Producto.findById(productoId);
-        if (!producto || producto.stock < cantidad) return res.status(404).json({ msg: "Producto no encontrado o sin stock." });
+        if (!producto) return res.status(404).json({ msg: "Producto no encontrado." });
+
+        const metrosDisponibles = producto.metrosDisponibles ?? (producto.stock ?? 0);
+        if (metrosDisponibles < cantidad) return res.status(400).json({ msg: "Stock insuficiente." });
 
         let carrito = await Carrito.findOne({ cliente: clienteId });
         if (carrito) {
@@ -60,14 +63,14 @@ const agregarAlCarrito = async (req, res) => {
 };
 
 //(Habilidad del Bot) Obtiene el estado actual del carrito para resumirlo.
- 
+
 const obtenerResumenCarrito = async (req, res) => {
     try {
         const carrito = await Carrito.findOne({ cliente: req.usuario._id }).populate('items.producto', 'precio');
         if (!carrito || carrito.items.length === 0) {
             return res.status(200).json({ itemCount: 0, total: 0, isEmpty: true });
         }
-        
+
         let total = 0;
         carrito.items.forEach(item => {
             total += item.cantidad * item.producto.precio;

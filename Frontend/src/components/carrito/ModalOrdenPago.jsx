@@ -744,7 +744,7 @@ const ModalOrdenPago = ({
                 {/* Scrollable body */}
                 <div className="mop-body">
 
-                    {/* DirecciÃ³n de entrega (solo domicilio) */}
+                    {/* Dirección de entrega (solo domicilio) */}
                     {tipoEntrega === 'domicilio' && (
                         <div className="op-section">
                             <div className="op-section-title">Dirección de entrega</div>
@@ -795,7 +795,7 @@ const ModalOrdenPago = ({
                         </div>
                     )}
 
-                    {/* Datos de facturaciÃ³n */}
+                    {/* Datos de facturación */}
                     <div className="op-section">
                         <div className="op-section-title">Datos de facturaci?n</div>
                         <div style={{ display:'flex', gap:'0.5rem', flexWrap:'wrap', padding:'0.8rem 1.25rem 0' }}>
@@ -918,7 +918,7 @@ const ModalOrdenPago = ({
 
                 </div>
 
-                {/* Footer â€” acciones */}
+                {/* Footer — acciones */}
                 <div className="mop-footer">
                     <button className="op-btn-reset" onClick={onClose} type="button">Cancelar</button>
                     <button className="op-btn-pdf" onClick={handleConfirmar} disabled={isCreating} type="button">

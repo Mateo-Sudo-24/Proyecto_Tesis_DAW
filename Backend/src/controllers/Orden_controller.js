@@ -38,7 +38,7 @@ const esPagoPresencial = (metodo = '') => {
     const normalizado = String(metodo).toLowerCase();
     return normalizado.includes('efectivo')
         || normalizado.includes('debito')
-        || normalizado.includes('dÃ©bito');
+        || normalizado.includes('débito');
 };
 
 const getTotalOrden = (orden = {}) => {

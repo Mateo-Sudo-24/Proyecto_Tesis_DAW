@@ -56,8 +56,8 @@ const ordenSchema = new Schema({
         type: String,
         required: true,
         enum: ['Pago por tarjeta en linea', 'De Una', 'Pago efectivo / tarjeta debito',
-               'Pago por tarjeta en línea', 'Pago por tarjeta en lÃ­nea', 'Pago contra entrega', 'Pago efectivo / tarjeta dÃ©bito',
-               'Tarjeta de CrÃ©dito', 'Transferencia Bancaria', 'PayPal', 'Contra Entrega', 'Efectivo', 'Stripe']
+               'Pago por tarjeta en línea', 'Pago por tarjeta en línea', 'Pago contra entrega', 'Pago efectivo / tarjeta débito',
+               'Tarjeta de Crédito', 'Transferencia Bancaria', 'PayPal', 'Contra Entrega', 'Efectivo', 'Stripe']
     },
     metodoPagoInterno: { type: String }, // 'stripe' | 'de_una' | 'contra_entrega' | 'efectivo'
     pagoStripeId: { type: String },

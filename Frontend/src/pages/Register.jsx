@@ -123,7 +123,7 @@ const registerStyles = `
         font-weight: 500;
     }
 
-    /* â”€â”€â”€ BotÃ³n principal â”€â”€â”€ */
+    /* â”€â”€â”€ Botón principal â”€â”€â”€ */
     .reg-btn-primary {
         width: 100%;
         display: flex;
@@ -296,7 +296,7 @@ export const Register = () => {
                                 <input
                                     id="apellido"
                                     type="text"
-                                    placeholder="PÃ©rez"
+                                    placeholder="Pérez"
                                     className={`reg-input${errors.apellido ? ' input-error' : ''}`}
                                     {...register("apellido", {
                                         required: "El apellido es obligatorio",
@@ -307,25 +307,25 @@ export const Register = () => {
                             </div>
                         </div>
 
-                        {/* DirecciÃ³n */}
+                        {/* Dirección */}
                         <div className="reg-field">
-                            <label htmlFor="direccion" className="reg-label">DirecciÃ³n</label>
+                            <label htmlFor="direccion" className="reg-label">Dirección</label>
                             <input
                                 id="direccion"
                                 type="text"
                                 placeholder="Av. Principal 123, Ciudad"
                                 className={`reg-input${errors.direccion ? ' input-error' : ''}`}
                                 {...register("direccion", {
-                                    required: "La direcciÃ³n es obligatoria",
-                                    minLength: { value: 5, message: "MÃ­nimo 5 caracteres" }
+                                    required: "La dirección es obligatoria",
+                                    minLength: { value: 5, message: "Mínimo 5 caracteres" }
                                 })}
                             />
                             {errors.direccion && <ErrorMsg msg={errors.direccion.message} />}
                         </div>
 
-                        {/* TelÃ©fono */}
+                        {/* Teléfono */}
                         <div className="reg-field">
-                            <label htmlFor="telefono" className="reg-label">TelÃ©fono</label>
+                            <label htmlFor="telefono" className="reg-label">Teléfono</label>
                             <div className="reg-input-wrapper">
                                 <input
                                     id="telefono"
@@ -344,14 +344,14 @@ export const Register = () => {
                                         validate: validarTelefono10
                                     })}
                                 />
-                                <span className="reg-input-hint">10 dÃ­gitos</span>
+                                <span className="reg-input-hint">10 dígitos</span>
                             </div>
                             {errors.telefono && <ErrorMsg msg={errors.telefono.message} />}
                         </div>
 
                         {/* Email */}
                         <div className="reg-field">
-                            <label htmlFor="email" className="reg-label">Correo electrÃ³nico</label>
+                            <label htmlFor="email" className="reg-label">Correo electrónico</label>
                             <input
                                 id="email"
                                 type="email"
@@ -366,17 +366,17 @@ export const Register = () => {
                             {errors.email && <ErrorMsg msg={errors.email.message} />}
                         </div>
 
-                        {/* ContraseÃ±a */}
+                        {/* Contraseña */}
                         <div className="reg-field">
-                            <label htmlFor="password" className="reg-label">ContraseÃ±a</label>
+                            <label htmlFor="password" className="reg-label">Contraseña</label>
                             <div className="reg-input-wrapper">
                                 <PasswordInput
                                     id="password"
-                                    placeholder="MÃ­nimo 8 caracteres"
+                                    placeholder="Mínimo 8 caracteres"
                                     className={`reg-input${errors.password ? ' input-error' : ''}`}
                                     {...register("password", {
-                                        required: "La contraseÃ±a es obligatoria",
-                                        minLength: { value: 8, message: "MÃ­nimo 8 caracteres" }
+                                        required: "La contraseña es obligatoria",
+                                        minLength: { value: 8, message: "Mínimo 8 caracteres" }
                                     })}
                                 />
                             </div>
@@ -402,14 +402,14 @@ export const Register = () => {
 
                     {/* Footer del card */}
                     <div className="reg-footer">
-                        <p className="reg-footer-text">Â¿Ya tienes una cuenta?</p>
+                        <p className="reg-footer-text">¿Ya tienes una cuenta?</p>
                         <Link
                             to="/login"
                             className={`reg-btn-login${isLoading ? ' disabled' : ''}`}
                             onClick={isLoading ? (e) => e.preventDefault() : undefined}
                             tabIndex={isLoading ? -1 : 0}
                         >
-                            Iniciar sesiÃ³n
+                            Iniciar sesión
                         </Link>
                     </div>
 
