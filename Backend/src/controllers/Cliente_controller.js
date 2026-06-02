@@ -57,7 +57,7 @@ const confirmarEmail = async (req, res) => {
     try {
         const cliente = await Cliente.findOne({ token });
         if (!cliente) {
-            return res.status(404).json({ msg: "El enlace no es válido o la cuenta ya ha sido confirmada." });
+            return res.status(200).json({ status: "used_or_invalid", msg: "Este enlace ya fue usado o no es valido. Si ya confirmaste tu cuenta, puedes iniciar sesion." });
         }
 
         cliente.token = null;
@@ -133,7 +133,7 @@ const comprobarTokenPassword = async (req, res) => {
     const { token } = req.params;
     try {
         const cliente = await Cliente.findOne({ token });
-        if (!cliente) return res.status(404).json({ msg: "El enlace no es válido o ya ha expirado." });
+        if (!cliente) return res.status(404).json({ msg: "Token no valido o expirado." });
         
         res.status(200).json({ msg: "Token válido." });
     } catch (error) {
@@ -147,7 +147,7 @@ const crearNuevoPassword = async (req, res) => {
     if (!password || password.length < 8) return res.status(400).json({ msg: "La contraseña es obligatoria y debe tener al menos 8 caracteres." });
     try {
         const cliente = await Cliente.findOne({ token });
-        if (!cliente) return res.status(404).json({ msg: "El enlace no es válido o ya ha expirado." });
+        if (!cliente) return res.status(404).json({ msg: "Token no valido o expirado." });
         
         cliente.password = password;
         cliente.token = null;
@@ -297,7 +297,7 @@ const configurarCuentaClienteYPassword = async (req, res) => {
     }
     try {
         const cliente = await Cliente.findOne({ token, confirmEmail: false });
-        if (!cliente) return res.status(404).json({ msg: "El enlace de activación no es válido o la cuenta ya ha sido activada." });
+        if (!cliente) return res.status(404).json({ msg: "Token no valido o cuenta ya activada." });
 
         cliente.password = password;
         cliente.confirmEmail = true;

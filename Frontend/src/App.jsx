@@ -117,6 +117,8 @@ function AppContent() {
           <Route path="products/:id" element={<ProductDetails />} />
           <Route path="confirm/:token" element={<Confirm />} />
           <Route path="confirmar/:token" element={<Confirm />} />
+          <Route path="clientes/confirm/:token" element={<Confirm />} />
+          <Route path="clientes/confirmar/:token" element={<Confirm />} />
 
           {/* Rutas solo para no autenticados */}
           <Route element={<PublicRoute />}>

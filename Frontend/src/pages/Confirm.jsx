@@ -1,273 +1,157 @@
-import { Link, useParams, useLocation } from 'react-router-dom';
-import { useEffect, useState } from 'react';
-import { toast } from 'react-toastify';
-import 'react-toastify/dist/ReactToastify.css';
+import { Link, useLocation, useParams } from "react-router-dom";
+import { useEffect, useState } from "react";
+import { toast } from "react-toastify";
 
 const confirmStyles = `
-    /* Animaciones para la página de confirmación */
-    @keyframes fadeIn {
-        from {
-            opacity: 0;
-            transform: translateY(20px);
-        }
-        to {
-            opacity: 1;
-            transform: translateY(0);
-        }
-    }
-
-    @keyframes pulse-glow {
-        0%, 100% {
-            box-shadow: 0 0 20px rgba(251, 191, 36, 0.3);
-        }
-        50% {
-            box-shadow: 0 0 40px rgba(251, 191, 36, 0.6);
-        }
-    }
-
-    @keyframes slideInLeft {
-        from {
-            opacity: 0;
-            transform: translateX(-50px);
-        }
-        to {
-            opacity: 1;
-            transform: translateX(0);
-        }
-    }
-
-    @keyframes bounce {
-        0%, 20%, 50%, 80%, 100% {
-            transform: translateY(0);
-        }
-        40% {
-            transform: translateY(-10px);
-        }
-        60% {
-            transform: translateY(-5px);
-        }
-    }
-
-    /* Contenedor principal */
-    .confirm-container {
-        animation: fadeIn 0.6s ease-out;
-    }
-
-    /* Panel izquierdo con imagen */
-    .confirm-image-panel {
-        animation: slideInLeft 0.8s ease-out;
-    }
-
-    /* Icono de estado */
-    .status-icon {
-        animation: fadeIn 0.5s ease-out;
-    }
-
-    .status-icon.success {
-        animation: fadeIn 0.5s ease-out, bounce 0.6s ease-out 0.3s;
-    }
-
-    .status-icon.error {
-        animation: fadeIn 0.5s ease-out;
-    }
-
-    .status-icon.verifying {
-        animation: fadeIn 0.5s ease-out, pulse-glow 2s ease-in-out infinite;
-    }
-
-    /* Contenido de texto */
-    .confirm-content {
-        animation: fadeIn 0.6s ease-out 0.2s both;
-    }
-
-    /* Botones */
-    .confirm-button {
-        transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
-    }
-
-    .confirm-button:hover {
-        transform: translateY(-2px);
-    }
-
-    .confirm-button:active {
-        transform: translateY(0);
-    }
-
-    /* Logo móvil */
-    .mobile-logo {
-        animation: fadeIn 0.4s ease-out;
-    }
-
-    /* Footer */
-    .confirm-footer {
-        animation: fadeIn 0.8s ease-out 0.4s both;
-    }
-
-    /* Responsive adjustments */
-    @media (max-width: 1024px) {
-        .confirm-container {
-            animation: fadeIn 0.5s ease-out;
-        }
-    }
-
-    /* Mejoras de accesibilidad */
-    @media (prefers-reduced-motion: reduce) {
-        .confirm-container,
-        .confirm-image-panel,
-        .status-icon,
-        .confirm-content,
-        .confirm-button,
-        .mobile-logo,
-        .confirm-footer {
-            animation: none;
-        }
+    .cf-page { min-height: 100vh; display: grid; grid-template-columns: minmax(0, 0.95fr) minmax(360px, 1.05fr); background: #f9fafb; }
+    .cf-media { position: relative; min-height: 100vh; background: #111827; overflow: hidden; }
+    .cf-media img { width: 100%; height: 100%; object-fit: cover; opacity: 0.72; }
+    .cf-media-copy { position: absolute; inset: auto 2rem 2rem; color: #fff; }
+    .cf-brand { margin: 0 0 0.55rem; font-size: 2.1rem; font-weight: 900; letter-spacing: 0.12em; }
+    .cf-brand span { color: #f59e0b; }
+    .cf-media-copy p { margin: 0; color: #fde8ce; font-weight: 800; line-height: 1.5; }
+    .cf-content { display: grid; place-items: center; padding: 1.5rem; }
+    .cf-card { width: min(100%, 440px); background: #fff; border: 1px solid #e5e7eb; border-radius: 0.75rem; box-shadow: 0 18px 45px rgba(17,24,39,0.1); padding: 2rem; text-align: center; }
+    .cf-mobile-brand { display: none; margin: 0 0 1.1rem; color: #111827; font-size: 1.6rem; font-weight: 900; letter-spacing: 0.1em; }
+    .cf-mobile-brand span { color: #e8760a; }
+    .cf-icon { width: 72px; height: 72px; display: grid; place-items: center; margin: 0 auto 1.1rem; border-radius: 999px; font-size: 1.8rem; font-weight: 900; }
+    .cf-icon.verifying { background: #fff7ed; border: 1px solid #fed7aa; }
+    .cf-icon.success { background: #ecfdf5; border: 1px solid #a7f3d0; color: #059669; }
+    .cf-icon.notice { background: #eff6ff; border: 1px solid #bfdbfe; color: #2563eb; }
+    .cf-icon.error { background: #fef2f2; border: 1px solid #fecaca; color: #dc2626; }
+    .cf-spinner { width: 34px; height: 34px; border: 4px solid #fed7aa; border-top-color: #e8760a; border-radius: 999px; animation: cf-spin 0.8s linear infinite; }
+    .cf-title { margin: 0; color: #111827; font-size: 1.55rem; font-weight: 900; }
+    .cf-message { margin: 0.65rem 0 0; color: #6b7280; line-height: 1.6; font-weight: 700; }
+    .cf-actions { margin-top: 1.5rem; display: grid; gap: 0.7rem; }
+    .cf-button { min-height: 44px; display: inline-flex; align-items: center; justify-content: center; border-radius: 0.55rem; padding: 0.7rem 1rem; text-decoration: none; font-weight: 900; transition: background 0.18s, color 0.18s, border-color 0.18s, transform 0.18s; }
+    .cf-button.primary { background: #e8760a; border: 1px solid #e8760a; color: #fff; }
+    .cf-button.secondary { background: #fff; border: 1px solid #e5e7eb; color: #374151; }
+    .cf-button:hover { transform: translateY(-1px); }
+    .cf-button.primary:hover { background: #c4620a; border-color: #c4620a; }
+    .cf-button.secondary:hover { border-color: #e8760a; color: #e8760a; }
+    .cf-footer { margin: 1.4rem 0 0; color: #9ca3af; font-size: 0.78rem; font-weight: 700; }
+    @keyframes cf-spin { to { transform: rotate(360deg); } }
+    @media (max-width: 860px) {
+        .cf-page { display: block; min-height: 100vh; }
+        .cf-media { display: none; }
+        .cf-content { min-height: 100vh; }
+        .cf-mobile-brand { display: block; }
     }
 `;
+
+const statusCopy = {
+    verifying: {
+        title: "Verificando cuenta",
+        icon: <div className="cf-spinner" />,
+        primary: null
+    },
+    success: {
+        title: "Cuenta confirmada",
+        icon: "✓",
+        primary: { to: "/login", label: "Iniciar sesion" }
+    },
+    notice: {
+        title: "Enlace ya procesado",
+        icon: "i",
+        primary: { to: "/login", label: "Ir al login" }
+    },
+    error: {
+        title: "No se pudo confirmar",
+        icon: "!",
+        primary: { to: "/register", label: "Volver al registro" }
+    }
+};
 
 export const Confirm = () => {
     const { token } = useParams();
     const location = useLocation();
-    const [status, setStatus] = useState('verifying');
-    const [message, setMessage] = useState('Verificando tu cuenta...');
-
-    const getVerificationDetails = () => {
-        const path = location.pathname;
-        if (path.includes('/vendedores/setup-account/')) {
-            return {
-                url: `${import.meta.env.VITE_BACKEND_URL}/vendedores/setup-account/${token}`,
-                method: 'POST',
-                role: 'vendedor'
-            };
-        }
-        return {
-            url: `${import.meta.env.VITE_BACKEND_URL}/clientes/confirmar/${token}`,
-            method: 'GET',
-            role: 'cliente'
-        };
-    };
+    const [status, setStatus] = useState("verifying");
+    const [message, setMessage] = useState("Estamos validando el enlace de confirmacion.");
 
     useEffect(() => {
         const verifyToken = async () => {
             if (!token) {
-                setStatus('error');
-                setMessage('Token no proporcionado.');
+                setStatus("error");
+                setMessage("No se recibio un token de confirmacion.");
                 return;
             }
 
-            const { url, method } = getVerificationDetails();
+            const confirmKey = `confirm-email:${token}`;
+            const confirmStatus = sessionStorage.getItem(confirmKey);
+            if (confirmStatus === "success") {
+                setStatus("success");
+                setMessage("Tu cuenta ya fue confirmada. Puedes iniciar sesion.");
+                return;
+            }
+            if (confirmStatus === "pending") return;
+
+            sessionStorage.setItem(confirmKey, "pending");
 
             try {
-                let respuesta;
-                if (method === 'GET') {
-                    const response = await fetch(url);
-                    if (!response.ok) {
-                        throw new Error(`HTTP ${response.status}`);
+                const response = await fetch(`${import.meta.env.VITE_BACKEND_URL}/clientes/confirmar/${token}`);
+                const data = await response.json().catch(() => ({}));
+
+                if (!response.ok) {
+                    if (response.status === 404) {
+                        setStatus("notice");
+                        setMessage("Este enlace ya fue usado o no es valido. Si ya confirmaste tu cuenta, puedes iniciar sesion.");
+                        sessionStorage.setItem(confirmKey, "success");
+                        return;
                     }
-                    respuesta = await response.json();
-                } else if (method === 'POST') {
-                    throw new Error("La activación de cuenta de vendedor requiere establecer una contraseña.");
+                    throw new Error(data.msg || "Hubo un error al confirmar la cuenta.");
                 }
-                setMessage(respuesta.msg || '¡Cuenta confirmada exitosamente!');
-                setStatus('success');
-                toast.success(respuesta.msg || 'Cuenta confirmada!');
+
+                if (data.status === "used_or_invalid") {
+                    setStatus("notice");
+                    setMessage(data.msg || "Este enlace ya fue usado. Si tu cuenta esta confirmada, puedes iniciar sesion.");
+                    sessionStorage.setItem(confirmKey, "success");
+                    return;
+                }
+
+                setStatus("success");
+                setMessage(data.msg || "Cuenta confirmada exitosamente. Ya puedes iniciar sesion.");
+                sessionStorage.setItem(confirmKey, "success");
+                toast.success(data.msg || "Cuenta confirmada.");
             } catch (error) {
-                const errorMsg = error.message || 'Hubo un error al confirmar la cuenta.';
-                setMessage(errorMsg);
-                setStatus('error');
-                toast.error(errorMsg);
+                sessionStorage.removeItem(confirmKey);
+                setStatus("error");
+                setMessage(error.message || "Hubo un error al confirmar la cuenta.");
+                toast.error(error.message || "Hubo un error al confirmar la cuenta.");
             }
         };
+
         verifyToken();
     }, [token, location.pathname]);
+
+    const copy = statusCopy[status] || statusCopy.error;
 
     return (
         <>
             <style>{confirmStyles}</style>
-            <div className="min-h-screen flex confirm-container">
-
-            {/* Panel izquierdo - imagen */}
-            <div className="hidden lg:flex w-1/2 relative overflow-hidden confirm-image-panel">
-                <img
-                    src="/images/registro.jpg"
-                    alt="Confirmación"
-                    className="w-full h-full object-cover"
-                />
-                <div className="absolute inset-0 bg-gradient-to-br from-amber-900/60 to-gray-900/70 flex flex-col items-center justify-center p-12">
-                    <h1 className="text-white text-5xl font-bold tracking-widest mb-4">UNITEX</h1>
-                    <p className="text-amber-200 text-lg text-center">Gestión textil inteligente para tu negocio</p>
+            <div className="cf-page">
+                <div className="cf-media">
+                    <img src="/images/registro.jpg" alt="Confirmacion de cuenta" />
+                    <div className="cf-media-copy">
+                        <h1 className="cf-brand">IN<span>TEX</span></h1>
+                        <p>Gestion textil inteligente para clientes, vendedores e inventario.</p>
+                    </div>
                 </div>
+                <main className="cf-content">
+                    <section className="cf-card">
+                        <h1 className="cf-mobile-brand">IN<span>TEX</span></h1>
+                        <div className={`cf-icon ${status}`}>{copy.icon}</div>
+                        <h2 className="cf-title">{copy.title}</h2>
+                        <p className="cf-message">{message}</p>
+                        {status !== "verifying" && (
+                            <div className="cf-actions">
+                                {copy.primary && <Link className="cf-button primary" to={copy.primary.to}>{copy.primary.label}</Link>}
+                                <Link className="cf-button secondary" to="/home">Volver al inicio</Link>
+                            </div>
+                        )}
+                        <p className="cf-footer">© {new Date().getFullYear()} Intex</p>
+                    </section>
+                </main>
             </div>
-
-            {/* Panel derecho - contenido */}
-            <div className="flex-1 flex flex-col items-center justify-center bg-gray-50 px-8 py-16">
-
-                {/* Logo móvil */}
-                <div className="lg:hidden mb-8 mobile-logo">
-                    <span className="text-3xl font-bold text-amber-700 tracking-widest">UNITEX</span>
-                </div>
-
-                {/* Icono de estado */}
-                <div className={`w-24 h-24 rounded-full flex items-center justify-center mb-8 shadow-lg status-icon ${
-                    status === 'success' ? 'bg-green-100 border-4 border-green-400 success' :
-                    status === 'error'   ? 'bg-red-100 border-4 border-red-400 error' :
-                                          'bg-amber-100 border-4 border-amber-400 verifying'
-                }`}>
-                    {status === 'success' && (
-                        <svg className="w-12 h-12 text-green-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
-                        </svg>
-                    )}
-                    {status === 'error' && (
-                        <svg className="w-12 h-12 text-red-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
-                        </svg>
-                    )}
-                    {status === 'verifying' && (
-                        <svg className="w-12 h-12 text-amber-500 animate-spin" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
-                        </svg>
-                    )}
-                </div>
-
-                {/* Contenido por estado */}
-                <div className="w-full max-w-md text-center confirm-content">
-                    {status === 'success' && (
-                        <>
-                            <h2 className="text-3xl font-bold text-gray-800 mb-3">¡Verificación Exitosa!</h2>
-                            <p className="text-gray-500 mb-8">{message}</p>
-                            <Link
-                                to="/login"
-                                className="block w-full py-3 px-6 bg-amber-700 text-white font-semibold rounded-xl hover:bg-amber-800 transition-all duration-300 shadow-md hover:shadow-lg confirm-button"
-                            >
-                                Iniciar sesión
-                            </Link>
-                        </>
-                    )}
-
-                    {status === 'error' && (
-                        <>
-                            <h2 className="text-3xl font-bold text-gray-800 mb-3">Error de Verificación</h2>
-                            <p className="text-gray-500 mb-8">{message}</p>
-                            <Link
-                                to="/register"
-                                className="block w-full py-3 px-6 bg-gray-700 text-white font-semibold rounded-xl hover:bg-gray-900 transition-all duration-300 shadow-md hover:shadow-lg confirm-button"
-                            >
-                                Volver a registrarse
-                            </Link>
-                        </>
-                    )}
-
-                    {status === 'verifying' && (
-                        <>
-                            <h2 className="text-3xl font-bold text-gray-800 mb-3">Verificando...</h2>
-                            <p className="text-gray-500">{message}</p>
-                        </>
-                    )}
-                </div>
-
-                <p className="mt-12 text-xs text-gray-400 confirm-footer">© {new Date().getFullYear()} Unitex. Todos los derechos reservados.</p>
-            </div>
-        </div>
         </>
     );
-}
+};
