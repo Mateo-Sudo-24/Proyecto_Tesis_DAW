@@ -652,6 +652,29 @@ const ModalOrdenPago = ({
             vendedorId: vendedorAsignado?.id || vendedorAsignado?._id,
         }
 
+        if (metodoPago === 'Pago por tarjeta en linea' && !onCrearOrdenPersonalizada) {
+            setIsCreating(false)
+            onNeedCardPayment({
+                orderData,
+                ordenPreview: {
+                    codigoOrden: 'Pendiente',
+                    totalFinal: desglose.totalFinal,
+                    precioTotal: desglose.totalFinal,
+                    metodoPago,
+                    tipoEntrega,
+                },
+                facturacion: {
+                    nombre: form.nombre,
+                    apellido: form.apellido,
+                    correo: form.email,
+                    direccion: form.direccion || direccionDomicilio,
+                    ruc: form.ruc,
+                    telefono: form.telefono,
+                },
+            })
+            return
+        }
+
         if (onCrearOrdenPersonalizada) {
             const response = await onCrearOrdenPersonalizada(orderData, {
                 nombre: form.nombre,
@@ -680,12 +703,6 @@ const ModalOrdenPago = ({
         }
 
         const ordenRecien = response.orden
-
-        if (metodoPago === 'Pago por tarjeta en linea') {
-            setIsCreating(false)
-            onNeedCardPayment(ordenRecien)
-            return
-        }
 
         const pagoRes = await fetchDataBackend(
             `${import.meta.env.VITE_BACKEND_URL}/ordenes/pagar`,

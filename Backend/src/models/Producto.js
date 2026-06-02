@@ -103,6 +103,10 @@ const productoSchema = new Schema({
     }
 }, { timestamps: true });
 
+productoSchema.index({ estado: 1, createdAt: -1 });
+productoSchema.index({ estado: 1, color: 1, createdAt: -1 });
+productoSchema.index({ nombre: "text", descripcion: "text" });
+
 // Virtual: rollos disponibles calculados desde metros
 productoSchema.virtual('stockRollosDisponibles').get(function () {
     return Math.floor((this.metrosDisponibles || 0) / (this.metrosPorRollo || 100));

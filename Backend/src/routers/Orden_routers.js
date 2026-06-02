@@ -7,6 +7,7 @@ import {
   actualizarEstadoOrden,
   eliminarOrden,
   procesarPagoOrden,
+  registrarOrdenPagadaTarjeta,
   reporteVentas,
   solicitarCancelacion,
   aprobarCancelacion,
@@ -27,6 +28,7 @@ router.get('/reporte', esAdmin, reporteVentas);
 // --- RUTA DE PAGO ---
 // POST /api/ordenes/pagar
 router.post('/pagar', procesarPagoOrden);
+router.post('/pagar-tarjeta', registrarOrdenPagadaTarjeta);
 
 // --- RUTAS CRUD DE ÓRDENES Y CANCELACIÓN ---
 router.post('/tienda', esVendedor, registrarOrdenTienda);

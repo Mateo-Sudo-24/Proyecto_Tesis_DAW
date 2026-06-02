@@ -146,7 +146,7 @@ const getTotalOrden = (orden) => {
     return 0;
 };
 
-const CheckoutForm = ({ orden, closeModal }) => {
+const CheckoutForm = ({ orden, orderData, closeModal, onPagoCompletado }) => {
     const stripe = useStripe();
     const elements = useElements();
     const navigate = useNavigate();
@@ -155,13 +155,19 @@ const CheckoutForm = ({ orden, closeModal }) => {
 
     const pagarOrden = async (paymentMethodId) => {
         const authToken = JSON.parse(localStorage.getItem("auth-token"))?.state?.token || '';
-        const response = await fetch(`${import.meta.env.VITE_BACKEND_URL}/ordenes/pagar`, {
+        const url = orderData
+            ? `${import.meta.env.VITE_BACKEND_URL}/ordenes/pagar-tarjeta`
+            : `${import.meta.env.VITE_BACKEND_URL}/ordenes/pagar`;
+        const body = orderData
+            ? { orderData, paymentMethodId }
+            : { ordenId: orden._id, paymentMethodId };
+        const response = await fetch(url, {
             method: "POST",
             headers: {
                 "Content-Type": "application/json",
                 "Authorization": `Bearer ${authToken}`,
             },
-            body: JSON.stringify({ ordenId: orden._id, paymentMethodId }),
+            body: JSON.stringify(body),
         });
         const data = await response.json().catch(() => ({}));
         if (!response.ok) {
@@ -173,8 +179,9 @@ const CheckoutForm = ({ orden, closeModal }) => {
     const completarPago = async (paymentMethodId, esDemo = false) => {
         setIsLoading(true);
         try {
-            await pagarOrden(paymentMethodId);
+            const data = await pagarOrden(paymentMethodId);
             toast.success(esDemo ? "Pago demo aprobado correctamente." : "Pago realizado correctamente.");
+            onPagoCompletado?.(data.orden);
             closeModal();
             navigate('/dashboard/mis-pedidos');
         } catch (error) {
@@ -233,15 +240,22 @@ const CheckoutForm = ({ orden, closeModal }) => {
 
 CheckoutForm.propTypes = {
     orden: PropTypes.shape({
-        _id: PropTypes.string.isRequired,
+        _id: PropTypes.string,
         precioTotal: PropTypes.number,
         totalFinal: PropTypes.number,
         codigoOrden: PropTypes.string
     }).isRequired,
-    closeModal: PropTypes.func.isRequired
+    orderData: PropTypes.object,
+    closeModal: PropTypes.func.isRequired,
+    onPagoCompletado: PropTypes.func
 };
 
-const ModalPago = ({ orden, closeModal }) => {
+CheckoutForm.defaultProps = {
+    orderData: null,
+    onPagoCompletado: null
+};
+
+const ModalPago = ({ orden, orderData, closeModal, onPagoCompletado }) => {
     if (!orden) return null;
     const totalOrden = getTotalOrden(orden);
 
@@ -260,7 +274,12 @@ const ModalPago = ({ orden, closeModal }) => {
                             <span className="modal-total-amount">${totalOrden.toFixed(2)}</span>
                         </div>
                         <Elements stripe={stripePromise}>
-                            <CheckoutForm orden={orden} closeModal={closeModal} />
+                            <CheckoutForm
+                                orden={orden}
+                                orderData={orderData}
+                                closeModal={closeModal}
+                                onPagoCompletado={onPagoCompletado}
+                            />
                         </Elements>
                     </div>
                 </div>
@@ -271,14 +290,16 @@ const ModalPago = ({ orden, closeModal }) => {
 
 ModalPago.propTypes = {
     orden: PropTypes.shape({
-        _id: PropTypes.string.isRequired,
+        _id: PropTypes.string,
         precioTotal: PropTypes.number,
         totalFinal: PropTypes.number,
         codigoOrden: PropTypes.string
     }),
-    closeModal: PropTypes.func.isRequired
+    orderData: PropTypes.object,
+    closeModal: PropTypes.func.isRequired,
+    onPagoCompletado: PropTypes.func
 };
 
-ModalPago.defaultProps = { orden: null };
+ModalPago.defaultProps = { orden: null, orderData: null, onPagoCompletado: null };
 
 export default ModalPago;

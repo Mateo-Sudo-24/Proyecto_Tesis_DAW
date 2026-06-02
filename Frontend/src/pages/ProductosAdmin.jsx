@@ -121,6 +121,22 @@ const styles = `
         border-radius: 50%;
         animation: pa-spin 0.75s linear infinite;
     }
+    .pa-refreshing {
+        display: inline-flex;
+        align-items: center;
+        gap: 0.45rem;
+        margin-left: 0.6rem;
+        color: var(--orange-dark);
+        font-weight: 800;
+    }
+    .pa-refresh-dot {
+        width: 10px;
+        height: 10px;
+        border: 2px solid #fed7aa;
+        border-top-color: var(--orange-main);
+        border-radius: 999px;
+        animation: pa-spin 0.75s linear infinite;
+    }
     @keyframes pa-spin { to { transform: rotate(360deg); } }
 
     /* ── Empty ── */
@@ -448,6 +464,7 @@ const STOCK_CRITICO = 50;
 const ProductosAdmin = () => {
     const [productos, setProductos] = useState([]);
     const [loading, setLoading] = useState(true);
+    const [fetching, setFetching] = useState(false);
     const [busqueda, setBusqueda] = useState('');
     const [debouncedSearch, setDebouncedSearch] = useState('');
     const [productoEditando, setProductoEditando] = useState(null);
@@ -472,6 +489,13 @@ const ProductosAdmin = () => {
         window.scrollTo(0, 0);
     };
 
+    const paginasVisibles = () => {
+        const paginas = new Set([1, totalPaginas, pagina - 1, pagina, pagina + 1]);
+        return [...paginas]
+            .filter(n => n >= 1 && n <= totalPaginas)
+            .sort((a, b) => a - b);
+    };
+
     // Debounce búsqueda
     useEffect(() => {
         const timer = setTimeout(() => {
@@ -482,27 +506,35 @@ const ProductosAdmin = () => {
     }, [busqueda]);
 
     useEffect(() => {
+        const controller = new AbortController();
         const fetchProductos = async () => {
-            setLoading(true);
+            const primeraCarga = productos.length === 0;
+            if (primeraCarga) setLoading(true);
+            else setFetching(true);
             try {
                 const params = new URLSearchParams({
                     pagina,
                     limite,
                     busqueda: debouncedSearch
                 });
-                const res = await fetch(`${import.meta.env.VITE_BACKEND_URL}/productos?${params.toString()}`);
+                const res = await fetch(`${import.meta.env.VITE_BACKEND_URL}/productos?${params.toString()}`, {
+                    signal: controller.signal
+                });
                 if (!res.ok) throw new Error(`Error ${res.status}`);
                 const data = await res.json();
                 setProductos(data.productos || []);
                 setTotalPaginas(data.totalPaginas || 1);
-            } catch {
+            } catch (error) {
+                if (error.name === 'AbortError') return;
                 toast.error('Error al cargar productos');
                 setProductos([]);
             } finally {
                 setLoading(false);
+                setFetching(false);
             }
         };
         fetchProductos();
+        return () => controller.abort();
     }, [pagina, debouncedSearch]);
 
     const eliminarProducto = async (id) => {
@@ -566,6 +598,12 @@ const ProductosAdmin = () => {
                         <h1 className="pa-title">Gestión de productos</h1>
                         <p className="pa-sub">
                             {loading ? 'Cargando...' : `Mostrando productos ${productos.length > 0 ? (pagina-1)*limite+1 : 0} - ${(pagina-1)*limite + productos.length}`}
+                            {fetching && (
+                                <span className="pa-refreshing">
+                                    <span className="pa-refresh-dot" />
+                                    Actualizando
+                                </span>
+                            )}
                         </p>
                     </div>
                 </div>
@@ -605,7 +643,7 @@ const ProductosAdmin = () => {
                             <div key={producto._id} className="pa-card">
                                 <div className="pa-card-img">
                                     {producto.imagenUrl
-                                        ? <img src={producto.imagenUrl} alt={producto.nombre} onError={handleImageError} />
+                                        ? <img src={producto.imagenUrl} alt={producto.nombre} loading="lazy" decoding="async" onError={handleImageError} />
                                         : <div className="pa-card-no-img">📷</div>
                                     }
                                     {producto.descuento > 0 && (
@@ -650,14 +688,16 @@ const ProductosAdmin = () => {
                             >
                                 &lt;
                             </button>
-                            {[...Array(totalPaginas)].map((_, i) => (
-                                <button
-                                    key={i+1}
-                                    className={`btn-pa-pag${pagina === i + 1 ? ' active' : ''}`}
-                                    onClick={() => cambiarPagina(i + 1)}
-                                >
-                                    {i + 1}
-                                </button>
+                            {paginasVisibles().map((page, index, pages) => (
+                                <span key={page} style={{ display: 'inline-flex', alignItems: 'center', gap: '0.4rem' }}>
+                                    {index > 0 && page - pages[index - 1] > 1 && <span style={{ color: '#9ca3af', fontWeight: 900 }}>...</span>}
+                                    <button
+                                        className={`btn-pa-pag${pagina === page ? ' active' : ''}`}
+                                        onClick={() => cambiarPagina(page)}
+                                    >
+                                        {page}
+                                    </button>
+                                </span>
                             ))}
                             <button
                                 className="btn-pa-pag"

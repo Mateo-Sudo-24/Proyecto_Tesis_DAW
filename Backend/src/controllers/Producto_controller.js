@@ -303,14 +303,23 @@ const listarProducto = async (req, res) => {
             sort.createdAt = -1;
         }
 
-        const skip = (pagina - 1) * limite;
-        const productos = await Producto.find(filtro).sort(sort).skip(skip).limit(limite).select("-etiquetas -__v");
-        const totalProductos = await Producto.countDocuments(filtro);
+        const pageNumber = Math.max(1, parseInt(pagina, 10) || 1);
+        const pageSize = Math.min(50, Math.max(1, parseInt(limite, 10) || 10));
+        const skip = (pageNumber - 1) * pageSize;
+        const [productos, totalProductos] = await Promise.all([
+            Producto.find(filtro)
+                .sort(sort)
+                .skip(skip)
+                .limit(pageSize)
+                .select("-etiquetas -__v")
+                .lean(),
+            Producto.countDocuments(filtro)
+        ]);
 
         res.status(200).json({
             totalProductos,
-            paginaActual: parseInt(pagina),
-            totalPaginas: Math.ceil(totalProductos / limite),
+            paginaActual: pageNumber,
+            totalPaginas: Math.ceil(totalProductos / pageSize),
             productos
         });
     } catch (error) {

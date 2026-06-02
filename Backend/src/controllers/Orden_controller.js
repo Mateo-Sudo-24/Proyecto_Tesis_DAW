@@ -343,6 +343,181 @@ const registrarOrden = async (req, res) => {
     }
 };
 
+const registrarOrdenPagadaTarjeta = async (req, res) => {
+    const clienteId = req.usuario._id;
+    const { orderData = {}, paymentMethodId } = req.body;
+    const { direccionEnvio, metodoPago, tipoEntrega, datosFacturacion, desglose } = orderData;
+
+    if (!esPagoTarjetaOnline(metodoPago)) {
+        return res.status(400).json({ msg: "Este endpoint solo procesa pagos con tarjeta en linea." });
+    }
+    if (!paymentMethodId) {
+        return res.status(400).json({ msg: "Se requiere confirmar los datos de la tarjeta." });
+    }
+
+    const tipoEntregaFinal = tipoEntrega || 'domicilio';
+    const requiereDireccion = ['domicilio'].includes(tipoEntregaFinal);
+    if (requiereDireccion && (typeof direccionEnvio !== 'object' || direccionEnvio === null)) {
+        return res.status(400).json({ msg: "El campo 'direccionEnvio' es obligatorio para entregas a domicilio." });
+    }
+
+    try {
+        const [cliente, carrito] = await Promise.all([
+            Cliente.findById(clienteId),
+            Carrito.findOne({ cliente: clienteId }).populate('items.producto')
+        ]);
+
+        if (!cliente) return res.status(404).json({ msg: "Cliente no encontrado." });
+        if (!carrito || carrito.items.length === 0) {
+            return res.status(400).json({ msg: "Tu carrito esta vacio. No se puede crear una orden." });
+        }
+
+        const productosPedido = carrito.items.map(item => {
+            if (!item.producto) throw new Error("Un producto en tu carrito ya no esta disponible.");
+            const unidad = item.unidadSeleccionada || 'metro';
+            const precioUnitario = unidad === 'rollo'
+                ? (item.producto.precioPorRollo || item.producto.precio)
+                : (item.producto.precioPorMetro || item.producto.precio);
+            const descuentoPct = item.producto.descuento || 0;
+            const precioConDesc = precioUnitario * (1 - descuentoPct / 100);
+            const subtotalItem = item.cantidad * precioConDesc;
+            const metrosRequeridos = unidad === 'rollo'
+                ? item.cantidad * (item.producto.metrosPorRollo || 100)
+                : item.cantidad;
+
+            if ((item.producto.metrosDisponibles ?? 0) < metrosRequeridos) {
+                throw new Error(`Stock insuficiente para: ${item.producto.nombre}`);
+            }
+
+            return {
+                nombre: item.producto.nombre,
+                cantidad: item.cantidad,
+                unidadSeleccionada: unidad,
+                imagen: item.producto.imagenUrl,
+                precio: precioUnitario,
+                precioUnitario,
+                descuento: descuentoPct,
+                subtotal: subtotalItem,
+                producto: item.producto._id,
+                metrosRequeridos
+            };
+        });
+
+        const IVA_RATE = 0.15;
+        const COMISION_STRIPE_PCT = 0.054;
+        const COMISION_STRIPE_FIJA = 0.30;
+        const subtotalBase = productosPedido.reduce((s, i) => s + i.subtotal, 0);
+        const descuentoTotal = desglose?.descuentoTotal ?? 0;
+        const subtotal = desglose?.subtotal ?? subtotalBase;
+        const iva = desglose?.iva ?? parseFloat((subtotal * IVA_RATE).toFixed(2));
+        const envio = desglose?.envio ?? 0;
+        const comisionPago = desglose?.comisionPago ?? parseFloat(((subtotal + iva) * COMISION_STRIPE_PCT + COMISION_STRIPE_FIJA).toFixed(2));
+        const totalFinal = desglose?.totalFinal ?? parseFloat((subtotal + iva + envio + comisionPago).toFixed(2));
+
+        const datosFacturacionLimpios = datosFacturacion && typeof datosFacturacion === 'object'
+            ? {
+                nombre: limpiarTexto(datosFacturacion.nombre),
+                apellido: limpiarTexto(datosFacturacion.apellido),
+                correo: limpiarTexto(datosFacturacion.correo).toLowerCase(),
+                direccion: limpiarTexto(datosFacturacion.direccion),
+                ruc: soloDigitos(datosFacturacion.ruc),
+                telefono: soloDigitos(datosFacturacion.telefono),
+            }
+            : undefined;
+
+        const errorFacturacion = validarDatosFacturacion(datosFacturacionLimpios, { minLetras: 5 });
+        if (errorFacturacion) return res.status(400).json({ msg: errorFacturacion });
+
+        let pagoStripeId = paymentMethodId;
+        if (esPaymentMethodDemo(paymentMethodId) && pagosDemoHabilitados()) {
+            pagoStripeId = paymentMethodId;
+        } else {
+            if (!stripe) {
+                return res.status(503).json({ msg: "Servicio de pagos no disponible. STRIPE_PRIVATE_KEY no esta configurada." });
+            }
+
+            let clienteStripe;
+            const clientesStripe = await stripe.customers.list({ email: cliente.email, limit: 1 });
+            if (clientesStripe.data.length > 0) {
+                clienteStripe = clientesStripe.data[0];
+            } else {
+                clienteStripe = await stripe.customers.create({
+                    name: `${cliente.nombre} ${cliente.apellido}`,
+                    email: cliente.email
+                });
+            }
+
+            const paymentIntent = await stripe.paymentIntents.create({
+                amount: Math.round(totalFinal * 100),
+                currency: "usd",
+                description: "Pago por nueva orden Intex",
+                payment_method: paymentMethodId,
+                customer: clienteStripe.id,
+                confirm: true,
+                automatic_payment_methods: { enabled: true, allow_redirects: "never" }
+            });
+
+            if (paymentIntent.status !== 'succeeded') {
+                return res.status(400).json({ msg: "El pago no pudo ser procesado por Stripe." });
+            }
+            pagoStripeId = paymentIntent.id;
+        }
+
+        const vendedorAsignado = req.usuario.rol === 'vendedor'
+            ? req.usuario._id
+            : await seleccionarVendedorRotativo();
+
+        const orden = new Orden({
+            cliente: clienteId,
+            vendedor: vendedorAsignado,
+            productoPedido: productosPedido.map(({ metrosRequeridos, ...item }) => item),
+            direccionEnvio: requiereDireccion ? direccionEnvio : undefined,
+            metodoPago,
+            metodoPagoInterno: 'stripe',
+            pagoStripeId,
+            estadoPago: 'completado',
+            estadoOrden: 'pagado',
+            fechaPago: new Date(),
+            precioTotal: totalFinal,
+            subtotal,
+            descuentoTotal,
+            iva,
+            envio,
+            comisionPago,
+            totalFinal,
+            tipoEntrega: tipoEntregaFinal,
+            datosFacturacion: datosFacturacionLimpios,
+        });
+
+        await orden.save();
+
+        await Promise.all(productosPedido.map(item =>
+            Producto.findByIdAndUpdate(item.producto, { $inc: { metrosDisponibles: -item.metrosRequeridos } })
+        ));
+
+        carrito.items = [];
+        await carrito.save();
+
+        await Promise.all([
+            crearNotificacionNuevaOrden(orden),
+            crearNotificacionPago(orden)
+        ]);
+
+        return res.status(201).json({
+            msg: "Pago aprobado y orden creada exitosamente.",
+            orden,
+            estadoPago: 'completado',
+            estadoOrden: 'pagado'
+        });
+    } catch (error) {
+        if (error.message.startsWith('Stock insuficiente') || error.message.startsWith('Un producto en tu carrito')) {
+            return res.status(400).json({ msg: error.message });
+        }
+        console.error("Error al crear orden pagada con tarjeta:", error);
+        return res.status(500).json({ msg: "Error en el servidor al procesar el pago con tarjeta.", error: error.message });
+    }
+};
+
 const registrarOrdenTienda = async (req, res) => {
     if (req.usuario.rol !== 'vendedor') {
         return res.status(403).json({ msg: "Solo los vendedores pueden registrar pedidos en tienda." });
@@ -976,6 +1151,7 @@ export {
   actualizarEstadoOrden,
   eliminarOrden,
   procesarPagoOrden,
+  registrarOrdenPagadaTarjeta,
   reporteVentas,
   solicitarCancelacion,
   aprobarCancelacion,

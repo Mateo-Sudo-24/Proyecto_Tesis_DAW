@@ -451,6 +451,7 @@ const Carrito = () => {
     const [isLoadingCart, setIsLoadingCart] = useState(false);
     const [showModalPago, setShowModalPago] = useState(false);
     const [ordenCreada, setOrdenCreada] = useState(null);
+    const [pagoTarjetaPendiente, setPagoTarjetaPendiente] = useState(null);
     const [pedidoExitoso, setPedidoExitoso] = useState(null); // { orden, facturacion }
     const [cantidadDrafts, setCantidadDrafts] = useState({});
     const [updatingItems, setUpdatingItems] = useState({});
@@ -600,6 +601,7 @@ const Carrito = () => {
     const closeModalPago = () => {
         setShowModalPago(false);
         setOrdenCreada(null);
+        setPagoTarjetaPendiente(null);
     };
 
     const subtotalSinDescuento = itemsPreview.reduce(
@@ -885,7 +887,21 @@ const Carrito = () => {
             </div>
 
             {showModalPago && ordenCreada && (
-                <ModalPago orden={ordenCreada} closeModal={closeModalPago} />
+                <ModalPago
+                    orden={ordenCreada}
+                    orderData={pagoTarjetaPendiente?.orderData}
+                    closeModal={closeModalPago}
+                    onPagoCompletado={(orden) => {
+                        setPedidoExitoso({
+                            orden,
+                            facturacion: {
+                                ...(pagoTarjetaPendiente?.facturacion || {}),
+                                vendedorAsignado
+                            }
+                        });
+                        setCarrito({ items: [] });
+                    }}
+                />
             )}
 
             {showModalOP && (
@@ -902,9 +918,10 @@ const Carrito = () => {
                         setShowModalOP(false);
                         setPedidoExitoso({ orden, facturacion: { ...fac, vendedorAsignado } });
                     }}
-                    onNeedCardPayment={(orden) => {
+                    onNeedCardPayment={(pagoPendiente) => {
                         setShowModalOP(false);
-                        setOrdenCreada(orden);
+                        setPagoTarjetaPendiente(pagoPendiente);
+                        setOrdenCreada(pagoPendiente.ordenPreview);
                         setShowModalPago(true);
                     }}
                 />
