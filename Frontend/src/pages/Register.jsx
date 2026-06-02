@@ -7,7 +7,7 @@ import PasswordInput from '../components/ui/PasswordInput';
 import { toast } from "react-toastify";
 
 const registerStyles = `
-    /* â”€â”€â”€ Layout â”€â”€â”€ */
+    /* ─── Layout ─── */
     .reg-wrapper {
         display: flex;
         height: 100vh;
@@ -16,7 +16,7 @@ const registerStyles = `
         background: #f8f7f4;
     }
 
-    /* â”€â”€â”€ Panel formulario â”€â”€â”€ */
+    /* ─── Panel formulario ─── */
     .reg-form-panel {
         width: 100%;
         display: flex;
@@ -40,7 +40,7 @@ const registerStyles = `
             0 2px 8px rgba(0,0,0,0.04);
     }
 
-    /* â”€â”€â”€ Encabezado â”€â”€â”€ */
+    /* ─── Encabezado ─── */
     .reg-title {
         font-size: 1.6rem;
         font-weight: 900;
@@ -54,7 +54,7 @@ const registerStyles = `
         margin: 0 0 1.25rem;
     }
 
-    /* â”€â”€â”€ Fila de dos campos â”€â”€â”€ */
+    /* ─── Fila de dos campos ─── */
     .reg-row {
         display: grid;
         grid-template-columns: 1fr 1fr;
@@ -62,7 +62,7 @@ const registerStyles = `
         margin-bottom: 1rem;
     }
 
-    /* â”€â”€â”€ Grupos de campo â”€â”€â”€ */
+    /* ─── Grupos de campo ─── */
     .reg-field {
         margin-bottom: 1rem;
     }
@@ -123,7 +123,7 @@ const registerStyles = `
         font-weight: 500;
     }
 
-    /* â”€â”€â”€ Botón principal â”€â”€â”€ */
+    /* ─── Botón principal ─── */
     .reg-btn-primary {
         width: 100%;
         display: flex;
@@ -151,7 +151,7 @@ const registerStyles = `
     .reg-btn-primary:active:not(:disabled) { transform: scale(0.97); }
     .reg-btn-primary:disabled { opacity: 0.6; cursor: not-allowed; }
 
-    /* â”€â”€â”€ Footer del card â”€â”€â”€ */
+    /* ─── Footer del card ─── */
     .reg-footer {
         display: flex;
         justify-content: space-between;
@@ -190,7 +190,7 @@ const registerStyles = `
         cursor: not-allowed;
     }
 
-    /* â”€â”€â”€ Panel imagen (derecha) â”€â”€â”€ */
+    /* ─── Panel imagen (derecha) ─── */
     .reg-image-panel {
         display: none;
         position: relative;
@@ -266,7 +266,7 @@ export const Register = () => {
         <div className="reg-wrapper">
             <style>{registerStyles}</style>
 
-            {/* â”€â”€ Panel formulario (izquierda) â”€â”€ */}
+            {/* ── Panel formulario (izquierda) ── */}
             <div className="reg-form-panel">
                 <div className="reg-card">
 
@@ -416,7 +416,7 @@ export const Register = () => {
                 </div>
             </div>
 
-            {/* â”€â”€ Panel imagen (derecha) â”€â”€ */}
+            {/* ── Panel imagen (derecha) ── */}
             <div className="reg-image-panel">
                 <div className="reg-image-overlay" />
                 <div className="reg-image-branding">
