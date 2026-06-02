@@ -125,7 +125,7 @@ const CardPassword = () => {
     };
 
     const nextFromNewPassword = async () => {
-        const ok = await trigger(['passwordNuevo', 'passwordConfirmar']);
+        const ok = await trigger(['passwordNuevo', 'confirmPassword']);
         if (!ok) return;
         setPendingData(getValues());
         setStep(3);
@@ -133,8 +133,8 @@ const CardPassword = () => {
 
     const updatePassword = async () => {
         if (!pendingData) return;
-        const { passwordConfirmar, ...payload } = pendingData;
-        void passwordConfirmar;
+        const { confirmPassword, ...payload } = pendingData;
+        void confirmPassword;
         const response = await updatePasswordProfile(payload, user?._id);
         if (response && !response.error) {
             closeModal();
@@ -213,12 +213,12 @@ const CardPassword = () => {
                                             <PasswordInput
                                                 placeholder="Repite la nueva contraseña"
                                                 className="pwd-input"
-                                                {...register("passwordConfirmar", {
+                                                {...register("confirmPassword", {
                                                     required: "Confirma la nueva contraseña",
                                                     validate: v => v === watch("passwordNuevo") || "Las contraseñas no coinciden"
                                                 })}
                                             />
-                                            {errors.passwordConfirmar && <p className="pwd-error">{errors.passwordConfirmar.message}</p>}
+                                            {errors.confirmPassword && <p className="pwd-error">{errors.confirmPassword.message}</p>}
                                         </div>
                                     </>
                                 )}

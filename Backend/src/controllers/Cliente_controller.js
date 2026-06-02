@@ -7,8 +7,6 @@ import { crearTokenJWT } from '../middlewares/JWT.js';
 import mongoose from 'mongoose';
 
 const normalizarEmail = (email = '') => String(email).toLowerCase().trim();
-const escapeRegex = (value = '') => String(value).replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
-const crearEmailRegex = (email = '') => new RegExp(`^${escapeRegex(normalizarEmail(email))}$`, 'i');
 
 // ============================================================================
 // ==        BLOQUE 1: RUTAS PÚBLICAS (Registro y Autenticación)           ==
@@ -82,7 +80,7 @@ const login = async (req, res) => {
     }
 
     try {
-        const cliente = await Cliente.findOne({ email: crearEmailRegex(email) });
+        const cliente = await Cliente.findOne({ email: normalizarEmail(email) });
         if (!cliente) return res.status(404).json({ msg: "Usuario no encontrado." });
         if (!cliente.confirmEmail) return res.status(403).json({ msg: "Debes confirmar tu cuenta antes de iniciar sesión." });
         if (cliente.proveedor && cliente.proveedor !== 'local') return res.status(400).json({ msg: "Esta cuenta fue registrada usando Google. Por favor, inicia sesión con Google." });
@@ -110,7 +108,7 @@ const recuperarPassword = async (req, res) => {
 
     try {
         const cliente = await Cliente.findOne({
-            email: crearEmailRegex(email),
+            email: normalizarEmail(email),
             $or: [
                 { proveedor: 'local' },
                 { proveedor: { $exists: false } },

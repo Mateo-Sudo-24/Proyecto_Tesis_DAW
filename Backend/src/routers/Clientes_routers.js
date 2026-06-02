@@ -37,6 +37,7 @@ const router = Router();
 // ==                RUTAS PÚBLICAS (PARA CUALQUIER VISITANTE)          ==
 // =======================================================================
 router.post('/registro', validateClienteRegistro, registro);
+router.get('/confirm/:token', confirmarEmail);
 router.get('/confirmar/:token', confirmarEmail);
 router.post('/login', validateLogin, login);
 router.post('/recuperar-password', validatePasswordRecovery, recuperarPassword);

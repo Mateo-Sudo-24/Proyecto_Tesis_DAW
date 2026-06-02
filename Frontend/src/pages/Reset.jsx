@@ -215,7 +215,7 @@ const Reset = () => {
     const password = watch("password");
 
     const changePassword = async (data) => {
-        if (data.password !== data.passwordConfirmar) {
+        if (data.password !== data.confirmPassword) {
             toast.error("Las contraseÃ±as no coinciden");
             return;
         }
@@ -302,26 +302,26 @@ const Reset = () => {
 
                         {/* Confirmar contrasena */}
                         <div className="reset-field">
-                            <label htmlFor="passwordConfirmar" className="reset-label">
+                            <label htmlFor="confirmPassword" className="reset-label">
                                 Confirmar contrasena
                             </label>
                             <div className="reset-input-wrapper">
                                 <PasswordInput
-                                    id="passwordConfirmar"
+                                    id="confirmPassword"
                                     placeholder="Minimo 8 caracteres"
-                                    className={`reset-input${errors.passwordConfirmar ? ' input-error' : ''}`}
-                                    {...register("passwordConfirmar", {
+                                    className={`reset-input${errors.confirmPassword ? ' input-error' : ''}`}
+                                    {...register("confirmPassword", {
                                         required: "La confirmacion es obligatoria",
                                         validate: value => value === password || "Las contrasenas no coinciden"
                                     })}
                                 />
                             </div>
-                            {errors.passwordConfirmar && (
+                            {errors.confirmPassword && (
                                 <p className="reset-error-msg">
                                     <svg width="14" height="14" fill="currentColor" viewBox="0 0 20 20">
                                         <path fillRule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7 4a1 1 0 11-2 0 1 1 0 012 0zm-1-9a1 1 0 00-1 1v4a1 1 0 102 0V6a1 1 0 00-1-1z" clipRule="evenodd" />
                                     </svg>
-                                    {errors.passwordConfirmar.message}
+                                    {errors.confirmPassword.message}
                                 </p>
                             )}
                         </div>

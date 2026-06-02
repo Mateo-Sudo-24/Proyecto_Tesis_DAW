@@ -5,25 +5,23 @@ import { crearTokenJWT } from "../middlewares/JWT.js";
 import { sendMailToRecoveryPassword } from "../config/nodemailer.js";
 
 const normalizarEmail = (email = '') => String(email).toLowerCase().trim();
-const escapeRegex = (value = '') => String(value).replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
-const crearEmailRegex = (email = '') => new RegExp(`^${escapeRegex(normalizarEmail(email))}$`, 'i');
 
 const buscarUsuarioPorEmail = async (email, { soloLocales = false } = {}) => {
-    const emailRegex = crearEmailRegex(email);
+    const emailNorm = normalizarEmail(email);
     const clienteQuery = soloLocales
         ? {
-            email: emailRegex,
+            email: emailNorm,
             $or: [
                 { proveedor: 'local' },
                 { proveedor: { $exists: false } },
                 { proveedor: null },
             ],
         }
-        : { email: emailRegex };
+        : { email: emailNorm };
 
     const [admin, vendedor, cliente] = await Promise.all([
-        Administrador.findOne({ email: emailRegex }),
-        Vendedor.findOne({ email: emailRegex }),
+        Administrador.findOne({ email: emailNorm }),
+        Vendedor.findOne({ email: emailNorm }),
         Cliente.findOne(clienteQuery),
     ]);
     return admin || vendedor || cliente;
