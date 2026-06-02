@@ -3,6 +3,7 @@ import { useForm } from "react-hook-form";
 import storeProfile from "../../context/storeProfile";
 import storeAuth from "../../context/storeAuth";
 import ConfirmDialog from "../ui/ConfirmDialog";
+import PasswordInput from "../ui/PasswordInput";
 
 const styles = `
     :root {
@@ -184,8 +185,7 @@ const CardPassword = () => {
                                 {step === 1 && (
                                     <div className="pwd-field">
                                         <label className="pwd-label">Contraseña actual</label>
-                                        <input
-                                            type="password"
+                                        <PasswordInput
                                             placeholder="Ingresa tu contraseña actual"
                                             className="pwd-input"
                                             {...register("passwordActual", { required: "La contraseña actual es obligatoria" })}
@@ -198,8 +198,7 @@ const CardPassword = () => {
                                     <>
                                         <div className="pwd-field">
                                             <label className="pwd-label">Nueva contraseña</label>
-                                            <input
-                                                type="password"
+                                            <PasswordInput
                                                 placeholder="Mínimo 8 caracteres"
                                                 className="pwd-input"
                                                 {...register("passwordNuevo", {
@@ -211,8 +210,7 @@ const CardPassword = () => {
                                         </div>
                                         <div className="pwd-field">
                                             <label className="pwd-label">Confirmar nueva contraseña</label>
-                                            <input
-                                                type="password"
+                                            <PasswordInput
                                                 placeholder="Repite la nueva contraseña"
                                                 className="pwd-input"
                                                 {...register("passwordConfirmar", {

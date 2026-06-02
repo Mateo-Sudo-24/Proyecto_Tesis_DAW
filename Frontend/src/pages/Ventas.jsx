@@ -51,8 +51,7 @@ const getPagoEstado = (estadoPago) => {
     if (estadoPago === 'fallido') return 'fallido';
     return 'pendiente';
 };
-const cuentaComoIngreso = (orden) =>
-    orden.estadoOrden === 'entregado' || (orden.tipoEntrega === 'venta_local' && getPagoEstado(orden.estadoPago) === 'realizado');
+const cuentaComoIngreso = (orden) => getPagoEstado(orden.estadoPago) === 'realizado';
 
 const Ventas = () => {
     const { token } = storeAuth();

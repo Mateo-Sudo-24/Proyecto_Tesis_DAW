@@ -335,6 +335,8 @@ const FacturaPDF = ({ orden, facturacion, label = 'Descargar factura' }) => {
 
                 {/* Totales */}
                 <div className="fpdf-totals">
+                    {descuentoTotal > 0 && <div className="fpdf-total-row"><span>Subtotal bruto</span><span>{fmt(subtotalBruto)}</span></div>}
+                    {descuentoTotal > 0 && <div className="fpdf-total-row"><span>Descuento</span><span>-{fmt(descuentoTotal)}</span></div>}
                     <div className="fpdf-total-row"><span>Subtotal</span><span>{fmt(subtotal)}</span></div>
                     <div className="fpdf-total-row"><span>IVA (15%)</span><span>{fmt(iva)}</span></div>
                     {comisionPago > 0 && <div className="fpdf-total-row"><span>Comisión pago</span><span>{fmt(comisionPago)}</span></div>}

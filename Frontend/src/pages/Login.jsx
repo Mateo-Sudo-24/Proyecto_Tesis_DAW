@@ -5,6 +5,7 @@ import useFetch from '../hooks/useFetch';
 import { toast } from 'react-toastify';
 import storeAuth from '../context/storeAuth';
 import loginImg from '../assets/login.jpg';
+import PasswordInput from '../components/ui/PasswordInput';
 
 const loginStyles = `
     /* ─── Layout ─── */
@@ -303,7 +304,6 @@ const loginStyles = `
 const Login = () => {
     const navigate = useNavigate();
     const [isLoading, setIsLoading] = useState(false);
-    const [showPassword, setShowPassword] = useState(false);
     const { register, handleSubmit, watch, formState: { errors } } = useForm();
     const { fetchDataBackend } = useFetch();
     const emailValue = watch('email', '');
@@ -414,29 +414,12 @@ const Login = () => {
                                 Contraseña
                             </label>
                             <div className="login-input-wrapper">
-                                <input
+                                <PasswordInput
                                     id="password"
-                                    type={showPassword ? "text" : "password"}
                                     placeholder="••••••••"
                                     className={`login-input${errors.password ? ' input-error' : ''}`}
                                     {...register("password", { required: "La contraseña es obligatoria" })}
                                 />
-                                <button
-                                    type="button"
-                                    onClick={() => setShowPassword(!showPassword)}
-                                    className="login-toggle-btn"
-                                    aria-label="Mostrar u ocultar contraseña"
-                                >
-                                    {showPassword ? (
-                                        <svg width="20" height="20" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M13.875 18.825A9.956 9.956 0 0112 19c-4.418 0-8.165-2.928-9.53-7a10.005 10.005 0 0119.06 0 9.956 9.956 0 01-1.845 3.35M9.9 14.32a3 3 0 114.2-4.2m.5 3.5l3.8 3.8m-3.8-3.8L5.5 5.5" />
-                                        </svg>
-                                    ) : (
-                                        <svg width="20" height="20" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0zm-9.95 0a9.96 9.96 0 0119.9 0m-19.9 0a9.96 9.96 0 0119.9 0M3 3l18 18" />
-                                        </svg>
-                                    )}
-                                </button>
                             </div>
                             {errors.password && (
                                 <p className="login-error-msg">

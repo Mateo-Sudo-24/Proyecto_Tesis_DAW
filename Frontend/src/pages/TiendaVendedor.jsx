@@ -15,6 +15,13 @@ const styles = `
     .tv-primary { background:#e8760a; color:#fff; box-shadow:0 3px 10px rgba(232,118,10,0.24); }
     .tv-secondary, .tv-link { background:#f3f4f6; color:#374151; border:1px solid #e5e7eb; }
     .tv-primary:disabled { opacity:0.55; cursor:not-allowed; }
+    .tv-mode-box { background:#fff; border:1px solid #e5e7eb; border-radius:0.875rem; padding:0.9rem; margin-bottom:1rem; box-shadow:0 2px 10px rgba(0,0,0,0.05); }
+    .tv-mode-title { margin:0 0 0.65rem; font-size:0.82rem; font-weight:900; color:#374151; text-transform:uppercase; letter-spacing:0.04em; }
+    .tv-mode-options { display:grid; grid-template-columns:1fr 1fr; gap:0.6rem; }
+    .tv-mode-btn { border:1.5px solid #e5e7eb; background:#f9fafb; color:#4b5563; border-radius:0.7rem; padding:0.75rem; text-align:left; cursor:pointer; font-weight:800; }
+    .tv-mode-btn span { display:block; font-size:0.72rem; color:#6b7280; font-weight:600; margin-top:0.2rem; line-height:1.35; }
+    .tv-mode-btn.active { background:#e8760a; border-color:#e8760a; color:#fff; box-shadow:0 3px 12px rgba(232,118,10,0.25); }
+    .tv-mode-btn.active span { color:#fff7ed; }
     .tv-layout { display:grid; grid-template-columns:minmax(0,1fr) 340px; gap:1.25rem; align-items:start; }
     .tv-grid { display:grid; grid-template-columns:repeat(1,minmax(0,1fr)); gap:1rem; }
     @media (min-width:700px) { .tv-grid { grid-template-columns:repeat(2,minmax(0,1fr)); } }
@@ -73,6 +80,7 @@ const TiendaVendedor = () => {
     const [cantidades, setCantidades] = useState({});
     const [unidades, setUnidades] = useState({});
     const [carrito, setCarrito] = useState([]);
+    const [modoVenta, setModoVenta] = useState('tienda');
     const [modalOpen, setModalOpen] = useState(false);
     const [guardando, setGuardando] = useState(false);
     const [cliente, setCliente] = useState({ nombre: "", apellido: "", email: "", telefono: "", direccion: "", ruc: "" });
@@ -93,17 +101,22 @@ const TiendaVendedor = () => {
     }, []);
 
     const totales = useMemo(() => {
+        const subtotalBruto = carrito.reduce((sum, item) => {
+            const precio = getPrecioUnidad(item.producto, item.unidadSeleccionada);
+            return sum + (precio * item.cantidad);
+        }, 0);
         const subtotal = carrito.reduce((sum, item) => {
             const precio = getPrecioUnidad(item.producto, item.unidadSeleccionada);
             const descuento = Number(item.producto.descuento) || 0;
             return sum + (precio * item.cantidad * (1 - descuento / 100));
         }, 0);
+        const descuentoTotal = Number((subtotalBruto - subtotal).toFixed(2));
         const iva = Number((subtotal * IVA_RATE).toFixed(2));
         const totalFinal = Number((subtotal + iva).toFixed(2));
-        return { subtotal: Number(subtotal.toFixed(2)), iva, totalFinal };
+        return { subtotal: Number(subtotal.toFixed(2)), descuentoTotal, iva, totalFinal };
     }, [carrito]);
 
-    const agregar = (producto) => {
+    const agregar = async (producto) => {
         const unidad = unidades[producto._id] || (producto.unidadVenta === 'rollo' ? 'rollo' : 'metro');
         const cantidadRaw = cantidades[producto._id] ?? 1;
         const cantidad = unidad === 'rollo' ? Math.ceil(Number(cantidadRaw)) : Number(cantidadRaw);
@@ -114,6 +127,21 @@ const TiendaVendedor = () => {
         const metros = getMetros(producto, cantidad, unidad);
         if (metros > (Number(producto.metrosDisponibles) || 0)) {
             toast.error(`Stock insuficiente para ${producto.nombre}.`);
+            return;
+        }
+        if (modoVenta === 'carrito') {
+            try {
+                const res = await fetch(`${import.meta.env.VITE_BACKEND_URL}/carrito/items`, {
+                    method: "POST",
+                    headers: { "Content-Type": "application/json", Authorization: `Bearer ${token}` },
+                    body: JSON.stringify({ productoId: producto._id, cantidad, unidadSeleccionada: unidad })
+                });
+                const data = await res.json().catch(() => ({}));
+                if (!res.ok) throw new Error(data.msg || "No se pudo añadir al carrito.");
+                toast.success("Producto añadido al carrito.");
+            } catch (error) {
+                toast.error(error.message);
+            }
             return;
         }
         setCarrito(prev => {
@@ -142,7 +170,7 @@ const TiendaVendedor = () => {
                         cantidad: item.cantidad,
                         unidadSeleccionada: item.unidadSeleccionada
                     })),
-                    desglose: { ...totales, envio: 0, comisionPago: 0, descuentoTotal: 0 }
+                    desglose: { ...totales, envio: 0, comisionPago: 0 }
                 })
             });
             const data = await res.json().catch(() => ({}));
@@ -169,8 +197,31 @@ const TiendaVendedor = () => {
                     </div>
                     <div className="tv-actions">
                         <Link to="/dashboard/productos-admin" className="tv-link">Gestionar productos</Link>
+                        <Link to="/dashboard/carrito" className="tv-link">Ir al carrito</Link>
                         <button className="tv-primary" disabled={carrito.length === 0} onClick={() => setModalOpen(true)}>
                             Registrar pedido en tienda
+                        </button>
+                    </div>
+                </div>
+
+                <div className="tv-mode-box">
+                    <p className="tv-mode-title">Tipo de venta</p>
+                    <div className="tv-mode-options">
+                        <button
+                            type="button"
+                            className={`tv-mode-btn${modoVenta === 'tienda' ? ' active' : ''}`}
+                            onClick={() => setModoVenta('tienda')}
+                        >
+                            Pedido en tienda
+                            <span>Registra venta local con cliente guest y pago realizado.</span>
+                        </button>
+                        <button
+                            type="button"
+                            className={`tv-mode-btn${modoVenta === 'carrito' ? ' active' : ''}`}
+                            onClick={() => setModoVenta('carrito')}
+                        >
+                            Añadir al carrito
+                            <span>Envía productos al carrito para continuar con envío a domicilio.</span>
                         </button>
                     </div>
                 </div>
@@ -208,8 +259,8 @@ const TiendaVendedor = () => {
                                             value={cantidades[producto._id] ?? 1}
                                             onChange={e => setCantidades(prev => ({ ...prev, [producto._id]: e.target.value }))}
                                         />
-                                        <button className="tv-primary" disabled={metros <= 0} onClick={() => agregar(producto)}>
-                                            Añadir a venta
+                                        <button className={modoVenta === 'tienda' ? 'tv-primary' : 'tv-secondary'} disabled={metros <= 0} onClick={() => agregar(producto)}>
+                                            {modoVenta === 'tienda' ? 'Añadir a pedido en tienda' : 'Añadir al carrito'}
                                         </button>
                                     </div>
                                 </article>
@@ -236,6 +287,7 @@ const TiendaVendedor = () => {
                         {carrito.length > 0 && (
                             <div className="tv-total">
                                 <div><span>Subtotal</span><span>${totales.subtotal.toFixed(2)}</span></div>
+                                {totales.descuentoTotal > 0 && <div><span>Descuento</span><span>-${totales.descuentoTotal.toFixed(2)}</span></div>}
                                 <div><span>IVA</span><span>${totales.iva.toFixed(2)}</span></div>
                                 <div><strong>Total</strong><strong>${totales.totalFinal.toFixed(2)}</strong></div>
                             </div>

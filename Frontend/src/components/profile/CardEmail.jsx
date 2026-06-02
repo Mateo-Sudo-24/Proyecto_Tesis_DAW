@@ -2,6 +2,7 @@ import { useState } from "react";
 import { useForm } from "react-hook-form";
 import { toast } from "react-toastify";
 import storeProfile from "../../context/storeProfile";
+import PasswordInput from "../ui/PasswordInput";
 
 const styles = `
     .email-card {
@@ -186,8 +187,7 @@ const CardEmail = () => {
 
                             <div className="email-field">
                                 <label className="email-label">Contraseña actual</label>
-                                <input
-                                    type="password"
+                                <PasswordInput
                                     className="email-input"
                                     placeholder="Confirma tu contraseña"
                                     {...register("passwordActual", { required: "La contraseña actual es obligatoria." })}

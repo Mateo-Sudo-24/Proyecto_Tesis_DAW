@@ -4,6 +4,7 @@ import { useEffect, useState } from 'react';
 import useFetch from '../hooks/useFetch';
 import { useNavigate, useParams, Link } from 'react-router-dom';
 import { useForm } from 'react-hook-form';
+import PasswordInput from '../components/ui/PasswordInput';
 
 const resetStyles = `
     /* ─── Layout ─── */
@@ -197,18 +198,6 @@ const resetStyles = `
     .reset-back-link:hover { color: #b45309; }
 `;
 
-const EyeIcon = () => (
-    <svg width="20" height="20" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0zm-9.95 0a9.96 9.96 0 0119.9 0m-19.9 0a9.96 9.96 0 0119.9 0M3 3l18 18" />
-    </svg>
-);
-
-const EyeOffIcon = () => (
-    <svg width="20" height="20" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M13.875 18.825A9.956 9.956 0 0112 19c-4.418 0-8.165-2.928-9.53-7a10.005 10.005 0 0119.06 0 9.956 9.956 0 01-1.845 3.35M9.9 14.32a3 3 0 114.2-4.2m.5 3.5l3.8 3.8m-3.8-3.8L5.5 5.5" />
-    </svg>
-);
-
 const LockIcon = () => (
     <svg width="32" height="32" fill="none" stroke="currentColor" viewBox="0 0 24 24">
         <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="1.8"
@@ -221,8 +210,6 @@ const Reset = () => {
     const { token } = useParams();
     const navigate = useNavigate();
     const [tokenback, setTokenBack] = useState(false);
-    const [showPassword, setShowPassword] = useState(false);
-    const [showConfirm, setShowConfirm] = useState(false);
     const [isLoading, setIsLoading] = useState(false);
     const { register, handleSubmit, formState: { errors } } = useForm();
 
@@ -292,21 +279,12 @@ const Reset = () => {
                                 Nueva contraseña
                             </label>
                             <div className="reset-input-wrapper">
-                                <input
+                                <PasswordInput
                                     id="password"
-                                    type={showPassword ? "text" : "password"}
                                     placeholder="••••••••"
                                     className={`reset-input${errors.password ? ' input-error' : ''}`}
                                     {...register("password", { required: "La contraseña es obligatoria" })}
                                 />
-                                <button
-                                    type="button"
-                                    onClick={() => setShowPassword(!showPassword)}
-                                    className="reset-toggle-btn"
-                                    aria-label="Mostrar u ocultar contraseña"
-                                >
-                                    {showPassword ? <EyeOffIcon /> : <EyeIcon />}
-                                </button>
                             </div>
                             {errors.password && (
                                 <p className="reset-error-msg">
@@ -324,21 +302,12 @@ const Reset = () => {
                                 Confirmar contraseña
                             </label>
                             <div className="reset-input-wrapper">
-                                <input
+                                <PasswordInput
                                     id="confirmpassword"
-                                    type={showConfirm ? "text" : "password"}
                                     placeholder="••••••••"
                                     className={`reset-input${errors.confirmpassword ? ' input-error' : ''}`}
                                     {...register("confirmpassword", { required: "La confirmación es obligatoria" })}
                                 />
-                                <button
-                                    type="button"
-                                    onClick={() => setShowConfirm(!showConfirm)}
-                                    className="reset-toggle-btn"
-                                    aria-label="Mostrar u ocultar confirmación"
-                                >
-                                    {showConfirm ? <EyeOffIcon /> : <EyeIcon />}
-                                </button>
                             </div>
                             {errors.confirmpassword && (
                                 <p className="reset-error-msg">

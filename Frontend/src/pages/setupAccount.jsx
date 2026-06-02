@@ -1,9 +1,9 @@
 // src/pages/SetupAccount.jsx
-import { useState } from 'react';
 import { useParams, useNavigate, useLocation } from 'react-router-dom';
 import { useForm } from 'react-hook-form';
 import { toast } from 'react-toastify';
 import useFetch from '../hooks/useFetch';
+import PasswordInput from '../components/ui/PasswordInput';
 
 const setupStyles = `
     /* ─── Layout ─── */
@@ -272,8 +272,6 @@ const SetupAccount = () => {
     const location = useLocation();
     const { register, handleSubmit, formState: { errors }, watch } = useForm();
     const { fetchDataBackend, isLoading } = useFetch();
-    const [showPass, setShowPass] = useState(false);
-    const [showConfirm, setShowConfirm] = useState(false);
     const password = watch("password");
 
     const isCliente = location.pathname.includes('/clientes/setup-account/');
@@ -321,8 +319,7 @@ const SetupAccount = () => {
                             <div className="su-field">
                                 <label className="su-label">Nueva contraseña</label>
                                 <div className="su-input-wrap">
-                                    <input
-                                        type={showPass ? 'text' : 'password'}
+                                    <PasswordInput
                                         placeholder="Mínimo 6 caracteres"
                                         className={`su-input${errors.password ? ' su-error' : ''}`}
                                         {...register("password", {
@@ -330,14 +327,6 @@ const SetupAccount = () => {
                                             minLength: { value: 6, message: "Mínimo 6 caracteres" }
                                         })}
                                     />
-                                    <button
-                                        type="button"
-                                        className="su-toggle-btn"
-                                        onClick={() => setShowPass(v => !v)}
-                                        tabIndex={-1}
-                                    >
-                                        {showPass ? '🙈' : '👁️'}
-                                    </button>
                                 </div>
                                 {errors.password
                                     ? <p className="su-error-msg">⚠ {errors.password.message}</p>
@@ -349,8 +338,7 @@ const SetupAccount = () => {
                             <div className="su-field">
                                 <label className="su-label">Confirmar contraseña</label>
                                 <div className="su-input-wrap">
-                                    <input
-                                        type={showConfirm ? 'text' : 'password'}
+                                    <PasswordInput
                                         placeholder="Repite tu contraseña"
                                         className={`su-input${errors.confirmPassword ? ' su-error' : ''}`}
                                         {...register("confirmPassword", {
@@ -358,14 +346,6 @@ const SetupAccount = () => {
                                             validate: value => value === password || "Las contraseñas no coinciden"
                                         })}
                                     />
-                                    <button
-                                        type="button"
-                                        className="su-toggle-btn"
-                                        onClick={() => setShowConfirm(v => !v)}
-                                        tabIndex={-1}
-                                    >
-                                        {showConfirm ? '🙈' : '👁️'}
-                                    </button>
                                 </div>
                                 {errors.confirmPassword && (
                                     <p className="su-error-msg">⚠ {errors.confirmPassword.message}</p>

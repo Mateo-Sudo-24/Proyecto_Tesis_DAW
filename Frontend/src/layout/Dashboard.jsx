@@ -1,5 +1,6 @@
 import { Link, Outlet, useLocation, useNavigate } from 'react-router'
-import { useState } from 'react'
+import { useEffect, useState } from 'react'
+import { io } from 'socket.io-client'
 import storeAuth from '../context/storeAuth'
 import storeProfile from '../context/storeProfile'
 import BandejaMensajes from '../components/notificaciones/BandejaMensajes'
@@ -154,6 +155,22 @@ const styles = `
         gap: 0.65rem;
     }
     .dsb-icon { font-size: 1rem; line-height: 1; }
+    .dsb-chat-link { position: relative; }
+    .dsb-chat-badge {
+        margin-left: auto;
+        min-width: 1.25rem;
+        height: 1.25rem;
+        padding: 0 0.35rem;
+        border-radius: 999px;
+        background: #ef4444;
+        color: #fff;
+        font-size: 0.68rem;
+        font-weight: 900;
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        box-shadow: 0 0 0 2px #111827;
+    }
     .dsb-chevron {
         font-size: 0.65rem;
         color: #6b7280;
@@ -245,6 +262,38 @@ const styles = `
         font-weight: 600;
         color: #f9fafb;
     }
+    .dsb-chat-alert {
+        display: inline-flex;
+        align-items: center;
+        gap: 0.55rem;
+        max-width: min(360px, 46vw);
+        border: 1px solid rgba(239,68,68,0.35);
+        background: #fef2f2;
+        color: #991b1b;
+        border-radius: 999px;
+        padding: 0.45rem 0.75rem;
+        font-size: 0.78rem;
+        font-weight: 800;
+        cursor: pointer;
+        box-shadow: 0 6px 18px rgba(0,0,0,0.18);
+    }
+    .dsb-chat-alert-text {
+        overflow: hidden;
+        white-space: nowrap;
+        text-overflow: ellipsis;
+    }
+    .dsb-chat-alert-count {
+        min-width: 1.35rem;
+        height: 1.35rem;
+        border-radius: 999px;
+        background: #ef4444;
+        color: #fff;
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        font-size: 0.72rem;
+        box-shadow: 0 0 0 2px #fff;
+    }
     .dsb-content {
         flex: 1;
         padding: 2rem;
@@ -283,6 +332,8 @@ const styles = `
         }
         .dsb-content { padding: 1rem; }
         .dsb-topbar { justify-content: space-between; padding: 0.7rem 1rem; }
+        .dsb-chat-alert { max-width: 48vw; padding: 0.4rem 0.6rem; }
+        .dsb-chat-alert-text { max-width: 30vw; }
     }
     /* Ã¢â€â‚¬Ã¢â€â‚¬ Hamburger button Ã¢â€â‚¬Ã¢â€â‚¬ */
     .dsb-hamburger {
@@ -306,9 +357,11 @@ const Dashboard = () => {
     const location = useLocation()
     const navigate = useNavigate()
     const urlActual = location.pathname
-    const { clearToken } = storeAuth()
+    const { token, clearToken } = storeAuth()
     const { user, clearUser } = storeProfile()
     const [sidebarOpen, setSidebarOpen] = useState(false)
+    const [chatUnread, setChatUnread] = useState(0)
+    const [lastChatSender, setLastChatSender] = useState('')
 
     const closeSidebar = () => setSidebarOpen(false)
 
@@ -317,8 +370,34 @@ const Dashboard = () => {
     const isVendedor = user?.rol === "vendedor"
     const isCliente = user?.rol === "cliente"
     const isAdmin = user?.rol === "administrador"
+    const miId = user?._id || user?.id
 
     const lc = (path) => `dsb-nav-link${urlActual === path ? ' active' : ''}`
+
+    useEffect(() => {
+        if (urlActual === '/dashboard/chat') {
+            setChatUnread(0)
+            setLastChatSender('')
+        }
+    }, [urlActual])
+
+    useEffect(() => {
+        if (!token || !user) return undefined
+        const backendUrl = import.meta.env.VITE_BACKEND_URL?.replace('/api', '')
+        if (!backendUrl) return undefined
+
+        const sock = io(backendUrl, { auth: { token } })
+        const registrarMensaje = (msg) => {
+            if (!msg || msg.de?.id === miId || urlActual === '/dashboard/chat') return
+            setChatUnread(prev => prev + 1)
+            setLastChatSender(msg.de?.nombre || 'un contacto')
+        }
+
+        sock.on('mensaje_de_staff', registrarMensaje)
+        sock.on('mensaje_de_cliente', ({ msg }) => registrarMensaje(msg))
+
+        return () => sock.disconnect()
+    }, [token, user, miId, urlActual])
 
     return (
         <>
@@ -360,8 +439,13 @@ const Dashboard = () => {
                             <span className="dsb-icon">👤</span> Perfil
                         </Link>
 
-                        <Link to="/dashboard/chat" className={lc('/dashboard/chat')} onClick={closeSidebar}>
+                        <Link
+                            to="/dashboard/chat"
+                            className={`${lc('/dashboard/chat')} dsb-chat-link`}
+                            onClick={() => { closeSidebar(); setChatUnread(0); setLastChatSender(''); }}
+                        >
                             <span className="dsb-icon">💬</span> Chat
+                            {chatUnread > 0 && <span className="dsb-chat-badge">{chatUnread > 9 ? '9+' : chatUnread}</span>}
                         </Link>
 
                         {/* GestiÃƒÂ³n (admin + vendedor) */}
@@ -462,6 +546,18 @@ const Dashboard = () => {
                                 )}
                             </svg>
                         </button>
+                        {chatUnread > 0 && (
+                            <button
+                                className="dsb-chat-alert"
+                                type="button"
+                                onClick={() => { setChatUnread(0); setLastChatSender(''); navigate('/dashboard/chat'); }}
+                                title="Ir al chat"
+                            >
+                                <span>💬</span>
+                                <span className="dsb-chat-alert-text">Tienes un mensaje de {lastChatSender || 'un contacto'}</span>
+                                <span className="dsb-chat-alert-count">{chatUnread > 9 ? '9+' : chatUnread}</span>
+                            </button>
+                        )}
                         <div className="dsb-topbar-user">
                             <span className="dsb-topbar-name">{displayName}</span>
                             <div

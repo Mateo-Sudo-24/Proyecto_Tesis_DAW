@@ -189,7 +189,7 @@ const ProgressBar = ({ estadoOrden, estadoPago, tipoEntrega, isVendedor, ordenId
             );
             if (!res.ok) throw new Error('No se pudo actualizar el estado.');
             const data = await res.json();
-            toast.success(`✅ Pedido marcado como "${label}"`);
+            toast.success(`Pedido marcado como "${label}"`);
             onStatusUpdate(data.orden ?? { estadoOrden: backendEstado });
         } catch {
             toast.error('Error al actualizar el estado del pedido.');

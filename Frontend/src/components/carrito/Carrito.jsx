@@ -755,15 +755,15 @@ const Carrito = () => {
                                             <span className="cart-delivery-opt-icon">🛵</span>
                                             <span className="cart-delivery-opt-label">Envío a domicilio</span>
                                         </div>
-                                        <div
-                                            className={`cart-delivery-opt${tipoEntrega === 'retiro' ? ' selected' : ''}`}
-                                            onClick={() => { setTipoEntrega('retiro'); setShowModalOP(true); }}
-                                        >
-                                            <span className="cart-delivery-opt-icon">🏪</span>
-                                            <span className="cart-delivery-opt-label">Retiro en almacenes</span>
-                                        </div>
-                                        {isVendedor && (
+                                        {!isVendedor && (
                                             <>
+                                                <div
+                                                    className={`cart-delivery-opt${tipoEntrega === 'retiro' ? ' selected' : ''}`}
+                                                    onClick={() => { setTipoEntrega('retiro'); setShowModalOP(true); }}
+                                                >
+                                                    <span className="cart-delivery-opt-icon">🏪</span>
+                                                    <span className="cart-delivery-opt-label">Retiro en almacenes</span>
+                                                </div>
                                                 <div
                                                     className={`cart-delivery-opt${tipoEntrega === 'establecimiento' ? ' selected' : ''}`}
                                                     onClick={() => { setTipoEntrega('establecimiento'); setShowModalOP(true); }}
@@ -771,16 +771,14 @@ const Carrito = () => {
                                                     <span className="cart-delivery-opt-icon">🏢</span>
                                                     <span className="cart-delivery-opt-label">Entrega en establecimiento</span>
                                                 </div>
-                                                <div
-                                                    className={`cart-delivery-opt${tipoEntrega === 'venta_local' ? ' selected' : ''}`}
-                                                    onClick={() => { setTipoEntrega('venta_local'); setShowModalOP(true); }}
-                                                >
-                                                    <span className="cart-delivery-opt-icon">💰</span>
-                                                    <span className="cart-delivery-opt-label">Venta local</span>
-                                                </div>
                                             </>
                                         )}
                                     </div>
+                                    {isVendedor && (
+                                        <p style={{ margin:'0.85rem 0 0', color:'#92400e', background:'#fef3c7', border:'1px solid #fde68a', borderRadius:'0.6rem', padding:'0.7rem 0.85rem', fontSize:'0.82rem', fontWeight:700 }}>
+                                            Como vendedor, el carrito registra pedidos con envío a domicilio. Para ventas presenciales usa la pantalla Tienda y marca el pedido como pedido en tienda.
+                                        </p>
+                                    )}
                                 </div>
                             </div>
                         </div>
