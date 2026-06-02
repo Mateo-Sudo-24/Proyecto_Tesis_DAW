@@ -30,6 +30,7 @@ const sendBrevo = async (to, subject, html) => {
 console.log('✅ Brevo HTTP API lista.');
 
 const COLORS = { primary: '#B2753B', background: '#FEFAF1', text: '#333333' };
+const frontendUrl = () => (process.env.URL_FRONTEND || '').replace(/\/+$/, '');
 
 const baseStyle = `
     <style>
@@ -45,7 +46,7 @@ const baseStyle = `
 `;
 
 const sendMailToRegister = async (userMail, token) => {
-    const link = `${process.env.URL_FRONTEND}/confirmar/${token}`;
+    const link = `${frontendUrl()}/confirmar/${token}`;
     await sendBrevo(userMail, 'Intex - Confirma tu cuenta', `
         <!DOCTYPE html><html lang="es"><head><meta charset="UTF-8">${baseStyle}</head><body>
         <div class="container">
@@ -58,7 +59,7 @@ const sendMailToRegister = async (userMail, token) => {
 };
 
 const sendMailToRecoveryPassword = async (userMail, token) => {
-    const link = `${process.env.URL_FRONTEND}/reset/${token}`;
+    const link = `${frontendUrl()}/reset/${token}`;
     await sendBrevo(userMail, 'Intex - Restablece tu contraseña', `
         <!DOCTYPE html><html lang="es"><head><meta charset="UTF-8">${baseStyle}</head><body>
         <div class="container">
@@ -71,7 +72,7 @@ const sendMailToRecoveryPassword = async (userMail, token) => {
 };
 
 const sendMailToInviteUser = async (userMail, token) => {
-    const link = `${process.env.URL_FRONTEND}/vendedores/setup-account/${token}`;
+    const link = `${frontendUrl()}/vendedores/setup-account/${token}`;
     await sendBrevo(userMail, 'Intex - ¡Has sido invitado a unirte!', `
         <!DOCTYPE html><html lang="es"><head><meta charset="UTF-8">${baseStyle}</head><body>
         <div class="container">
@@ -84,7 +85,7 @@ const sendMailToInviteUser = async (userMail, token) => {
 };
 
 const sendMailToInviteCliente = async (userMail, token) => {
-    const link = `${process.env.URL_FRONTEND}/clientes/setup-account/${token}`;
+    const link = `${frontendUrl()}/clientes/setup-account/${token}`;
     await sendBrevo(userMail, 'Intex - ¡Tu cuenta ha sido creada!', `
         <!DOCTYPE html><html lang="es"><head><meta charset="UTF-8">${baseStyle}</head><body>
         <div class="container">

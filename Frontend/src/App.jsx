@@ -115,6 +115,8 @@ function AppContent() {
           <Route path="contacto" element={<Contact />} />
           <Route path="products" element={<Products />} />
           <Route path="products/:id" element={<ProductDetails />} />
+          <Route path="confirm/:token" element={<Confirm />} />
+          <Route path="confirmar/:token" element={<Confirm />} />
 
           {/* Rutas solo para no autenticados */}
           <Route element={<PublicRoute />}>
@@ -122,8 +124,6 @@ function AppContent() {
             <Route path="register" element={<Register />} />
             <Route path="forgot" element={<Forgot />} />
             <Route path="forgot/:id" element={<Forgot />} />
-            <Route path="confirm/:token" element={<Confirm />} />
-            <Route path="confirmar/:token" element={<Confirm />} />
             <Route path="/vendedores/setup-account/:token" element={<SetupAccount />} />
             <Route path="/clientes/setup-account/:token" element={<SetupAccount />} />
             <Route path="reset/:token" element={<Reset />} />
