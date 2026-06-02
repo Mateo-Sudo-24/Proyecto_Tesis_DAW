@@ -458,13 +458,18 @@ const ProductosAdmin = () => {
     // Paginación
     const [pagina, setPagina] = useState(1);
     const [totalPaginas, setTotalPaginas] = useState(1);
-    const limite = 6;
+    const limite = 8;
 
     const token = JSON.parse(localStorage.getItem('auth-token'))?.state?.token;
 
     const handleImageError = (e) => {
         e.currentTarget.onerror = null;
         e.currentTarget.src = "/images/no-image.png";
+    };
+
+    const cambiarPagina = (nuevaPagina) => {
+        setPagina(nuevaPagina);
+        window.scrollTo(0, 0);
     };
 
     // Debounce búsqueda
@@ -640,7 +645,7 @@ const ProductosAdmin = () => {
                         <div className="pa-pagination">
                             <button
                                 className="btn-pa-pag"
-                                onClick={() => setPagina(p => Math.max(1, p - 1))}
+                                onClick={() => cambiarPagina(Math.max(1, pagina - 1))}
                                 disabled={pagina === 1}
                             >
                                 &lt;
@@ -649,14 +654,14 @@ const ProductosAdmin = () => {
                                 <button
                                     key={i+1}
                                     className={`btn-pa-pag${pagina === i + 1 ? ' active' : ''}`}
-                                    onClick={() => setPagina(i + 1)}
+                                    onClick={() => cambiarPagina(i + 1)}
                                 >
                                     {i + 1}
                                 </button>
                             ))}
                             <button
                                 className="btn-pa-pag"
-                                onClick={() => setPagina(p => Math.min(totalPaginas, p + 1))}
+                                onClick={() => cambiarPagina(Math.min(totalPaginas, pagina + 1))}
                                 disabled={pagina === totalPaginas}
                             >
                                 &gt;

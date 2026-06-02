@@ -274,13 +274,18 @@ const Productos = () => {
     // Paginación
     const [pagina, setPagina] = useState(1);
     const [totalPaginas, setTotalPaginas] = useState(1);
-    const limite = 6;
+    const limite = 8;
 
     const token = storeAuth(state => state.token);
 
     const handleImageError = (e) => {
         e.currentTarget.onerror = null;
         e.currentTarget.src = NO_IMAGE_SRC;
+    };
+
+    const cambiarPagina = (nuevaPagina) => {
+        setPagina(nuevaPagina);
+        window.scrollTo(0, 0);
     };
 
     // Debounce búsqueda
@@ -409,6 +414,7 @@ const Productos = () => {
                         <p>Aún no hay productos registrados en el sistema.</p>
                     </div>
                 ) : (
+                    <>
                     <div className="dash-prod-grid">
                         {productos.map(producto => (
                             <div key={producto._id} className="dash-card">
@@ -498,7 +504,7 @@ const Productos = () => {
                         <div className="dash-pagination">
                             <button
                                 className="btn-dash-pag"
-                                onClick={() => setPagina(p => Math.max(1, p - 1))}
+                                onClick={() => cambiarPagina(Math.max(1, pagina - 1))}
                                 disabled={pagina === 1}
                             >
                                 &lt;
@@ -507,14 +513,14 @@ const Productos = () => {
                                 <button
                                     key={i+1}
                                     className={`btn-dash-pag${pagina === i + 1 ? ' active' : ''}`}
-                                    onClick={() => setPagina(i + 1)}
+                                    onClick={() => cambiarPagina(i + 1)}
                                 >
                                     {i + 1}
                                 </button>
                             ))}
                             <button
                                 className="btn-dash-pag"
-                                onClick={() => setPagina(p => Math.min(totalPaginas, p + 1))}
+                                onClick={() => cambiarPagina(Math.min(totalPaginas, pagina + 1))}
                                 disabled={pagina === totalPaginas}
                             >
                                 &gt;

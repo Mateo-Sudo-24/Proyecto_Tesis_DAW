@@ -4,8 +4,10 @@ import {
     loginUnificado,
     recuperarPasswordUnificado,
     comprobarTokenPasswordUnificado,
-    crearNuevoPasswordUnificado
+    crearNuevoPasswordUnificado,
+    verificarEmail
 } from '../controllers/Auth_controller.js';
+import { confirmarEmail } from '../controllers/Cliente_controller.js';
 
 const router = Router();
 
@@ -14,5 +16,7 @@ router.post('/recuperar-password', validatePasswordRecovery, recuperarPasswordUn
 router.get('/recuperar-password/:token', comprobarTokenPasswordUnificado);
 router.post('/nuevo-password/:token', validatePasswordReset, crearNuevoPasswordUnificado);
 router.post('/check-email', verificarEmail);
+router.get('/confirm/:token', confirmarEmail);
+router.get('/confirmar/:token', confirmarEmail);
 
 export default router;

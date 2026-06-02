@@ -691,13 +691,23 @@ const ProductDetails = () => {
                                             }}
                                             className="pd-qty-input"
                                         />
-                                        <button
-                                            onClick={handleAddToCart}
-                                            disabled={agregando}
-                                            className="pd-cart-btn"
-                                        >
-                                            <FaShoppingCart /> {agregando ? 'Agregando...' : 'Agregar al carrito'}
-                                        </button>
+                                        {token ? (
+                                            <button
+                                                onClick={handleAddToCart}
+                                                disabled={agregando}
+                                                className="pd-cart-btn"
+                                            >
+                                                <FaShoppingCart /> {agregando ? 'Agregando...' : 'Agregar al carrito'}
+                                            </button>
+                                        ) : (
+                                            <Link
+                                                to="/login"
+                                                className="pd-cart-btn"
+                                                style={{ textDecoration: 'none', display: 'inline-flex', alignItems: 'center', justifyContent: 'center', gap: '0.55rem' }}
+                                            >
+                                                <FaShoppingCart /> Inicia sesion para comprar
+                                            </Link>
+                                        )}
                                         </div>
                                         <p style={{ margin: '0.65rem 0 0', color: '#92400e', fontSize: '0.82rem', fontWeight: 800 }}>
                                             Este articulo se puede comprar en rollos y tambien por metros.
