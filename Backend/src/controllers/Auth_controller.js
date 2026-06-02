@@ -3,26 +3,23 @@ import Vendedor from "../models/Vendedor.js";
 import Cliente from "../models/Cliente.js";
 import { crearTokenJWT } from "../middlewares/JWT.js";
 import { sendMailToRecoveryPassword } from "../config/nodemailer.js";
+import { normalizarEmail, buscarDocumentoPorEmail } from "../utils/emailLookup.js";
 
-const normalizarEmail = (email = '') => String(email).toLowerCase().trim();
-
-const buscarUsuarioPorEmail = async (email, { soloLocales = false } = {}) => {
-    const emailNorm = normalizarEmail(email);
-    const clienteQuery = soloLocales
+const buscarUsuarioPorEmail = async (email, { soloCuentasConPassword = false } = {}) => {
+    const clienteExtraQuery = soloCuentasConPassword
         ? {
-            email: emailNorm,
             $or: [
                 { proveedor: 'local' },
                 { proveedor: { $exists: false } },
                 { proveedor: null },
             ],
         }
-        : { email: emailNorm };
+        : {};
 
     const [admin, vendedor, cliente] = await Promise.all([
-        Administrador.findOne({ email: emailNorm }),
-        Vendedor.findOne({ email: emailNorm }),
-        Cliente.findOne(clienteQuery),
+        buscarDocumentoPorEmail(Administrador, email),
+        buscarDocumentoPorEmail(Vendedor, email),
+        buscarDocumentoPorEmail(Cliente, email, clienteExtraQuery),
     ]);
     return admin || vendedor || cliente;
 };
@@ -78,7 +75,7 @@ const recuperarPasswordUnificado = async (req, res) => {
 
     try {
         const emailNormalizado = normalizarEmail(email);
-        const usuario = await buscarUsuarioPorEmail(emailNormalizado, { soloLocales: true });
+        const usuario = await buscarUsuarioPorEmail(emailNormalizado, { soloCuentasConPassword: true });
         if (!usuario) {
             return res.status(404).json({ msg: "No existe una cuenta local registrada con ese correo." });
         }

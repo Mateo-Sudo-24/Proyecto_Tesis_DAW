@@ -3,8 +3,7 @@ import Cliente from "../models/Cliente.js";
 import Vendedor from "../models/Vendedor.js";
 import { sendMailToRecoveryPassword } from "../config/nodemailer.js";
 import { crearTokenJWT } from "../middlewares/JWT.js";
-
-const normalizarEmail = (email = '') => String(email).toLowerCase().trim();
+import { normalizarEmail, buscarDocumentoPorEmail } from "../utils/emailLookup.js";
 
 const crearAdministrador = async (req, res) => {
     try {
@@ -42,7 +41,7 @@ const login = async (req, res) => {
     if (!email || !password) {
         return res.status(400).json({ msg: "Todos los campos son obligatorios" });
     }
-    const admin = await Administrador.findOne({ email: normalizarEmail(email) });
+    const admin = await buscarDocumentoPorEmail(Administrador, email);
     if (!admin) {
         return res.status(404).json({ msg: "Usuario administrador no encontrado." });
     }
@@ -151,7 +150,7 @@ const cambiarPassword = async (req, res) => {
 const recuperarPassword = async (req, res) => {
     const { email } = req.body;
     if (!email) return res.status(400).json({ msg: "El correo electrónico es obligatorio." });
-    const admin = await Administrador.findOne({ email: normalizarEmail(email) });
+    const admin = await buscarDocumentoPorEmail(Administrador, email);
     if (!admin) return res.status(404).json({ msg: "No existe un administrador con ese correo." });
     const token = admin.crearToken();
     admin.token = token;

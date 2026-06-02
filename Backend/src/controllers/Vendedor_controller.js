@@ -4,8 +4,7 @@ import Administrador from '../models/Administrador.js';
 import { sendMailToRecoveryPassword, sendMailToInviteUser } from "../config/nodemailer.js";
 import { crearTokenJWT } from '../middlewares/JWT.js';
 import mongoose from 'mongoose';
-
-const normalizarEmail = (email = '') => String(email).toLowerCase().trim();
+import { normalizarEmail, buscarDocumentoPorEmail } from "../utils/emailLookup.js";
 
 // ============================================================================
 // ==          SECCIÓN DE AUTENTICACIÓN Y PERFIL (PARA VENDEDORES)         ==
@@ -14,7 +13,7 @@ const normalizarEmail = (email = '') => String(email).toLowerCase().trim();
 const login = async (req, res) => {
     const { email, password } = req.body;
     if (!email || !password) return res.status(400).json({ msg: "Todos los campos son obligatorios." });
-    const vendedor = await Vendedor.findOne({ email: normalizarEmail(email) });
+    const vendedor = await buscarDocumentoPorEmail(Vendedor, email);
     if (!vendedor) return res.status(404).json({ msg: "Vendedor no encontrado." });
     if (vendedor.status !== 'activo') return res.status(403).json({ msg: "Tu cuenta no está activa. Por favor, revisa tu correo de invitación." });
     if (!await vendedor.matchPassword(password)) return res.status(401).json({ msg: "Contraseña incorrecta." });
@@ -90,7 +89,7 @@ const recuperarPassword = async (req, res) => {
     const { email } = req.body;
     if (!email) return res.status(400).json({ msg: "El correo electrónico es obligatorio." });
     try {
-        const vendedor = await Vendedor.findOne({ email: normalizarEmail(email) });
+        const vendedor = await buscarDocumentoPorEmail(Vendedor, email);
         if (!vendedor) return res.status(404).json({ msg: "No existe un vendedor con ese correo." });
         const token = vendedor.crearToken();
         await sendMailToRecoveryPassword(email, token);
