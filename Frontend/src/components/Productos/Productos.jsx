@@ -409,6 +409,7 @@ const Productos = () => {
                         <p>Aún no hay productos registrados en el sistema.</p>
                     </div>
                 ) : (
+                    <>
                     <div className="dash-prod-grid">
                         {productos.map(producto => (
                             <div key={producto._id} className="dash-card">
