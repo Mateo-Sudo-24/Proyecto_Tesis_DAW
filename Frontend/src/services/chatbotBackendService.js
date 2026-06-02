@@ -1,8 +1,6 @@
-// Frontend Service - Llamadas al Backend Chatbot
 const BACKEND_URL = import.meta.env.VITE_BACKEND_URL;
 
-// Consultar Groq a través del Backend
-export const consultarGroqBackend = async (mensaje, imagenBase64 = null, historial = [], imagenesBase64 = []) => {
+export const consultarGroqBackendCompleto = async (mensaje, imagenBase64 = null, historial = [], imagenesBase64 = []) => {
     try {
         const response = await fetch(`${BACKEND_URL}/chatbot/groq`, {
             method: 'POST',
@@ -13,18 +11,23 @@ export const consultarGroqBackend = async (mensaje, imagenBase64 = null, histori
                 mensaje,
                 imagenBase64,
                 imagenesBase64,
-                historial
-            })
+                historial,
+            }),
         });
 
         if (!response.ok) {
-            throw new Error(`Error: ${response.statusText}`);
+            const data = await response.json().catch(() => ({}));
+            throw new Error(data.error || `Error: ${response.statusText}`);
         }
 
-        const data = await response.json();
-        return data.respuesta;
+        return await response.json();
     } catch (error) {
         console.error('Error consultando Groq desde Backend:', error);
         throw error;
     }
+};
+
+export const consultarGroqBackend = async (mensaje, imagenBase64 = null, historial = [], imagenesBase64 = []) => {
+    const data = await consultarGroqBackendCompleto(mensaje, imagenBase64, historial, imagenesBase64);
+    return data.respuesta;
 };

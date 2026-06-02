@@ -1,15 +1,16 @@
-import { useState, useRef, useEffect, useCallback } from 'react';
-import { Link } from 'react-router-dom';
+﻿import { useState, useRef, useEffect, useCallback } from 'react';
+import { Link, useNavigate } from 'react-router-dom';
 import { MdClose, MdCamera, MdAttachFile, MdAdd } from 'react-icons/md';
 import Webcam from 'react-webcam';
-import { consultarGroqBackend } from '../../services/chatbotBackendService';
+import { consultarGroqBackendCompleto } from '../../services/chatbotBackendService';
 import { buscarProductosSimilares } from '../../services/productoService';
 import { toast } from 'react-toastify';
+import storeAuth from '../../context/storeAuth';
 import './ChatModal.css';
 
 const MAX_IMAGES = 4;
 
-// Convierte markdown básico a JSX sin dependencias externas
+// Convierte markdown bÃ¡sico a JSX sin dependencias externas
 const renderMarkdown = (text) => {
     if (!text) return null;
     const lines = text.split('\n');
@@ -41,9 +42,9 @@ const renderMarkdown = (text) => {
 // Extrae palabras clave de telas de la respuesta de la IA
 const extractFabricKeywords = (text) => {
     const lower = text.toLowerCase();
-    const nombres = ['algodón', 'lino', 'seda', 'poliéster', 'lana', 'nylon', 'viscosa', 'terciopelo', 'denim', 'jersey', 'satén', 'gasa', 'tul', 'encaje', 'polar', 'fleece', 'gabardina', 'tafetán'];
-    const colores = ['blanco', 'negro', 'azul', 'rojo', 'verde', 'amarillo', 'beige', 'gris', 'marrón', 'rosado', 'morado', 'naranja', 'celeste', 'crema', 'café'];
-    const texturas = ['suave', 'rugoso', 'brillante', 'opaco', 'elástico', 'rígido', 'transpirable', 'ligero', 'pesado'];
+    const nombres = ['algodÃ³n', 'lino', 'seda', 'poliÃ©ster', 'lana', 'nylon', 'viscosa', 'terciopelo', 'denim', 'jersey', 'satÃ©n', 'gasa', 'tul', 'encaje', 'polar', 'fleece', 'gabardina', 'tafetÃ¡n'];
+    const colores = ['blanco', 'negro', 'azul', 'rojo', 'verde', 'amarillo', 'beige', 'gris', 'marrÃ³n', 'rosado', 'morado', 'naranja', 'celeste', 'crema', 'cafÃ©'];
+    const texturas = ['suave', 'rugoso', 'brillante', 'opaco', 'elÃ¡stico', 'rÃ­gido', 'transpirable', 'ligero', 'pesado'];
 
     const nombre = nombres.find(n => lower.includes(n)) || '';
     const color = colores.find(c => lower.includes(c)) || '';
@@ -52,6 +53,9 @@ const extractFabricKeywords = (text) => {
 };
 
 const ChatModal = ({ onClose }) => {
+    const navigate = useNavigate();
+    const token = storeAuth(state => state.token);
+    const rol = storeAuth(state => state.rol);
     const [messages, setMessages] = useState([]);
     const [input, setInput] = useState('');
     const [isLoading, setIsLoading] = useState(false);
@@ -61,6 +65,15 @@ const ChatModal = ({ onClose }) => {
     const webcamRef = useRef(null);
     const fileInputRef = useRef(null);
 
+    const productosPath = token
+        ? (rol === 'vendedor' ? '/dashboard/tienda' : '/dashboard/productos')
+        : '/login';
+
+    const irAProductos = () => {
+        onClose();
+        navigate(productosPath);
+    };
+
     useEffect(() => {
         messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
     }, [messages]);
@@ -69,7 +82,7 @@ const ChatModal = ({ onClose }) => {
         setSelectedImages(prev => {
             const combined = [...prev, ...newImgs];
             if (combined.length > MAX_IMAGES) {
-                toast.warn(`Máximo ${MAX_IMAGES} imágenes por envío.`);
+                toast.warn(`MÃ¡ximo ${MAX_IMAGES} imÃ¡genes por envÃ­o.`);
                 return combined.slice(0, MAX_IMAGES);
             }
             return combined;
@@ -81,7 +94,7 @@ const ChatModal = ({ onClose }) => {
         if (imageSrc) {
             addImages([imageSrc]);
             setShowCamera(false);
-            toast.success('📸 Foto capturada');
+            toast.success('ðŸ“¸ Foto capturada');
         }
     }, [addImages]);
 
@@ -89,7 +102,7 @@ const ChatModal = ({ onClose }) => {
         const files = Array.from(e.target.files);
         if (!files.length) return;
         const toLoad = files.slice(0, MAX_IMAGES - selectedImages.length);
-        if (toLoad.length < files.length) toast.warn(`Solo se pueden agregar ${toLoad.length} imagen(es) más.`);
+        if (toLoad.length < files.length) toast.warn(`Solo se pueden agregar ${toLoad.length} imagen(es) mÃ¡s.`);
 
         const results = [];
         let done = 0;
@@ -101,7 +114,7 @@ const ChatModal = ({ onClose }) => {
                 done++;
                 if (done === toLoad.length) {
                     addImages(results.filter(Boolean));
-                    if (results.length > 0) toast.success(`📎 ${results.length} imagen(es) cargada(s)`);
+                    if (results.length > 0) toast.success(`ðŸ“Ž ${results.length} imagen(es) cargada(s)`);
                 }
             };
             reader.readAsDataURL(file);
@@ -119,7 +132,7 @@ const ChatModal = ({ onClose }) => {
         const imagenesSnapshot = [...selectedImages];
         const userMessage = {
             role: 'user',
-            content: input.trim() || '📸 Analiza estas imágenes de tela',
+            content: input.trim() || 'ðŸ“¸ Analiza estas imÃ¡genes de tela',
             images: imagenesSnapshot,
         };
 
@@ -139,21 +152,43 @@ const ChatModal = ({ onClose }) => {
             // Extraer base64 sin el prefijo dataURL
             const imagenesBase64 = imagenesSnapshot.map(img => img.split(',')[1]).filter(Boolean);
 
-            const response = await consultarGroqBackend(
+            const response = await consultarGroqBackendCompleto(
                 userMessage.content,
                 null,
                 historial,
                 imagenesBase64
             );
+            const respuestaTexto = response?.respuesta || '';
 
             setMessages(prev => prev.map(msg =>
-                msg.id === botMessageId ? { ...msg, content: response } : msg
+                msg.id === botMessageId ? { ...msg, content: respuestaTexto } : msg
             ));
 
-            // Buscar productos similares si había imágenes o mención de tela
+            const productosBDD = response?.productosCoincidentes ?? [];
+            if (productosBDD.length > 0) {
+                setMessages(prev => [...prev, {
+                    id: Date.now() + 1,
+                    role: 'assistant',
+                    type: 'products',
+                    content: 'Productos verificados en la base de datos que coinciden con el analisis:',
+                    productos: productosBDD,
+                    verified: true,
+                }]);
+                setMessages(prev => [...prev, {
+                    id: Date.now() + 2,
+                    role: 'assistant',
+                    type: 'cta',
+                    content: token
+                        ? 'Puedes revisar el catalogo y continuar la compra desde productos.'
+                        : 'Inicia sesion para revisar productos y agregarlos al carrito.',
+                }]);
+                return;
+            }
+
+            // Buscar productos similares si habÃ­a imÃ¡genes o menciÃ³n de tela
             if (imagenesSnapshot.length > 0 || userMessage.content.toLowerCase().includes('tela')) {
                 try {
-                    const kw = extractFabricKeywords(response);
+                    const kw = extractFabricKeywords(respuestaTexto);
                     if (kw.nombre || kw.color || kw.textura) {
                         const data = await buscarProductosSimilares(kw.nombre, kw.color, kw.textura);
                         const productos = data?.productos ?? [];
@@ -162,8 +197,16 @@ const ChatModal = ({ onClose }) => {
                                 id: Date.now() + 1,
                                 role: 'assistant',
                                 type: 'products',
-                                content: '🛍️ Productos disponibles que pueden interesarte:',
+                                content: 'ðŸ›ï¸ Productos disponibles que pueden interesarte:',
                                 productos,
+                            }]);
+                            setMessages(prev => [...prev, {
+                                id: Date.now() + 2,
+                                role: 'assistant',
+                                type: 'cta',
+                                content: token
+                                    ? 'Puedes revisar el catalogo y continuar la compra desde productos.'
+                                    : 'Inicia sesion para revisar productos y agregarlos al carrito.',
                             }]);
                         }
                     }
@@ -172,7 +215,7 @@ const ChatModal = ({ onClose }) => {
         } catch (error) {
             setMessages(prev => prev.map(msg =>
                 msg.id === botMessageId
-                    ? { ...msg, content: `❌ Error: ${error.message}` }
+                    ? { ...msg, content: `âŒ Error: ${error.message}` }
                     : msg
             ));
         } finally {
@@ -194,7 +237,7 @@ const ChatModal = ({ onClose }) => {
                 <div className="chat-modal-header">
                     <div>
                         <h2>Asesor de Telas IA</h2>
-                        <p>Análisis inteligente de telas con Groq</p>
+                        <p>AnÃ¡lisis inteligente de telas con Groq</p>
                     </div>
                     <button onClick={onClose} className="chat-close-btn" aria-label="Cerrar chat">
                         <MdClose size={24} />
@@ -205,21 +248,27 @@ const ChatModal = ({ onClose }) => {
                 <div className="chat-messages-container">
                     {messages.length === 0 && (
                         <div className="chat-welcome-message">
-                            <p>✨ ¡Hola! Soy tu asesor experto en telas.</p>
-                            <p>📸 Puedes subir hasta {MAX_IMAGES} fotos para analizar.</p>
-                            <p>💬 ¿En qué puedo ayudarte hoy?</p>
+                            <p>âœ¨ Â¡Hola! Soy tu asesor experto en telas.</p>
+                            <p>ðŸ“¸ Puedes subir hasta {MAX_IMAGES} fotos para analizar.</p>
+                            <p>ðŸ’¬ Â¿En quÃ© puedo ayudarte hoy?</p>
+                            <button type="button" className="chat-cta-btn" onClick={irAProductos}>
+                                {token ? 'Ver productos' : 'Iniciar sesion'}
+                            </button>
                         </div>
                     )}
 
                     {messages.map((msg, idx) => (
                         <div key={idx} className={`chat-message ${msg.role}`}>
                             <div className="chat-message-avatar">
-                                {msg.role === 'user' ? '👤' : '🤖'}
+                                {msg.role === 'user' ? 'ðŸ‘¤' : 'ðŸ¤–'}
                             </div>
                             <div className="chat-message-content">
                                 {msg.type === 'products' ? (
                                     <>
                                         <p style={{ marginBottom: '0.75rem', fontWeight: 600 }}>{msg.content}</p>
+                                        {msg.verified && (
+                                            <span className="chat-verified-badge">Verificado en BDD</span>
+                                        )}
                                         <div className="chat-products-grid">
                                             {msg.productos.map((p, i) => (
                                                 <div key={i} className="chat-product-card">
@@ -239,17 +288,24 @@ const ChatModal = ({ onClose }) => {
                                                             className="chat-product-btn"
                                                             onClick={onClose}
                                                         >
-                                                            Ver producto →
+                                                            Ver producto â†’
                                                         </Link>
                                                     </div>
                                                 </div>
                                             ))}
                                         </div>
                                     </>
+                                ) : msg.type === 'cta' ? (
+                                    <div className="chat-cta-card">
+                                        <p>{msg.content}</p>
+                                        <button type="button" className="chat-cta-btn" onClick={irAProductos}>
+                                            {token ? 'Ir a productos' : 'Iniciar sesiÃ³n'}
+                                        </button>
+                                    </div>
                                 ) : (
                                     <>
                                         {msg.role === 'assistant'
-                                            ? <>{renderMarkdown(msg.content) || (isLoading && idx === messages.length - 1 && '✍️ Pensando...')}</>
+                                            ? <>{renderMarkdown(msg.content) || (isLoading && idx === messages.length - 1 && 'âœï¸ Pensando...')}</>
                                             : msg.content
                                         }
                                         {msg.images?.length > 0 && (
@@ -276,17 +332,17 @@ const ChatModal = ({ onClose }) => {
                 {showCamera && (
                     <div className="camera-modal">
                         <div className="camera-modal-content">
-                            <h3>📷 Capturar foto</h3>
+                            <h3>ðŸ“· Capturar foto</h3>
                             <Webcam ref={webcamRef} screenshotFormat="image/jpeg" className="chat-webcam" />
                             <div className="camera-buttons">
-                                <button onClick={capturePhoto} className="btn-primary">Capturar 📸</button>
+                                <button onClick={capturePhoto} className="btn-primary">Capturar ðŸ“¸</button>
                                 <button onClick={() => setShowCamera(false)} className="btn-secondary">Cancelar</button>
                             </div>
                         </div>
                     </div>
                 )}
 
-                {/* Tira de imágenes seleccionadas */}
+                {/* Tira de imÃ¡genes seleccionadas */}
                 {selectedImages.length > 0 && (
                     <div className="chat-images-strip">
                         {selectedImages.map((img, i) => (
@@ -296,14 +352,14 @@ const ChatModal = ({ onClose }) => {
                                     className="chat-thumb-remove"
                                     onClick={() => removeImage(i)}
                                     aria-label="Quitar imagen"
-                                >✕</button>
+                                >âœ•</button>
                             </div>
                         ))}
                         {selectedImages.length < MAX_IMAGES && (
                             <button
                                 className="chat-thumb-add"
                                 onClick={() => fileInputRef.current.click()}
-                                title="Agregar más imágenes"
+                                title="Agregar mÃ¡s imÃ¡genes"
                             >
                                 <MdAdd size={22} />
                             </button>
@@ -324,7 +380,7 @@ const ChatModal = ({ onClose }) => {
                         </button>
                         <button
                             onClick={() => fileInputRef.current.click()}
-                            title={`Subir imágenes (${selectedImages.length}/${MAX_IMAGES})`}
+                            title={`Subir imÃ¡genes (${selectedImages.length}/${MAX_IMAGES})`}
                             className="chat-button-action"
                             disabled={selectedImages.length >= MAX_IMAGES}
                         >
@@ -357,7 +413,7 @@ const ChatModal = ({ onClose }) => {
                         disabled={isLoading || (!input.trim() && selectedImages.length === 0)}
                         className="chat-send-btn"
                     >
-                        {isLoading ? 'Enviando...' : 'Enviar 📤'}
+                        {isLoading ? 'Enviando...' : 'Enviar ðŸ“¤'}
                     </button>
                 </div>
             </div>
@@ -366,4 +422,5 @@ const ChatModal = ({ onClose }) => {
 };
 
 export default ChatModal;
+
 

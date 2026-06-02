@@ -538,6 +538,20 @@
   margin-top: 4px;
 }
 
+.chat-verified-badge {
+  display: inline-flex;
+  align-items: center;
+  width: fit-content;
+  margin: 0 0 8px;
+  padding: 3px 8px;
+  border-radius: 999px;
+  background: #ecfdf5;
+  color: #047857;
+  border: 1px solid #a7f3d0;
+  font-size: 11px;
+  font-weight: 800;
+}
+
 .chat-product-card {
   display: flex;
   align-items: center;
@@ -601,6 +615,33 @@
 .chat-product-btn:hover {
   opacity: 0.88;
   transform: translateY(-1px);
+}
+
+.chat-cta-card {
+  display: grid;
+  gap: 10px;
+}
+
+.chat-cta-card p {
+  margin: 0;
+  color: #374151;
+  font-size: 13px;
+}
+
+.chat-cta-btn {
+  border: none;
+  border-radius: 8px;
+  padding: 9px 12px;
+  width: fit-content;
+  background: #e8760a;
+  color: #fff;
+  font-size: 13px;
+  font-weight: 800;
+  cursor: pointer;
+}
+
+.chat-cta-btn:hover {
+  background: #c4620a;
 }
 
 
