@@ -8,7 +8,7 @@ import mongoose from 'mongoose';
 import { normalizarEmail, buscarDocumentoPorEmail } from "../utils/emailLookup.js";
 
 // ============================================================================
-// ==        BLOQUE 1: RUTAS PíšBLICAS (Registro y Autenticación)           ==
+// ==        BLOQUE 1: RUTAS PÚBLICAS (Registro y Autenticación)           ==
 // ============================================================================
 
 const registro = async (req, res) => {
@@ -33,7 +33,7 @@ const registro = async (req, res) => {
         try {
             await sendMailToRegister(email, token);
         } catch (mailError) {
-            console.error("âŒ Error SMTP al enviar correo de confirmación:", mailError);
+            console.error("❌ Error SMTP al enviar correo de confirmación:", mailError);
             // El cliente ya se guardó; informar que el correo falló pero el registro sí
             return res.status(200).json({
                 msg: `Cuenta creada, pero no se pudo enviar el correo de confirmación. Error SMTP: ${mailError.message}`
@@ -42,7 +42,7 @@ const registro = async (req, res) => {
         
         res.status(200).json({ msg: "Registro exitoso. Revisa tu correo para confirmar tu cuenta." });
     } catch (error) {
-        console.error("âŒ Error en registro:", error);
+        console.error("❌ Error en registro:", error);
         const msg = error.code === 11000
             ? "El email ya se encuentra registrado."
             : error.message || "Error en el servidor durante el registro.";
@@ -102,7 +102,7 @@ const login = async (req, res) => {
 };
 
 // ============================================================================
-// ==         BLOQUE 2: RUTAS PíšBLICAS (Recuperación de Contraseña)        ==
+// ==         BLOQUE 2: RUTAS PÚBLICAS (Recuperación de Contraseña)        ==
 // ============================================================================
 
 const recuperarPassword = async (req, res) => {
@@ -310,7 +310,7 @@ const configurarCuentaClienteYPassword = async (req, res) => {
     }
 };
 
-// --- FUNCIí“N MODIFICADA ---
+// --- FUNCIÓN MODIFICADA ---
 // GET /api/clientes -> Obtener todos los clientes (sin filtro de propiedad)
 const obtenerClientes = async (req, res) => {
     try {
@@ -319,7 +319,10 @@ const obtenerClientes = async (req, res) => {
         const Orden = (await import('../models/Orden.js')).default;
         const [clientes, pedidosPorCliente] = await Promise.all([
             Cliente.find().select("-password -token -__v").lean(),
-            Orden.aggregate([{ $group: { _id: '$cliente', pedidosCount: { $sum: 1 } } }])
+            Orden.aggregate([
+                { $match: { estadoOrden: { $nin: ['completado', 'entregado', 'cancelado'] } } },
+                { $group: { _id: '$cliente', pedidosCount: { $sum: 1 } } }
+            ])
         ]);
         const pedidosMap = new Map(pedidosPorCliente.map(p => [String(p._id), p.pedidosCount]));
         res.status(200).json(clientes.map(cliente => ({
@@ -331,7 +334,7 @@ const obtenerClientes = async (req, res) => {
     }
 };
 
-// --- FUNCIí“N MODIFICADA ---
+// --- FUNCIÓN MODIFICADA ---
 // GET /api/clientes/:id -> Obtener un cliente por ID (sin filtro de propiedad)
 const obtenerClientePorId = async (req, res) => {
     const { id } = req.params;
@@ -347,7 +350,7 @@ const obtenerClientePorId = async (req, res) => {
     }
 };
 
-// --- FUNCIí“N MODIFICADA ---
+// --- FUNCIÓN MODIFICADA ---
 // PUT /api/clientes/:id -> Actualizar un cliente por ID (sin filtro de propiedad)
 const actualizarClientePorAdmin = async (req, res) => {
     const { id } = req.params;
@@ -377,19 +380,26 @@ const actualizarClientePorAdmin = async (req, res) => {
     }
 };
 
-// --- FUNCIí“N MODIFICADA ---
+// --- FUNCIÓN MODIFICADA ---
 // DELETE /api/clientes/:id -> Eliminar un cliente por ID (sin filtro de propiedad)
 const eliminarCliente = async (req, res) => {
     const { id } = req.params;
     if (!mongoose.Types.ObjectId.isValid(id)) return res.status(400).json({ msg: "ID de cliente no válido." });
     try {
         const Orden = (await import('../models/Orden.js')).default;
-        const tieneOrdenes = await Orden.exists({ cliente: id });
-        if (tieneOrdenes) return res.status(400).json({ msg: "No se puede eliminar este cliente porque tiene pedidos registrados." });
+        const tieneOrdenesActivas = await Orden.exists({
+            cliente: id,
+            estadoOrden: { $nin: ['completado', 'entregado', 'cancelado'] }
+        });
+        if (tieneOrdenesActivas) {
+            return res.status(400).json({ msg: "No se puede eliminar este cliente porque tiene pedidos pendientes o en proceso." });
+        }
+
         const clienteEliminado = await Cliente.findByIdAndDelete(id);
-        if (!clienteEliminado) return res.status(404).json({ msg: "Cliente no encontrado." });
+        if (!clienteEliminado) return res.status(404).json({ msg: "Credencial incorrecta: correo o contraseña." });
         res.status(200).json({ msg: "Cliente eliminado exitosamente." });
     } catch (error) {
+        console.error("Error al eliminar cliente:", error);
         res.status(500).json({ msg: "Error al eliminar el cliente." });
     }
 };
