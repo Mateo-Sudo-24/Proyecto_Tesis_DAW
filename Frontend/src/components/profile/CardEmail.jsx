@@ -132,11 +132,12 @@ const styles = `
 `;
 
 const CardEmail = () => {
-    const { user, updateProfile } = storeProfile();
+    const { user, updateProfile, verifyCurrentPassword } = storeProfile();
     const [open, setOpen] = useState(false);
     const [loading, setLoading] = useState(false);
+    const [checkingPassword, setCheckingPassword] = useState(false);
     const [step, setStep] = useState(1);
-    const { register, handleSubmit, watch, reset, trigger, formState: { errors } } = useForm();
+    const { register, handleSubmit, watch, reset, trigger, getValues, setError, clearErrors, formState: { errors } } = useForm();
 
     const closeModal = () => {
         reset();
@@ -146,7 +147,19 @@ const CardEmail = () => {
 
     const nextStep = async () => {
         const ok = await trigger("passwordActual");
-        if (ok) setStep(2);
+        if (!ok) return;
+
+        setCheckingPassword(true);
+        const response = await verifyCurrentPassword(getValues("passwordActual"));
+        setCheckingPassword(false);
+
+        if (response?.error) {
+            setError("passwordActual", { type: "server", message: response.error });
+            return;
+        }
+
+        clearErrors("passwordActual");
+        setStep(2);
     };
 
     const onSubmit = async (data) => {
@@ -170,7 +183,7 @@ const CardEmail = () => {
             <div className="email-card">
                 <div className="email-card-head">
                     <h2>Cambiar correo</h2>
-                    <p>Actualiza el correo de acceso verificando primero tu contraseña actual.</p>
+                    <p>Actualiza el correo de acceso verificando primero tu contrasena actual.</p>
                 </div>
                 <div className="email-card-body">
                     <button type="button" className="email-main-btn" onClick={() => setOpen(true)}>
@@ -183,7 +196,7 @@ const CardEmail = () => {
                 <div className="email-modal-overlay" onClick={closeModal}>
                     <div className="email-modal" onClick={(e) => e.stopPropagation()}>
                         <div className="email-modal-head">
-                            <h3>Cambiar correo electrónico</h3>
+                            <h3>Cambiar correo electronico</h3>
                             <button type="button" className="email-close" onClick={closeModal}>X</button>
                         </div>
                         <form className="email-form" onSubmit={handleSubmit(onSubmit)} noValidate>
@@ -194,11 +207,11 @@ const CardEmail = () => {
 
                             {step === 1 ? (
                                 <div className="email-field">
-                                    <label className="email-label">Contrase?a actual</label>
+                                    <label className="email-label">Contrasena actual</label>
                                     <PasswordInput
                                         className="email-input"
-                                        placeholder="Confirma tu contrase?a"
-                                        {...register("passwordActual", { required: "La contrase?a actual es obligatoria." })}
+                                        placeholder="Confirma tu contrasena"
+                                        {...register("passwordActual", { required: "La contrasena actual es obligatoria." })}
                                     />
                                     {errors.passwordActual && <p className="email-error">{errors.passwordActual.message}</p>}
                                 </div>
@@ -238,8 +251,8 @@ const CardEmail = () => {
 
                             <div className="email-actions">
                                 {step === 1 ? (
-                                    <button type="button" className="email-modal-btn primary" onClick={nextStep}>
-                                        Continuar
+                                    <button type="button" className="email-modal-btn primary" onClick={nextStep} disabled={checkingPassword}>
+                                        {checkingPassword ? "Verificando..." : "Continuar"}
                                     </button>
                                 ) : (
                                     <>

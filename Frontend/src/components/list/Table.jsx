@@ -76,7 +76,7 @@ const ConfirmModal = ({ nombre, esCliente, pedidosCount = 0, onConfirm, onCancel
         <div className="confirm-overlay" onClick={onCancel}>
             <div className="confirm-box" onClick={e => e.stopPropagation()}>
                 <div className="confirm-icon">!</div>
-                <p className="confirm-title">{bloqueado ? "No se puede eliminar" : "?Estas seguro?"}</p>
+                <p className="confirm-title">{bloqueado ? "No se puede eliminar" : "Estas seguro?"}</p>
                 <p className="confirm-text">
                     {bloqueado ? (
                         <>
@@ -114,7 +114,7 @@ const Table = ({ tipo = "clientes" }) => {
         try {
             const storedUser = JSON.parse(localStorage.getItem("auth-token"));
             if (!storedUser?.state?.token) {
-                toast.error("No estás autenticado.");
+                toast.error("No estas autenticado.");
                 return;
             }
             const url = `${import.meta.env.VITE_BACKEND_URL}/${tipo}`;
@@ -192,7 +192,7 @@ const Table = ({ tipo = "clientes" }) => {
                                 <th>No.</th>
                                 <th>Nombre y apellido</th>
                                 <th>Email</th>
-                                <th>Teléfono</th>
+                                <th>Telefono</th>
                                 {esClientes ? (
                                     <>
                                         <th>Sector</th>
@@ -217,7 +217,7 @@ const Table = ({ tipo = "clientes" }) => {
                                         {!esClientes && item.nombreTienda && <div className="tbl-cell-sub">{item.nombreTienda}</div>}
                                     </td>
                                     <td className="tbl-email">{item.email}</td>
-                                    <td className="tbl-phone">{item.telefono || "Sin teléfono"}</td>
+                                    <td className="tbl-phone">{item.telefono || "Sin telefono"}</td>
                                     {esClientes ? (
                                         <>
                                             <td style={{ fontSize: "0.82rem", color: "#6b7280" }}>
@@ -237,7 +237,7 @@ const Table = ({ tipo = "clientes" }) => {
                                                 <MdPublishedWithChanges size={20} />
                                             </button>
                                         )}
-                                        <button title="Más información" className="tbl-icon-btn blue" onClick={() => navigate(`/dashboard/visualizar/${item._id}`, { state: { tipo } })}>
+                                        <button title="Mas informacion" className="tbl-icon-btn blue" onClick={() => navigate(`/dashboard/visualizar/${item._id}`, { state: { tipo } })}>
                                             <MdInfo size={20} />
                                         </button>
                                         <button title="Eliminar" className="tbl-icon-btn red" onClick={() => pedirConfirmacion(item)}>
@@ -263,8 +263,8 @@ const Table = ({ tipo = "clientes" }) => {
                                 <span className="tbl-card-value" style={{ fontSize: "0.78rem" }}>{item.email}</span>
                             </div>
                             <div className="tbl-card-row">
-                                <span className="tbl-card-label">Teléfono</span>
-                                <span className="tbl-card-value">{item.telefono || "Sin teléfono"}</span>
+                                <span className="tbl-card-label">Telefono</span>
+                                <span className="tbl-card-value">{item.telefono || "Sin telefono"}</span>
                             </div>
                             {esClientes ? (
                                 <>

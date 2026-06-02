@@ -2,7 +2,6 @@ import { useState, useRef, useCallback } from 'react';
 import Webcam from 'react-webcam';
 import { consultarGroqBackend } from '../../services/chatbotBackendService';
 import { buscarProductosSimilares } from '../../services/productoService';
-import { toast } from 'react-toastify';
 import { MdCamera, MdClose, MdReplay } from 'react-icons/md';
 
 const FabricAnalyzer = ({ onClose }) => {
@@ -24,11 +23,11 @@ const FabricAnalyzer = ({ onClose }) => {
         const validTypes = ['image/jpeg', 'image/png', 'image/webp'];
         
         if (file.size > maxSize) {
-            toast.error('Imagen muy grande. Máximo 5MB.');
+            setRecommendations('La imagen supera 5 MB. Usa una imagen mas ligera.');
             return false;
         }
         if (!validTypes.includes(file.type)) {
-            toast.error('Formato inválido. Usa JPG, PNG o WebP.');
+            setRecommendations('Formato invalido. Usa JPG, PNG o WebP.');
             return false;
         }
         return true;
@@ -47,7 +46,7 @@ const FabricAnalyzer = ({ onClose }) => {
 
     const analyzeImage = async () => {
         if (!image) {
-            toast.warn('Por favor, carga una imagen primero.');
+            setRecommendations('Por favor, carga una imagen primero.');
             return;
         }
         setIsLoading(true);
@@ -73,21 +72,17 @@ const FabricAnalyzer = ({ onClose }) => {
                 
                 const recommendationText = response.substring(jsonMatch[0].length).trim();
                 setRecommendations(recommendationText);
-                toast.success('Análisis completado.');
                 
                 await buscarProductosPorAnalisis(parsedJson);
             } else {
                 setRecommendations(response);
-                toast.warn("Análisis sin formato JSON, pero disponible.");
             }
 
         } catch (error) {
             console.error("Error al analizar:", error);
             if (error.message.includes('Failed to fetch') || error.message.includes('connect')) {
-                toast.error('No se puede conectar con el servidor. Intenta de nuevo.');
-                setRecommendations('Error: No hay conexión con el servidor de análisis.');
+                setRecommendations('Error: No hay conexion con el servidor de analisis.');
             } else {
-                toast.error("Error al procesar la imagen.");
                 setRecommendations("Intenta con otra foto.");
             }
         } finally {
@@ -106,14 +101,11 @@ const FabricAnalyzer = ({ onClose }) => {
             
             if (resultado.resultados > 0) {
                 setProductosSimilares(resultado.productos);
-                toast.success(`Se encontraron ${resultado.resultados} producto(s) similar(es).`);
             } else {
                 setProductosSimilares([]);
-                toast.info('No se encontraron productos similares.');
             }
         } catch (error) {
             console.error('Error buscando productos similares:', error);
-            toast.warn('No se pudo buscar productos similares.');
         } finally {
             setBuscandoProductos(false);
         }

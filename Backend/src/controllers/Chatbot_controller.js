@@ -83,7 +83,7 @@ const buscarProductosCoincidentes = async (mensaje, respuesta) => {
 
         return {
             ...producto,
-            verificadoBDD: true,
+            verificadoProductos: true,
             coincidencias: terminos.filter(term => textoProducto.includes(term)),
             scoreCoincidencia: scoreProducto(producto, terminos),
         };
@@ -105,7 +105,7 @@ const buscarProductosRecomendados = async () => {
 
     return productos.map(producto => ({
         ...producto,
-        verificadoBDD: true,
+        verificadoProductos: true,
         recomendacionGeneral: true,
         coincidencias: [],
     }));
@@ -121,7 +121,7 @@ const responderConProductos = async (res, mensaje, respuesta) => {
         respuesta,
         productosCoincidentes,
         tipoRecomendacion,
-        verificacionBDD: {
+        verificacionProductos: {
             consultada: true,
             total: productosCoincidentes.length,
         },

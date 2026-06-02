@@ -1,10 +1,9 @@
-﻿import { useState, useRef, useEffect, useCallback } from 'react';
+import { useState, useRef, useEffect, useCallback } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
-import { MdClose, MdCamera, MdAttachFile, MdAdd } from 'react-icons/md';
+import { MdClose, MdCamera, MdAttachFile, MdAdd, MdAutoAwesome, MdPerson, MdSend } from 'react-icons/md';
 import Webcam from 'react-webcam';
 import { consultarGroqBackendCompleto } from '../../services/chatbotBackendService';
 import { buscarProductosSimilares } from '../../services/productoService';
-import { toast } from 'react-toastify';
 import storeAuth from '../../context/storeAuth';
 import './ChatModal.css';
 
@@ -14,6 +13,38 @@ const normalizarTexto = (value = '') => String(value)
     .toLowerCase()
     .normalize('NFD')
     .replace(/[\u0300-\u036f]/g, '');
+
+const limpiarTextoChat = (value = '') => String(value)
+    .replace(/\u00f0\u0178\u201c[\u00b7\u00b8]/g, 'Foto')
+    .replace(/\u00f0\u0178\u201c\u017d/g, 'Archivo')
+    .replace(/\u00f0\u0178\u201c\u00a4/g, '')
+    .replace(/\u00e2\u2020\u2019/g, '->')
+    .replace(/\u00e2\u0153\u008d\u00ef\u00b8\u008f/g, '')
+    .replace(/\u00e2\u0153\u2022/g, 'x')
+    .replace(/\u00c3\u00a1/g, 'a')
+    .replace(/\u00c3\u00a9/g, 'e')
+    .replace(/\u00c3\u00ad/g, 'i')
+    .replace(/\u00c3\u00b3/g, 'o')
+    .replace(/\u00c3\u00ba/g, 'u')
+    .replace(/\u00c3\u00b1/g, 'n')
+    .replace(/\u00c2/g, '')
+    .replace(/\ufffd/g, '');
+
+const esSaludo = (texto = '') => /^(hola|buenas|buenos dias|buenas tardes|buenas noches|hey|saludos)[!. ]*$/i.test(normalizarTexto(texto).trim());
+
+const respuestaSaludo = (nombre = '') => {
+    const nombreLimpio = limpiarTextoChat(nombre).trim();
+    return `Hola${nombreLimpio ? ` ${nombreLimpio}` : ''}. Te puedo ayudar con:\n- Buscar telas por color, textura, material o uso.\n- Analizar hasta ${MAX_IMAGES} fotos de telas.\n- Recomendar productos similares del catalogo.\n- Orientarte para comprar por metros o rollos.`;
+};
+
+const obtenerNombreUsuario = () => {
+    try {
+        const state = JSON.parse(localStorage.getItem('auth-token'))?.state;
+        return state?.nombre || state?.user?.nombre || '';
+    } catch {
+        return '';
+    }
+};
 
 const tieneIntencionCompra = (texto = '') => {
     const t = normalizarTexto(texto);
@@ -32,10 +63,10 @@ const esConsultaTextilReconocible = (texto = '') => {
     return /\b(tela|telas|tejido|textil|algodon|lino|seda|poliester|lana|nylon|viscosa|rayon|terciopelo|denim|jean|jersey|saten|gasa|tul|encaje|polar|fleece|gabardina|tafetan|lycra|spandex|microfibra|loneta|popelina|organza|color|textura|metro|rollo|comprar|precio|catalogo|carrito|reponer|reposicion|stock)\b/.test(t);
 };
 
-// Convierte markdown bÃ¡sico a JSX sin dependencias externas
+// Convierte markdown basico a JSX sin dependencias externas.
 const renderMarkdown = (text) => {
     if (!text) return null;
-    const lines = text.split('\n');
+    const lines = limpiarTextoChat(text).split('\n');
     return lines.map((line, i) => {
         const isBullet = /^[\*\-]\s/.test(line);
         const content = isBullet ? line.replace(/^[\*\-]\s/, '') : line;
@@ -61,12 +92,12 @@ const renderMarkdown = (text) => {
     });
 };
 
-// Extrae palabras clave de telas de la respuesta de la IA
+// Extrae palabras clave de telas de la respuesta de la IA.
 const extractFabricKeywords = (text) => {
-    const lower = text.toLowerCase();
-    const nombres = ['algodÃ³n', 'lino', 'seda', 'poliÃ©ster', 'lana', 'nylon', 'viscosa', 'terciopelo', 'denim', 'jersey', 'satÃ©n', 'gasa', 'tul', 'encaje', 'polar', 'fleece', 'gabardina', 'tafetÃ¡n'];
-    const colores = ['blanco', 'negro', 'azul', 'rojo', 'verde', 'amarillo', 'beige', 'gris', 'marrÃ³n', 'rosado', 'morado', 'naranja', 'celeste', 'crema', 'cafÃ©'];
-    const texturas = ['suave', 'rugoso', 'brillante', 'opaco', 'elÃ¡stico', 'rÃ­gido', 'transpirable', 'ligero', 'pesado'];
+    const lower = normalizarTexto(limpiarTextoChat(text));
+    const nombres = ['algodon', 'lino', 'seda', 'poliester', 'lana', 'nylon', 'viscosa', 'terciopelo', 'denim', 'jersey', 'saten', 'gasa', 'tul', 'encaje', 'polar', 'fleece', 'gabardina', 'tafetan'];
+    const colores = ['blanco', 'negro', 'azul', 'rojo', 'verde', 'amarillo', 'beige', 'gris', 'marron', 'rosado', 'morado', 'naranja', 'celeste', 'crema', 'cafe'];
+    const texturas = ['suave', 'rugoso', 'brillante', 'opaco', 'elastico', 'rigido', 'transpirable', 'ligero', 'pesado'];
 
     const nombre = nombres.find(n => lower.includes(n)) || '';
     const color = colores.find(c => lower.includes(c)) || '';
@@ -114,7 +145,6 @@ const ChatModal = ({ onClose }) => {
         setSelectedImages(prev => {
             const combined = [...prev, ...newImgs];
             if (combined.length > MAX_IMAGES) {
-                toast.warn(`MÃ¡ximo ${MAX_IMAGES} imÃ¡genes por envÃ­o.`);
                 return combined.slice(0, MAX_IMAGES);
             }
             return combined;
@@ -126,7 +156,6 @@ const ChatModal = ({ onClose }) => {
         if (imageSrc) {
             addImages([imageSrc]);
             setShowCamera(false);
-            toast.success('ðŸ“¸ Foto capturada');
         }
     }, [addImages]);
 
@@ -134,19 +163,17 @@ const ChatModal = ({ onClose }) => {
         const files = Array.from(e.target.files);
         if (!files.length) return;
         const toLoad = files.slice(0, MAX_IMAGES - selectedImages.length);
-        if (toLoad.length < files.length) toast.warn(`Solo se pueden agregar ${toLoad.length} imagen(es) mÃ¡s.`);
 
         const results = [];
         let done = 0;
         for (const file of toLoad) {
-            if (file.size > 5 * 1024 * 1024) { toast.error(`${file.name} supera 5 MB.`); done++; continue; }
+            if (file.size > 5 * 1024 * 1024) { done++; continue; }
             const reader = new FileReader();
             reader.onloadend = () => {
                 results.push(reader.result);
                 done++;
                 if (done === toLoad.length) {
                     addImages(results.filter(Boolean));
-                    if (results.length > 0) toast.success(`ðŸ“Ž ${results.length} imagen(es) cargada(s)`);
                 }
             };
             reader.readAsDataURL(file);
@@ -164,7 +191,7 @@ const ChatModal = ({ onClose }) => {
         const imagenesSnapshot = [...selectedImages];
         const userMessage = {
             role: 'user',
-            content: input.trim() || 'ðŸ“¸ Analiza estas imÃ¡genes de tela',
+            content: input.trim() || 'Analiza estas imagenes de tela',
             images: imagenesSnapshot,
         };
 
@@ -176,6 +203,20 @@ const ChatModal = ({ onClose }) => {
         const botMessageId = Date.now();
         const textoNormalizado = normalizarTexto(userMessage.content);
         const tieneImagenes = imagenesSnapshot.length > 0;
+
+        if (!tieneImagenes && esSaludo(userMessage.content)) {
+            setMessages(prev => [
+                ...prev,
+                {
+                    id: botMessageId,
+                    role: 'assistant',
+                    content: respuestaSaludo(obtenerNombreUsuario()),
+                },
+            ]);
+            setIsLoading(false);
+            return;
+        }
+
         const esIntencionProducto = tieneIntencionCompra(userMessage.content) || pideTelaSinReferencia(userMessage.content);
         const nextProductIntentCount = esIntencionProducto ? productIntentCount + 1 : productIntentCount;
         if (esIntencionProducto) setProductIntentCount(nextProductIntentCount);
@@ -250,16 +291,16 @@ const ChatModal = ({ onClose }) => {
                 msg.id === botMessageId ? { ...msg, content: respuestaTexto } : msg
             ));
 
-            const productosBDD = response?.productosCoincidentes ?? [];
-            if (productosBDD.length > 0) {
+            const productosCoincidentes = response?.productosCoincidentes ?? [];
+            if (productosCoincidentes.length > 0) {
                 setMessages(prev => [...prev, {
                     id: Date.now() + 1,
                     role: 'assistant',
                     type: 'products',
                     content: response?.tipoRecomendacion === 'general'
-                        ? 'No encontre una coincidencia exacta en la base de datos. Te recomendamos estas alternativas disponibles:'
-                        : 'Productos verificados en la base de datos que coinciden con el analisis:',
-                    productos: productosBDD,
+                        ? 'No encontre una coincidencia exacta en nuestros productos. Te recomendamos estas alternativas disponibles:'
+                        : 'Productos verificados en nuestros productos que coinciden con el analisis:',
+                    productos: productosCoincidentes,
                     verified: response?.tipoRecomendacion !== 'general',
                 }]);
                 if (mostrarCtaProductos) {
@@ -268,7 +309,7 @@ const ChatModal = ({ onClose }) => {
                 return;
             }
 
-            // Buscar productos similares si habÃ­a imÃ¡genes o menciÃ³n de tela
+            // Buscar productos similares si habia imagenes o mencion de tela.
             if (imagenesSnapshot.length > 0 || userMessage.content.toLowerCase().includes('tela')) {
                 try {
                     const kw = extractFabricKeywords(respuestaTexto);
@@ -315,7 +356,7 @@ const ChatModal = ({ onClose }) => {
                 <div className="chat-modal-header">
                     <div>
                         <h2>Asesor de Telas IA</h2>
-                        <p>AnÃ¡lisis inteligente de telas con Groq</p>
+                        <p>Analisis inteligente de telas</p>
                     </div>
                     <button onClick={onClose} className="chat-close-btn" aria-label="Cerrar chat">
                         <MdClose size={24} />
@@ -335,14 +376,14 @@ const ChatModal = ({ onClose }) => {
                     {messages.map((msg, idx) => (
                         <div key={idx} className={`chat-message ${msg.role}`}>
                             <div className="chat-message-avatar">
-                                {msg.role === 'user' ? 'Tu' : 'IA'}
+                                {msg.role === 'user' ? <MdPerson size={17} /> : <MdAutoAwesome size={17} />}
                             </div>
                             <div className="chat-message-content">
                                 {msg.type === 'products' ? (
                                     <>
-                                        <p style={{ marginBottom: '0.75rem', fontWeight: 600 }}>{msg.content}</p>
+                                        <p style={{ marginBottom: '0.75rem', fontWeight: 600 }}>{limpiarTextoChat(msg.content)}</p>
                                         {msg.verified && (
-                                            <span className="chat-verified-badge">Verificado en BDD</span>
+                                            <span className="chat-verified-badge">Verificado en nuestros productos</span>
                                         )}
                                         <div className="chat-products-grid">
                                             {msg.productos.map((p, i) => (
@@ -350,20 +391,20 @@ const ChatModal = ({ onClose }) => {
                                                     {p.imagenUrl && (
                                                         <img
                                                             src={p.imagenUrl}
-                                                            alt={p.nombre}
+                                                            alt={limpiarTextoChat(p.nombre)}
                                                             className="chat-product-img"
                                                             onError={e => { e.target.style.display = 'none'; }}
                                                         />
                                                     )}
                                                     <div className="chat-product-info">
-                                                        <span className="chat-product-name">{p.nombre}</span>
+                                                        <span className="chat-product-name">{limpiarTextoChat(p.nombre)}</span>
                                                         <span className="chat-product-price">${Number(p.precio || 0).toFixed(2)}</span>
                                                         <Link
                                                             to={`/products/${p._id}`}
                                                             className="chat-product-btn"
                                                             onClick={onClose}
                                                         >
-                                                            Ver producto â†’
+                                                            Ver producto
                                                         </Link>
                                                     </div>
                                                 </div>
@@ -372,7 +413,7 @@ const ChatModal = ({ onClose }) => {
                                     </>
                                 ) : msg.type === 'cta' ? (
                                     <div className="chat-cta-card">
-                                        <p>{msg.content}</p>
+                                        <p>{limpiarTextoChat(msg.content)}</p>
                                         <button type="button" className="chat-cta-btn" onClick={irAProductos}>
                                             Ir a productos
                                         </button>
@@ -380,8 +421,8 @@ const ChatModal = ({ onClose }) => {
                                 ) : (
                                     <>
                                         {msg.role === 'assistant'
-                                            ? <>{renderMarkdown(msg.content) || (isLoading && idx === messages.length - 1 && 'âœï¸ Pensando...')}</>
-                                            : msg.content
+                                            ? <>{renderMarkdown(msg.content) || (isLoading && idx === messages.length - 1 && 'Pensando...')}</>
+                                            : limpiarTextoChat(msg.content)
                                         }
                                         {msg.images?.length > 0 && (
                                             <div className="chat-message-imgs">
@@ -407,17 +448,17 @@ const ChatModal = ({ onClose }) => {
                 {showCamera && (
                     <div className="camera-modal">
                         <div className="camera-modal-content">
-                            <h3>ðŸ“· Capturar foto</h3>
+                            <h3>Capturar foto</h3>
                             <Webcam ref={webcamRef} screenshotFormat="image/jpeg" className="chat-webcam" />
                             <div className="camera-buttons">
-                                <button onClick={capturePhoto} className="btn-primary">Capturar ðŸ“¸</button>
+                                <button onClick={capturePhoto} className="btn-primary">Capturar</button>
                                 <button onClick={() => setShowCamera(false)} className="btn-secondary">Cancelar</button>
                             </div>
                         </div>
                     </div>
                 )}
 
-                {/* Tira de imÃ¡genes seleccionadas */}
+                {/* Tira de imagenes seleccionadas */}
                 {selectedImages.length > 0 && (
                     <div className="chat-images-strip">
                         {selectedImages.map((img, i) => (
@@ -427,14 +468,14 @@ const ChatModal = ({ onClose }) => {
                                     className="chat-thumb-remove"
                                     onClick={() => removeImage(i)}
                                     aria-label="Quitar imagen"
-                                >âœ•</button>
+                                >x</button>
                             </div>
                         ))}
                         {selectedImages.length < MAX_IMAGES && (
                             <button
                                 className="chat-thumb-add"
                                 onClick={() => fileInputRef.current.click()}
-                                title="Agregar mÃ¡s imÃ¡genes"
+                                title="Agregar mas imagenes"
                             >
                                 <MdAdd size={22} />
                             </button>
@@ -455,7 +496,7 @@ const ChatModal = ({ onClose }) => {
                         </button>
                         <button
                             onClick={() => fileInputRef.current.click()}
-                            title={`Subir imÃ¡genes (${selectedImages.length}/${MAX_IMAGES})`}
+                            title={`Subir imagenes (${selectedImages.length}/${MAX_IMAGES})`}
                             className="chat-button-action"
                             disabled={selectedImages.length >= MAX_IMAGES}
                         >
@@ -488,7 +529,7 @@ const ChatModal = ({ onClose }) => {
                         disabled={isLoading || (!input.trim() && selectedImages.length === 0)}
                         className="chat-send-btn"
                     >
-                        {isLoading ? 'Enviando...' : 'Enviar ðŸ“¤'}
+                        {isLoading ? 'Enviando...' : <><span>Enviar</span><MdSend size={16} /></>}
                     </button>
                 </div>
             </div>
