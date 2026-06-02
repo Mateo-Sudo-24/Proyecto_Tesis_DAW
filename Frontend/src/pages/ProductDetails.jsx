@@ -4,6 +4,38 @@ import { toast } from "react-toastify";
 import { FaArrowLeft, FaShoppingCart, FaStar } from "react-icons/fa";
 import storeAuth from "../context/storeAuth";
 
+const NO_IMAGE_SRC = "data:image/svg+xml;utf8," + encodeURIComponent(`
+<svg xmlns="http://www.w3.org/2000/svg" width="720" height="560" viewBox="0 0 720 560">
+  <rect width="720" height="560" fill="#f3f4f6"/>
+  <rect x="108" y="108" width="504" height="320" rx="28" fill="#fff7ed" stroke="#f59e0b" stroke-width="3"/>
+  <path d="M170 366l112-118 88 82 68-70 122 106H170z" fill="#fdba74"/>
+  <circle cx="500" cy="178" r="38" fill="#fed7aa"/>
+  <text x="360" y="488" text-anchor="middle" font-family="Arial, sans-serif" font-size="26" font-weight="700" fill="#92400e">Imagen no disponible</text>
+</svg>`);
+
+const getProductImageSrc = (producto = {}) => producto.imagenUrl || NO_IMAGE_SRC;
+const metrosDisponiblesProducto = (producto = {}) => Number(producto.metrosDisponibles ?? producto.stock ?? 0) || 0;
+const metrosPorRolloProducto = (producto = {}) => Number(producto.metrosPorRollo || 100) || 100;
+const rollosDisponiblesProducto = (producto = {}) => Math.floor(metrosDisponiblesProducto(producto) / metrosPorRolloProducto(producto));
+const permiteMetroProducto = (producto = {}) => producto.unidadVenta !== 'rollo';
+const permiteRolloProducto = (producto = {}) =>
+    producto.unidadVenta === 'rollo' ||
+    producto.unidadVenta === 'ambos' ||
+    (rollosDisponiblesProducto(producto) > 0 && Number(producto.precioPorRollo ?? 0) > 0);
+const opcionesUnidadProducto = (producto = {}) => [
+    ...(permiteMetroProducto(producto) ? ['metro'] : []),
+    ...(permiteRolloProducto(producto) ? ['rollo'] : []),
+];
+const unidadDefaultProducto = (producto = {}) => {
+    const opciones = opcionesUnidadProducto(producto);
+    if (producto.unidadVenta === 'rollo' && opciones.includes('rollo')) return 'rollo';
+    return opciones.includes('metro') ? 'metro' : (opciones[0] || 'metro');
+};
+const precioUnidadProducto = (producto = {}, unidad = 'metro') =>
+    unidad === 'rollo'
+        ? Number(producto.precioPorRollo ?? producto.precio ?? 0)
+        : Number(producto.precioPorMetro ?? producto.precio ?? 0);
+
 const detailStyles = `
     :root {
         --orange-main: #e8760a;
@@ -214,6 +246,21 @@ const detailStyles = `
         line-height: 1;
         font-weight: 900;
     }
+    .pd-price-compare {
+        display: flex;
+        gap: 0.6rem;
+        flex-wrap: wrap;
+        margin: -0.75rem 0 1.4rem;
+    }
+    .pd-price-chip {
+        border: 1px solid #fde8ce;
+        background: #fff7ed;
+        color: #92400e;
+        border-radius: 999px;
+        padding: 0.32rem 0.7rem;
+        font-size: 0.78rem;
+        font-weight: 900;
+    }
     .pd-meta-grid {
         display: grid;
         grid-template-columns: repeat(2, minmax(0, 1fr));
@@ -399,11 +446,11 @@ const ProductDetails = () => {
 
     const handleImageError = (e) => {
         e.currentTarget.onerror = null;
-        e.currentTarget.src = "/images/no-image.png";
+        e.currentTarget.src = NO_IMAGE_SRC;
     };
 
     useEffect(() => {
-        const nextUnidad = producto?.unidadVenta === 'rollo' ? 'rollo' : 'metro';
+        const nextUnidad = unidadDefaultProducto(producto || {});
         setUnidadSeleccionada(nextUnidad);
         setCantidad(nextUnidad === 'rollo' ? '1' : '0.5');
     // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -436,8 +483,8 @@ const ProductDetails = () => {
             toast.error('Ingresa una cantidad válida.');
             return;
         }
-        const metrosDisponibles = producto.metrosDisponibles ?? producto.stock ?? 0;
-        const metrosPorRollo = producto.metrosPorRollo || 100;
+        const metrosDisponibles = metrosDisponiblesProducto(producto);
+        const metrosPorRollo = metrosPorRolloProducto(producto);
         const metrosSolicitados = unidadSeleccionada === 'rollo'
             ? Math.ceil(cantidadNum) * metrosPorRollo
             : cantidadNum;
@@ -507,9 +554,10 @@ const ProductDetails = () => {
         );
     }
 
-    const precioFinal = producto.descuento > 0 
-        ? producto.precio * (1 - producto.descuento / 100)
-        : producto.precio;
+    const precioBaseSeleccionado = precioUnidadProducto(producto, unidadSeleccionada);
+    const precioFinal = producto.descuento > 0
+        ? precioBaseSeleccionado * (1 - producto.descuento / 100)
+        : precioBaseSeleccionado;
 
     return (
         <div className="pd-page">
@@ -526,7 +574,7 @@ const ProductDetails = () => {
                         {/* Image */}
                         <div className="pd-image-panel">
                             <img
-                                src={producto.imagenUrl || "/images/no-image.png"}
+                                src={getProductImageSrc(producto)}
                                 alt={producto.nombre}
                                 onError={handleImageError}
                             />
@@ -557,22 +605,27 @@ const ProductDetails = () => {
                             <div className="pd-price-row">
                                 {producto.descuento > 0 ? (
                                     <>
-                                        <span className="pd-price-old">${producto.precio.toLocaleString()}</span>
+                                        <span className="pd-price-old">${precioBaseSeleccionado.toLocaleString()}</span>
                                         <span className="pd-price">${precioFinal.toLocaleString('es-ES', { minimumFractionDigits: 2 })}</span>
                                     </>
                                 ) : (
-                                    <span className="pd-price">${producto.precio.toLocaleString('es-ES', { minimumFractionDigits: 2 })}</span>
+                                    <span className="pd-price">${precioBaseSeleccionado.toLocaleString('es-ES', { minimumFractionDigits: 2 })}</span>
                                 )}
                             </div>
+                            {opcionesUnidadProducto(producto).length > 1 && (
+                                <div className="pd-price-compare">
+                                    <span className="pd-price-chip">Metro: ${precioUnidadProducto(producto, 'metro').toLocaleString()}</span>
+                                    <span className="pd-price-chip">Rollo: ${precioUnidadProducto(producto, 'rollo').toLocaleString()}</span>
+                                </div>
+                            )}
 
                             {/* Details grid */}
                             <div className="pd-meta-grid">
                                 <div className="pd-meta-card">
                                     <p className="pd-meta-label">Disponibilidad</p>
                                     {(() => {
-                                        const metros = producto.metrosDisponibles ?? producto.stock ?? 0;
-                                        const metrosPorRollo = producto.metrosPorRollo || 100;
-                                        const rollos = Math.floor(metros / metrosPorRollo);
+                                        const metros = metrosDisponiblesProducto(producto);
+                                        const rollos = rollosDisponiblesProducto(producto);
                                         return metros > 0 ? (
                                             <p className="pd-meta-value in">
                                                 {metros} m ({rollos} rollos)
@@ -598,9 +651,9 @@ const ProductDetails = () => {
                             {(producto.metrosDisponibles ?? producto.stock ?? 0) > 0 && (
                                 <div>
                                     {/* Selector de unidad si tiene ambos */}
-                                    {producto.unidadVenta === 'ambos' && (
+                                    {opcionesUnidadProducto(producto).length > 1 && (
                                         <div className="pd-unit-buttons">
-                                            {['metro', 'rollo'].map(u => (
+                                            {opcionesUnidadProducto(producto).map(u => (
                                                 <button
                                                     key={u}
                                                     type="button"

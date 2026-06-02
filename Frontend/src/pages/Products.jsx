@@ -4,6 +4,38 @@ import { FaSearch, FaFilter, FaTimes } from "react-icons/fa";
 import { toast } from "react-toastify";
 import storeAuth from "../context/storeAuth";
 
+const NO_IMAGE_SRC = "data:image/svg+xml;utf8," + encodeURIComponent(`
+<svg xmlns="http://www.w3.org/2000/svg" width="640" height="420" viewBox="0 0 640 420">
+  <rect width="640" height="420" fill="#f3f4f6"/>
+  <rect x="96" y="88" width="448" height="244" rx="24" fill="#fff7ed" stroke="#f59e0b" stroke-width="3"/>
+  <path d="M160 286l92-96 72 68 56-58 100 86H160z" fill="#fdba74"/>
+  <circle cx="448" cy="150" r="32" fill="#fed7aa"/>
+  <text x="320" y="370" text-anchor="middle" font-family="Arial, sans-serif" font-size="24" font-weight="700" fill="#92400e">Imagen no disponible</text>
+</svg>`);
+
+const getProductImageSrc = (producto = {}) => producto.imagenUrl || NO_IMAGE_SRC;
+const metrosDisponibles = (producto = {}) => Number(producto.metrosDisponibles ?? producto.stock ?? 0) || 0;
+const metrosPorRollo = (producto = {}) => Number(producto.metrosPorRollo || 100) || 100;
+const rollosDisponibles = (producto = {}) => Math.floor(metrosDisponibles(producto) / metrosPorRollo(producto));
+const permiteMetro = (producto = {}) => producto.unidadVenta !== 'rollo';
+const permiteRollo = (producto = {}) =>
+    producto.unidadVenta === 'rollo' ||
+    producto.unidadVenta === 'ambos' ||
+    (rollosDisponibles(producto) > 0 && Number(producto.precioPorRollo ?? 0) > 0);
+const opcionesUnidad = (producto = {}) => [
+    ...(permiteMetro(producto) ? ['metro'] : []),
+    ...(permiteRollo(producto) ? ['rollo'] : []),
+];
+const unidadDefault = (producto = {}) => {
+    const opciones = opcionesUnidad(producto);
+    if (producto.unidadVenta === 'rollo' && opciones.includes('rollo')) return 'rollo';
+    return opciones.includes('metro') ? 'metro' : (opciones[0] || 'metro');
+};
+const precioUnidad = (producto = {}, unidad = 'metro') =>
+    unidad === 'rollo'
+        ? Number(producto.precioPorRollo ?? producto.precio ?? 0)
+        : Number(producto.precioPorMetro ?? producto.precio ?? 0);
+
 /* ── CSS interno (mismo sistema que Home, Nosotros y Contact) ── */
 const styles = `
     :root {
@@ -252,6 +284,8 @@ const styles = `
 
     .prod-card-footer { display: flex; align-items: center; justify-content: center; margin-bottom: 0.875rem; gap: 0.75rem; flex-wrap: wrap; }
     .prod-price { font-size: 1.2rem; font-weight: 900; color: var(--orange-dark); }
+    .prod-price-compare { width:100%; display:flex; justify-content:center; gap:0.55rem; flex-wrap:wrap; margin:-0.35rem 0 0.75rem; }
+    .prod-price-chip { border:1px solid #fde8ce; background:#fff7ed; color:#92400e; border-radius:999px; padding:0.22rem 0.55rem; font-size:0.72rem; font-weight:800; }
     .prod-stock-badge {
         font-size: 0.7rem; font-weight: 700;
         padding: 0.2rem 0.55rem; border-radius: 9999px;
@@ -285,6 +319,7 @@ const styles = `
     }
     .btn-add-cart:hover:not(:disabled) { background: var(--orange-dark); transform: translateY(-1px); }
     .btn-add-cart:disabled { opacity: 0.55; cursor: not-allowed; }
+    .prod-unit-select { width:100%; border:1px solid #e5e7eb; border-radius:0.5rem; padding:0.45rem 0.55rem; font-weight:700; color:#374151; background:#fff; }
 
     /* ── ESTADO VACÍO ── */
     .prod-empty {
@@ -319,7 +354,7 @@ const Products = () => {
 
     const handleImageError = (e) => {
         e.currentTarget.onerror = null;
-        e.currentTarget.src = "/images/no-image.png";
+        e.currentTarget.src = NO_IMAGE_SRC;
     };
 
     useEffect(() => {
@@ -365,7 +400,7 @@ const Products = () => {
         }
         const productoId = producto?._id;
         if (!productoId) return;
-        const unidadSeleccionada = unidadesCompra[productoId] || (producto?.unidadVenta === 'rollo' ? 'rollo' : 'metro');
+        const unidadSeleccionada = unidadesCompra[productoId] || unidadDefault(producto);
         setAgregando(productoId);
         try {
             const res = await fetch(`${import.meta.env.VITE_BACKEND_URL}/carrito/items`, {
@@ -513,7 +548,7 @@ const Products = () => {
                             <div key={producto._id} className="prod-card">
                                 <div className="prod-card-img">
                                     <img
-                                        src={producto.imagenUrl || "/images/no-image.png"}
+                                        src={getProductImageSrc(producto)}
                                         alt={producto.nombre}
                                         onError={handleImageError}
                                     />
@@ -531,30 +566,37 @@ const Products = () => {
                                         <p className="prod-card-color">Color: <span>{producto.color}</span></p>
                                     )}
                                     <div className="prod-card-footer">
-                                        <span className="prod-price">${producto.precio.toLocaleString()}</span>
+                                        <span className="prod-price">${precioUnidad(producto, unidadesCompra[producto._id] || unidadDefault(producto)).toLocaleString()}</span>
                                         <span className={`prod-stock-badge ${(producto.metrosDisponibles ?? 0) > 0 ? 'in' : 'out'}`}>
                                             {(() => {
-                                                const metros = producto.metrosDisponibles ?? 0;
-                                                const rollos = Math.floor(metros / (producto.metrosPorRollo || 100));
+                                                const metros = metrosDisponibles(producto);
+                                                const rollos = rollosDisponibles(producto);
                                                 return metros > 0 ? `${metros} m / ${rollos} rollos` : 'Agotado';
                                             })()}
                                         </span>
                                     </div>
+                                    {opcionesUnidad(producto).length > 1 && (
+                                        <div className="prod-price-compare">
+                                            <span className="prod-price-chip">Metro: ${precioUnidad(producto, 'metro').toLocaleString()}</span>
+                                            <span className="prod-price-chip">Rollo: ${precioUnidad(producto, 'rollo').toLocaleString()}</span>
+                                        </div>
+                                    )}
                                     <p style={{ margin: '0 0 0.75rem', color: '#6b7280', fontSize: '0.78rem', fontWeight: 700 }}>
                                         Unidad: {producto.unidadVenta || 'metro'}
                                     </p>
-                                    {(producto.unidadVenta === 'ambos' || producto.unidadVenta === 'rollo') && (
+                                    {opcionesUnidad(producto).length > 1 && (
                                         <div style={{ display: 'grid', gap: '0.35rem', marginBottom: '0.75rem' }}>
                                             <p style={{ margin: 0, color: '#92400e', fontSize: '0.76rem', fontWeight: 800 }}>
                                                 Este articulo se puede comprar por rollos o por metros.
                                             </p>
                                             <select
-                                                value={unidadesCompra[producto._id] || (producto.unidadVenta === 'rollo' ? 'rollo' : 'metro')}
+                                                value={unidadesCompra[producto._id] || unidadDefault(producto)}
                                                 onChange={(e) => setUnidadesCompra(prev => ({ ...prev, [producto._id]: e.target.value }))}
-                                                style={{ border: '1px solid #e5e7eb', borderRadius: '0.5rem', padding: '0.45rem 0.55rem', fontWeight: 700 }}
+                                                className="prod-unit-select"
                                             >
-                                                {producto.unidadVenta !== 'rollo' && <option value="metro">Comprar por metros</option>}
-                                                <option value="rollo">Comprar por rollos</option>
+                                                {opcionesUnidad(producto).map(u => (
+                                                    <option key={u} value={u}>Comprar por {u === 'rollo' ? 'rollos' : 'metros'}</option>
+                                                ))}
                                             </select>
                                         </div>
                                     )}

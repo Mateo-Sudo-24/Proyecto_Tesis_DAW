@@ -2,6 +2,38 @@ import { useEffect, useState } from "react";
 import { toast } from "react-toastify";
 import storeAuth from "../../context/storeAuth";
 
+const NO_IMAGE_SRC = "data:image/svg+xml;utf8," + encodeURIComponent(`
+<svg xmlns="http://www.w3.org/2000/svg" width="640" height="420" viewBox="0 0 640 420">
+  <rect width="640" height="420" fill="#f3f4f6"/>
+  <rect x="96" y="88" width="448" height="244" rx="24" fill="#fff7ed" stroke="#f59e0b" stroke-width="3"/>
+  <path d="M160 286l92-96 72 68 56-58 100 86H160z" fill="#fdba74"/>
+  <circle cx="448" cy="150" r="32" fill="#fed7aa"/>
+  <text x="320" y="370" text-anchor="middle" font-family="Arial, sans-serif" font-size="24" font-weight="700" fill="#92400e">Imagen no disponible</text>
+</svg>`);
+
+const getProductImageSrc = (producto = {}) => producto.imagenUrl || NO_IMAGE_SRC;
+const metrosDisponibles = (producto = {}) => Number(producto.metrosDisponibles ?? producto.stock ?? 0) || 0;
+const metrosPorRollo = (producto = {}) => Number(producto.metrosPorRollo || 100) || 100;
+const rollosDisponibles = (producto = {}) => Math.floor(metrosDisponibles(producto) / metrosPorRollo(producto));
+const permiteMetro = (producto = {}) => producto.unidadVenta !== 'rollo';
+const permiteRollo = (producto = {}) =>
+    producto.unidadVenta === 'rollo' ||
+    producto.unidadVenta === 'ambos' ||
+    (rollosDisponibles(producto) > 0 && Number(producto.precioPorRollo ?? 0) > 0);
+const opcionesUnidad = (producto = {}) => [
+    ...(permiteMetro(producto) ? ['metro'] : []),
+    ...(permiteRollo(producto) ? ['rollo'] : []),
+];
+const unidadDefault = (producto = {}) => {
+    const opciones = opcionesUnidad(producto);
+    if (producto.unidadVenta === 'rollo' && opciones.includes('rollo')) return 'rollo';
+    return opciones.includes('metro') ? 'metro' : (opciones[0] || 'metro');
+};
+const precioUnidad = (producto = {}, unidad = 'metro') =>
+    unidad === 'rollo'
+        ? Number(producto.precioPorRollo ?? producto.precio ?? 0)
+        : Number(producto.precioPorMetro ?? producto.precio ?? 0);
+
 const styles = `
     :root {
         --orange-main:   #e8760a;
@@ -110,6 +142,8 @@ const styles = `
         justify-content: space-between; margin-bottom: 0.875rem;
     }
     .dash-price { font-size: 1.15rem; font-weight: 900; color: var(--orange-dark); }
+    .dash-price-compare { display:flex; gap:0.45rem; flex-wrap:wrap; margin:-0.35rem 0 0.75rem; }
+    .dash-price-chip { border:1px solid #fde8ce; background:#fff7ed; color:#92400e; border-radius:999px; padding:0.2rem 0.5rem; font-size:0.7rem; font-weight:800; }
     .dash-stock-badge {
         font-size: 0.7rem; font-weight: 700;
         padding: 0.2rem 0.55rem; border-radius: 9999px;
@@ -144,6 +178,16 @@ const styles = `
         color: #6b7280;
         white-space: nowrap;
     }
+    .dash-unit-select {
+        width: 100%;
+        border: 1.5px solid #e5e7eb;
+        border-radius: 0.55rem;
+        padding: 0.55rem 0.7rem;
+        color: #374151;
+        background: #fff;
+        font-weight: 800;
+        margin-bottom: 0.5rem;
+    }
     .btn-dash-add {
         width: 100%; padding: 0.65rem 1rem;
         background: var(--orange-main);
@@ -172,11 +216,12 @@ const Productos = () => {
     const [loading, setLoading] = useState(true);
     const [agregando, setAgregando] = useState(null);
     const [cantidades, setCantidades] = useState({});
+    const [unidades, setUnidades] = useState({});
     const token = storeAuth(state => state.token);
 
     const handleImageError = (e) => {
         e.currentTarget.onerror = null;
-        e.currentTarget.src = "/images/no-image.png";
+        e.currentTarget.src = NO_IMAGE_SRC;
     };
 
     useEffect(() => {
@@ -195,12 +240,13 @@ const Productos = () => {
         fetchProductos();
     }, []);
 
-    const getCantidadProducto = (producto) => cantidades[producto._id] ?? (producto.unidadVenta === 'rollo' ? 1 : 1);
+    const getUnidadProducto = (producto) => unidades[producto._id] || unidadDefault(producto);
+    const getCantidadProducto = (producto) => cantidades[producto._id] ?? (getUnidadProducto(producto) === 'rollo' ? 1 : 1);
 
     const agregarAlCarrito = async (producto) => {
         const productoId = producto?._id;
         const nombreProducto = producto?.nombre;
-        const unidadSeleccionada = producto?.unidadVenta === 'rollo' ? 'rollo' : 'metro';
+        const unidadSeleccionada = getUnidadProducto(producto);
         const cantidad = Number(getCantidadProducto(producto));
         if (!token) { toast.info("Inicia sesión para agregar productos."); return; }
         if (!productoId) { toast.error("ID de producto inválido."); return; }
@@ -280,7 +326,7 @@ const Productos = () => {
                             <div key={producto._id} className="dash-card">
                                 <div className="dash-card-img">
                                     <img
-                                        src={producto.imagenUrl || "/images/no-image.png"}
+                                        src={getProductImageSrc(producto)}
                                         alt={producto.nombre}
                                         onError={handleImageError}
                                     />
@@ -300,26 +346,47 @@ const Productos = () => {
                                         Unidad: {producto.unidadVenta || 'metro'}
                                     </div>
                                     <div className="dash-card-footer">
-                                        <span className="dash-price">${producto.precio}</span>
+                                        <span className="dash-price">${precioUnidad(producto, getUnidadProducto(producto)).toFixed(2)}</span>
                                         <span className={`dash-stock-badge ${(producto.metrosDisponibles ?? 0) > 0 ? "in" : "out"}`}>
                                             {(() => {
-                                                const metros = producto.metrosDisponibles ?? 0;
-                                                const rollos = Math.floor(metros / (producto.metrosPorRollo || 100));
+                                                const metros = metrosDisponibles(producto);
+                                                const rollos = rollosDisponibles(producto);
                                                 return metros > 0 ? `${metros} m / ${rollos} rollos` : 'Agotado';
                                             })()}
                                         </span>
                                     </div>
+                                    {opcionesUnidad(producto).length > 1 && (
+                                        <>
+                                            <div className="dash-price-compare">
+                                                <span className="dash-price-chip">Metro: ${precioUnidad(producto, 'metro').toFixed(2)}</span>
+                                                <span className="dash-price-chip">Rollo: ${precioUnidad(producto, 'rollo').toFixed(2)}</span>
+                                            </div>
+                                            <select
+                                                className="dash-unit-select"
+                                                value={getUnidadProducto(producto)}
+                                                onChange={(e) => {
+                                                    const unidad = e.target.value;
+                                                    setUnidades(prev => ({ ...prev, [producto._id]: unidad }));
+                                                    setCantidades(prev => ({ ...prev, [producto._id]: unidad === 'rollo' ? 1 : 1 }));
+                                                }}
+                                            >
+                                                {opcionesUnidad(producto).map(u => (
+                                                    <option key={u} value={u}>Comprar por {u === 'rollo' ? 'rollos' : 'metros'}</option>
+                                                ))}
+                                            </select>
+                                        </>
+                                    )}
                                     <div className="dash-buy-row">
                                         <input
                                             type="number"
-                                            min={producto.unidadVenta === 'rollo' ? 1 : 0.01}
-                                            step={producto.unidadVenta === 'rollo' ? 1 : 0.01}
+                                            min={getUnidadProducto(producto) === 'rollo' ? 1 : 0.01}
+                                            step={getUnidadProducto(producto) === 'rollo' ? 1 : 0.01}
                                             className="dash-meter-input"
                                             value={getCantidadProducto(producto)}
                                             onChange={(e) => setCantidades(prev => ({ ...prev, [producto._id]: e.target.value }))}
                                         />
                                         <span className="dash-unit-label">
-                                            {producto.unidadVenta === 'rollo' ? 'rollos' : 'metros'}
+                                            {getUnidadProducto(producto) === 'rollo' ? 'rollos' : 'metros'}
                                         </span>
                                     </div>
                                     <button
