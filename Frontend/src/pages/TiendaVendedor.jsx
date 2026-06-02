@@ -2,6 +2,9 @@ import { useEffect, useMemo, useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import { toast } from "react-toastify";
 import storeAuth from "../context/storeAuth";
+import storeProfile from "../context/storeProfile";
+import ModalOrdenPago from "../components/carrito/ModalOrdenPago.jsx";
+import { validarCedulaRuc, validarEmailRealista, validarNombreReal, validarTelefono10 } from "../utils/textValidators.js";
 
 const IVA_RATE = 0.15;
 
@@ -19,6 +22,7 @@ const styles = `
     .tv-mode-title { margin:0 0 0.65rem; font-size:0.82rem; font-weight:900; color:#374151; text-transform:uppercase; letter-spacing:0.04em; }
     .tv-mode-options { display:grid; grid-template-columns:1fr 1fr; gap:0.6rem; }
     .tv-mode-btn { border:1.5px solid #e5e7eb; background:#f9fafb; color:#4b5563; border-radius:0.7rem; padding:0.75rem; text-align:left; cursor:pointer; font-weight:800; }
+    .tv-mode-btn:disabled { opacity:0.48; cursor:not-allowed; }
     .tv-mode-btn span { display:block; font-size:0.72rem; color:#6b7280; font-weight:600; margin-top:0.2rem; line-height:1.35; }
     .tv-mode-btn.active { background:#e8760a; border-color:#e8760a; color:#fff; box-shadow:0 3px 12px rgba(232,118,10,0.25); }
     .tv-mode-btn.active span { color:#fff7ed; }
@@ -59,6 +63,7 @@ const styles = `
     .tv-total div { display:flex; justify-content:space-between; }
     .tv-total strong { color:#111827; font-size:1rem; }
     .tv-total .tv-primary { width:100%; justify-content:center; margin-top:0.75rem; }
+    .tv-mode-note { margin:0.75rem 0 0; color:#92400e; background:#fef3c7; border:1px solid #fde68a; border-radius:0.65rem; padding:0.65rem 0.8rem; font-size:0.78rem; font-weight:800; line-height:1.35; }
     .tv-overlay { position:fixed; inset:0; background:rgba(0,0,0,0.5); z-index:60; display:flex; align-items:center; justify-content:center; padding:1rem; }
     .tv-modal { width:min(520px,96vw); padding:1.25rem; }
     .tv-modal h3 { margin:0 0 0.35rem; color:#111827; font-size:1.1rem; font-weight:900; }
@@ -83,6 +88,7 @@ const getMetros = (producto, cantidad, unidad) => (
 
 const TiendaVendedor = () => {
     const token = storeAuth(state => state.token);
+    const { user } = storeProfile();
     const navigate = useNavigate();
     const [productos, setProductos] = useState([]);
     const [loading, setLoading] = useState(true);
@@ -91,8 +97,21 @@ const TiendaVendedor = () => {
     const [carrito, setCarrito] = useState([]);
     const [modoVenta, setModoVenta] = useState('tienda');
     const [modalOpen, setModalOpen] = useState(false);
+    const [ordenPagoOpen, setOrdenPagoOpen] = useState(false);
     const [guardando, setGuardando] = useState(false);
     const [cliente, setCliente] = useState({ nombre: "", apellido: "", email: "", telefono: "", direccion: "", ruc: "" });
+    const modoBloqueado = carrito.length > 0;
+    const esPedidoEnTienda = modoVenta === 'tienda';
+    const tituloPedido = esPedidoEnTienda ? 'Pedido en tienda' : 'Envio a domicilio';
+    const vendedorAsignado = user
+        ? {
+            _id: user._id || user.id,
+            id: user._id || user.id,
+            nombre: user.nombre,
+            apellido: user.apellido,
+            nombrePropietario: user.nombrePropietario,
+        }
+        : null;
 
     const handleImageError = (e) => {
         e.currentTarget.onerror = null;
@@ -143,32 +162,25 @@ const TiendaVendedor = () => {
             toast.error(`Stock insuficiente para ${producto.nombre}.`);
             return;
         }
-        if (modoVenta === 'carrito') {
-            try {
-                const res = await fetch(`${import.meta.env.VITE_BACKEND_URL}/carrito/items`, {
-                    method: "POST",
-                    headers: { "Content-Type": "application/json", Authorization: `Bearer ${token}` },
-                    body: JSON.stringify({ productoId: producto._id, cantidad, unidadSeleccionada: unidad })
-                });
-                const data = await res.json().catch(() => ({}));
-                if (!res.ok) throw new Error(data.msg || "No se pudo añadir al carrito.");
-                toast.success("Producto añadido al carrito.");
-            } catch (error) {
-                toast.error(error.message);
-            }
-            return;
-        }
         setCarrito(prev => {
             const idx = prev.findIndex(item => item.producto._id === producto._id && item.unidadSeleccionada === unidad);
             if (idx === -1) return [...prev, { producto, cantidad, unidadSeleccionada: unidad }];
             return prev.map((item, i) => i === idx ? { ...item, cantidad: item.cantidad + cantidad } : item);
         });
-        toast.success("Producto añadido a la venta.");
+        toast.success(esPedidoEnTienda ? "Producto añadido al pedido en tienda." : "Producto añadido al envío a domicilio.");
     };
 
     const registrarVenta = async () => {
-        if (!cliente.nombre.trim()) {
-            toast.error("Ingresa el nombre del cliente.");
+        const errores = [
+            validarNombreReal(cliente.nombre, 2),
+            validarNombreReal(cliente.apellido, 2),
+            validarEmailRealista(cliente.email),
+            validarTelefono10(cliente.telefono),
+            validarCedulaRuc(cliente.ruc),
+            cliente.direccion.trim().length >= 5 || "Ingresa una direccion valida"
+        ].filter(error => error !== true);
+        if (errores.length) {
+            toast.error("Rellene todos los campos correctamente.");
             return;
         }
         setGuardando(true);
@@ -200,6 +212,41 @@ const TiendaVendedor = () => {
         }
     };
 
+    const registrarOrdenDomicilio = async (orderData, facturacion) => {
+        try {
+            const res = await fetch(`${import.meta.env.VITE_BACKEND_URL}/ordenes/tienda`, {
+                method: "POST",
+                headers: { "Content-Type": "application/json", Authorization: `Bearer ${token}` },
+                body: JSON.stringify({
+                    cliente: {
+                        nombre: orderData.datosFacturacion.nombre,
+                        apellido: orderData.datosFacturacion.apellido,
+                        email: orderData.datosFacturacion.correo,
+                        telefono: orderData.datosFacturacion.telefono,
+                        direccion: orderData.datosFacturacion.direccion,
+                        ruc: orderData.datosFacturacion.ruc,
+                    },
+                    metodoPago: orderData.metodoPago,
+                    tipoEntrega: "domicilio",
+                    direccionEnvio: orderData.direccionEnvio,
+                    datosFacturacion: orderData.datosFacturacion,
+                    items: carrito.map(item => ({
+                        productoId: item.producto._id,
+                        cantidad: item.cantidad,
+                        unidadSeleccionada: item.unidadSeleccionada
+                    })),
+                    desglose: orderData.desglose
+                })
+            });
+            const data = await res.json().catch(() => ({}));
+            if (!res.ok) throw new Error(data.msg || "No se pudo registrar el envio a domicilio.");
+            return { orden: data.orden, facturacion: { ...facturacion, vendedorAsignado } };
+        } catch (error) {
+            toast.error(error.message);
+            return null;
+        }
+    };
+
     return (
         <>
             <style>{styles}</style>
@@ -211,7 +258,6 @@ const TiendaVendedor = () => {
                     </div>
                     <div className="tv-actions">
                         <Link to="/dashboard/productos-admin" className="tv-link">Gestionar productos</Link>
-                        <Link to="/dashboard/carrito" className="tv-link">Ir al carrito</Link>
                     </div>
                 </div>
 
@@ -221,6 +267,7 @@ const TiendaVendedor = () => {
                         <button
                             type="button"
                             className={`tv-mode-btn${modoVenta === 'tienda' ? ' active' : ''}`}
+                            disabled={modoBloqueado && modoVenta !== 'tienda'}
                             onClick={() => setModoVenta('tienda')}
                         >
                             Pedido en tienda
@@ -228,13 +275,19 @@ const TiendaVendedor = () => {
                         </button>
                         <button
                             type="button"
-                            className={`tv-mode-btn${modoVenta === 'carrito' ? ' active' : ''}`}
-                            onClick={() => setModoVenta('carrito')}
+                            className={`tv-mode-btn${modoVenta === 'domicilio' ? ' active' : ''}`}
+                            disabled={modoBloqueado && modoVenta !== 'domicilio'}
+                            onClick={() => setModoVenta('domicilio')}
                         >
                             Envío a domicilio
-                            <span>Envía productos al carrito para continuar con envío a domicilio.</span>
+                            <span>Gestiona el carrito y la orden de pago en esta misma tienda.</span>
                         </button>
                     </div>
+                    {modoBloqueado && (
+                        <p className="tv-mode-note">
+                            Este pedido esta fijado como {tituloPedido}. Para cambiar de tipo de venta elimina los productos agregados.
+                        </p>
+                    )}
                 </div>
 
                 <div className="tv-layout">
@@ -280,9 +333,9 @@ const TiendaVendedor = () => {
                     </div>
 
                     <aside className="tv-cart">
-                        <h2 className="tv-cart-title">Pedido en tienda</h2>
+                        <h2 className="tv-cart-title">{tituloPedido}</h2>
                         {carrito.length === 0 ? (
-                            <div className="tv-cart-empty">Añade productos para registrar la venta.</div>
+                            <div className="tv-cart-empty">Añade productos para continuar con {tituloPedido.toLowerCase()}.</div>
                         ) : carrito.map((item, index) => {
                             const precio = getPrecioUnidad(item.producto, item.unidadSeleccionada);
                             return (
@@ -301,8 +354,8 @@ const TiendaVendedor = () => {
                                 {totales.descuentoTotal > 0 && <div><span>Descuento</span><span>-${totales.descuentoTotal.toFixed(2)}</span></div>}
                                 <div><span>IVA</span><span>${totales.iva.toFixed(2)}</span></div>
                                 <div><strong>Total</strong><strong>${totales.totalFinal.toFixed(2)}</strong></div>
-                                <button className="tv-primary" disabled={carrito.length === 0} onClick={() => setModalOpen(true)}>
-                                    Confirmar pedido en tienda
+                                <button className="tv-primary" disabled={carrito.length === 0} onClick={() => esPedidoEnTienda ? setModalOpen(true) : setOrdenPagoOpen(true)}>
+                                    {esPedidoEnTienda ? "Registrar pedido en tienda" : "Abrir orden de pago"}
                                 </button>
                             </div>
                         )}
@@ -342,6 +395,26 @@ const TiendaVendedor = () => {
                         </div>
                     </div>
                 </div>
+            )}
+
+            {ordenPagoOpen && (
+                <ModalOrdenPago
+                    tipoEntrega="domicilio"
+                    cartItems={carrito}
+                    subtotalCart={totales.subtotal}
+                    subtotalSinDescuento={totales.subtotal + totales.descuentoTotal}
+                    descuentoTotal={totales.descuentoTotal}
+                    vendedorAsignado={vendedorAsignado}
+                    onClose={() => setOrdenPagoOpen(false)}
+                    onOrdenCreada={() => {
+                        setOrdenPagoOpen(false);
+                        setCarrito([]);
+                        toast.success("Pedido a domicilio registrado correctamente.");
+                        navigate("/dashboard/mis-pedidos");
+                    }}
+                    onNeedCardPayment={() => {}}
+                    onCrearOrdenPersonalizada={registrarOrdenDomicilio}
+                />
             )}
         </>
     );

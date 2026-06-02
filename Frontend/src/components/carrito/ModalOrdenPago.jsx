@@ -6,7 +6,7 @@ import useFetch from '../../hooks/useFetch.js'
 import storeProfile from '../../context/storeProfile'
 import deUnaQr from '../../assets/deuna.jpg'
 import { calcularDesglose } from './ordenLocal.js'
-import { letrasConTildesRegex } from '../../utils/textValidators.js'
+import { validarCedulaRuc, validarEmailRealista, validarNombreReal, validarTelefono10 } from '../../utils/textValidators.js'
 
 const IVA = 0.15
 const fmt = (n) => `$${Number(n).toFixed(2)}`
@@ -484,6 +484,7 @@ const ModalOrdenPago = ({
     onClose,
     onOrdenCreada,
     onNeedCardPayment,
+    onCrearOrdenPersonalizada,
 }) => {
     const { fetchDataBackend } = useFetch()
     const { user } = storeProfile()
@@ -574,26 +575,29 @@ const ModalOrdenPago = ({
 
     const validate = () => {
         const errs = {}
-        const soloLetras = letrasConTildesRegex
-        const emailValido = /^[^\s@]+@[^\s@]+\.[^\s@]+$/
-        const documentoValido = /^(\d{10}|\d{13})$/
-        const telefonoValido = /^0\d{8,9}$/
         const itemsValidos = cartItems.every((it) => {
             const cantidad = Number(it?.cantidad)
             const precio = Number(it?.producto?.precioPorMetro ?? it?.producto?.precioPorRollo ?? it?.producto?.precio)
             return cantidad > 0 && Number.isFinite(precio) && precio >= 0
         })
 
-        if (!soloLetras.test(form.nombre.trim()))   errs.nombre   = 'Ingresa al menos 2 letras'
-        if (!soloLetras.test(form.apellido.trim())) errs.apellido  = 'Ingresa al menos 2 letras'
-        if (!documentoValido.test(form.ruc.trim())) errs.ruc       = 'Usa cédula de 10 dígitos o RUC de 13'
-        if (!emailValido.test(form.email.trim()))   errs.email     = 'Correo inválido'
-        if (form.telefono.trim() && !telefonoValido.test(form.telefono.trim())) errs.telefono = 'Teléfono inválido'
-        if (!form.direccion.trim()) errs.direccion = 'Ingresa la dirección de facturación'
-        if (tipoEntrega === 'domicilio' && !direccionDomicilio) errs.mapaDireccion = 'Selecciona tu dirección en el mapa'
-        if (!itemsValidos) errs.items = 'Hay productos con cantidad o precio inválido'
+        const nombreOk = validarNombreReal(form.nombre, 5)
+        const apellidoOk = validarNombreReal(form.apellido, 5)
+        const rucOk = validarCedulaRuc(form.ruc)
+        const emailOk = validarEmailRealista(form.email)
+        const telefonoOk = validarTelefono10(form.telefono)
+        if (nombreOk !== true) errs.nombre = 'Ingresa al menos 5 letras'
+        if (apellidoOk !== true) errs.apellido = 'Ingresa al menos 5 letras'
+        if (rucOk !== true) errs.ruc = rucOk
+        if (emailOk !== true) errs.email = emailOk
+        if (telefonoOk !== true) errs.telefono = telefonoOk
+        if (!form.direccion.trim()) errs.direccion = 'Ingresa la direccion de facturacion'
+        if (tipoEntrega === 'domicilio' && !direccionDomicilio) errs.mapaDireccion = 'Selecciona tu direccion en el mapa'
+        if (!itemsValidos) errs.items = 'Hay productos con cantidad o precio invalido'
         setErrors(errs)
-        return Object.keys(errs).length === 0
+        const valido = Object.keys(errs).length === 0
+        if (!valido) toast.error('Rellene todos los campos correctamente.')
+        return valido
     }
 
     const handleConfirmar = async () => {
@@ -628,6 +632,22 @@ const ModalOrdenPago = ({
             datosFacturacion,
             desglose,
             vendedorId: vendedorAsignado?.id || vendedorAsignado?._id,
+        }
+
+        if (onCrearOrdenPersonalizada) {
+            const response = await onCrearOrdenPersonalizada(orderData, {
+                nombre: form.nombre,
+                apellido: form.apellido,
+                correo: form.email,
+                direccion: form.direccion || direccionDomicilio,
+                ruc: form.ruc,
+                telefono: form.telefono,
+            })
+            setIsCreating(false)
+            if (response?.orden) {
+                onOrdenCreada(response.orden, response.facturacion || datosFacturacion)
+            }
+            return
         }
 
         const response = await fetchDataBackend(
@@ -905,4 +925,5 @@ ModalOrdenPago.propTypes = {
     onClose: PropTypes.func,
     onOrdenCreada: PropTypes.func,
     onNeedCardPayment: PropTypes.func,
+    onCrearOrdenPersonalizada: PropTypes.func,
 }

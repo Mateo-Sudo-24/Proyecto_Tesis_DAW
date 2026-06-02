@@ -1,16 +1,5 @@
 import { body, validationResult, param } from 'express-validator';
 
-// Middleware reutilizable para manejar los errores de validación
-const handleValidationErrors = (req, res, next) => {
-    const errors = validationResult(req);
-    if (!errors.isEmpty()) {
-        return res.status(400).json({ errors: errors.array() });
-    }
-    next();
-};
-
-// --- VALIDACIONES COMUNES ---
-// (Estas son "bloques de construcción" que usaremos más abajo)
 const normalizeEmailOptions = {
     gmail_remove_dots: false,
     gmail_remove_subaddress: false,
@@ -18,47 +7,113 @@ const normalizeEmailOptions = {
     yahoo_remove_subaddress: false,
     icloud_remove_subaddress: false,
 };
+
+const nombreRegex = /^(?=.{2,60}$)(?=(?:.*[\p{L}]){2,})[\p{L}\p{M}]+(?:[\s.'-][\p{L}\p{M}]+)*$/u;
+const emailRegex = /^[^\s@]+@[^\s@]+\.[A-Za-z]{2,24}$/;
+const telefonoRegex = /^0\d{9}$/;
+
+const handleValidationErrors = (req, res, next) => {
+    const errors = validationResult(req);
+    if (!errors.isEmpty()) {
+        return res.status(400).json({
+            msg: 'Rellene todos los campos correctamente.',
+            errors: errors.array(),
+        });
+    }
+    next();
+};
+
 const validateEmail = body('email')
     .trim()
+    .toLowerCase()
     .isEmail()
-    .withMessage('Por favor, ingresa un correo electrónico válido.')
+    .withMessage('Ingresa un correo electronico valido.')
+    .matches(emailRegex)
+    .withMessage('Ingresa un correo con dominio valido.')
     .normalizeEmail(normalizeEmailOptions);
-const validatePassword = body('password').isLength({ min: 8 }).withMessage('La contraseña debe tener al menos 8 caracteres.');
-const validateNombre = body('nombre').trim().notEmpty().withMessage('El nombre es obligatorio.').isAlpha('es-ES', { ignore: ' ' }).withMessage('El nombre solo puede contener letras y espacios.');
-const validateApellido = body('apellido').trim().notEmpty().withMessage('El apellido es obligatorio.').isAlpha('es-ES', { ignore: ' ' }).withMessage('El apellido solo puede contener letras y espacios.');
 
-// --- ¡AQUÍ ESTÁ LA LÍNEA CLAVE! ---
-// Exportamos el validador de ID de Mongo directamente
+const validatePassword = body('password')
+    .isLength({ min: 8 })
+    .withMessage('La contrasena debe tener al menos 8 caracteres.');
+
+const validateNombre = body('nombre')
+    .trim()
+    .notEmpty()
+    .withMessage('El nombre es obligatorio.')
+    .matches(nombreRegex)
+    .withMessage('Ingresa un nombre real, solo letras y espacios.');
+
+const validateApellido = body('apellido')
+    .trim()
+    .notEmpty()
+    .withMessage('El apellido es obligatorio.')
+    .matches(nombreRegex)
+    .withMessage('Ingresa un apellido real, solo letras y espacios.');
+
+const validateTelefono = body('telefono')
+    .trim()
+    .matches(telefonoRegex)
+    .withMessage('El telefono debe tener 10 digitos y empezar con 0.');
+
+const validateDireccion = body('direccion')
+    .trim()
+    .isLength({ min: 5 })
+    .withMessage('La direccion debe tener al menos 5 caracteres.');
+
 export const validateMongoId = [
-    param('id').isMongoId().withMessage('El ID proporcionado en la URL no es válido.'),
+    param('id').isMongoId().withMessage('El ID proporcionado en la URL no es valido.'),
     handleValidationErrors
 ];
 
-
-// --- EXPORTACIÓN DE GRUPOS DE VALIDACIONES POR RUTA ---
-
-// Administrador
 export const validateAdminCreation = [validateNombre, validateApellido, validateEmail, validatePassword, handleValidationErrors];
-export const validateLogin = [validateEmail, body('password').notEmpty().withMessage('La contraseña es obligatoria.'), handleValidationErrors];
+export const validateLogin = [validateEmail, body('password').notEmpty().withMessage('La contrasena es obligatoria.'), handleValidationErrors];
 export const validatePasswordRecovery = [validateEmail, handleValidationErrors];
 export const validatePasswordReset = [validatePassword, handleValidationErrors];
+
 export const validateProfileUpdate = [
-    body('nombre').optional().trim().notEmpty().isAlpha('es-ES', { ignore: ' ' }),
-    body('apellido').optional().trim().notEmpty().isAlpha('es-ES', { ignore: ' ' }),
-    body('email').optional().trim().isEmail().normalizeEmail(normalizeEmailOptions),
+    body('nombre').optional().trim().matches(nombreRegex).withMessage('Ingresa un nombre real.'),
+    body('apellido').optional().trim().matches(nombreRegex).withMessage('Ingresa un apellido real.'),
+    body('email').optional().trim().toLowerCase().isEmail().matches(emailRegex).normalizeEmail(normalizeEmailOptions),
+    body('telefono').optional().trim().matches(telefonoRegex).withMessage('El telefono debe tener 10 digitos.'),
+    body('direccion').optional().trim().isLength({ min: 5 }).withMessage('La direccion debe tener al menos 5 caracteres.'),
     handleValidationErrors
 ];
+
 export const validatePasswordChange = [
-    body('passwordActual').notEmpty().withMessage('La contraseña actual es obligatoria.'),
-    body('passwordNuevo').isLength({ min: 8 }).withMessage('La nueva contraseña debe tener al menos 8 caracteres.'),
+    body('passwordActual').notEmpty().withMessage('La contrasena actual es obligatoria.'),
+    body('passwordNuevo').isLength({ min: 8 }).withMessage('La nueva contrasena debe tener al menos 8 caracteres.'),
     handleValidationErrors
 ];
 
-// Vendedor
-export const validateVendedorInvitation = [validateNombre, validateApellido, validateEmail, handleValidationErrors];
-export const validateAccountSetup = [validatePassword, param('token').notEmpty().withMessage('El token es requerido.'), handleValidationErrors];
+export const validateVendedorInvitation = [
+    validateNombre,
+    validateApellido,
+    validateEmail,
+    validateTelefono,
+    validateDireccion,
+    handleValidationErrors
+];
 
-// Cliente
-export const validateClienteRegistro = [validateNombre, validateApellido, validateEmail, validatePassword, handleValidationErrors];
-// La creación de cliente por admin usa flujo de invitación (sin password inicial)
-export const validateAdminClienteCreation = [validateNombre, validateEmail, handleValidationErrors];
+export const validateAccountSetup = [
+    validatePassword,
+    param('token').notEmpty().withMessage('El token es requerido.'),
+    handleValidationErrors
+];
+
+export const validateClienteRegistro = [
+    validateNombre,
+    validateApellido,
+    validateEmail,
+    validatePassword,
+    validateTelefono,
+    validateDireccion,
+    handleValidationErrors
+];
+
+export const validateAdminClienteCreation = [
+    validateNombre,
+    validateEmail,
+    body('telefono').optional({ checkFalsy: true }).trim().matches(telefonoRegex).withMessage('El telefono debe tener 10 digitos.'),
+    body('direccion').optional({ checkFalsy: true }).trim().isLength({ min: 5 }).withMessage('La direccion debe tener al menos 5 caracteres.'),
+    handleValidationErrors
+];

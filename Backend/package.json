@@ -8,7 +8,8 @@
     "dev": "node --watch src/index.js",
     "test": "vitest",
     "test:run": "vitest run",
-    "normalize:emails": "node src/scripts/normalizarEmailsUsuarios.js"
+    "normalize:emails": "node src/scripts/normalizarEmailsUsuarios.js",
+    "delete:isaac-notifications": "node src/scripts/eliminarNotificacionesIsaac.js"
   },
   "keywords": [],
   "author": "",

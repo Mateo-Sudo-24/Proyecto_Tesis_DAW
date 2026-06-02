@@ -1,6 +1,8 @@
 import { useEffect, useState } from "react";
 import storeProfile from "../../context/storeProfile";
 import { useForm } from "react-hook-form";
+import { toast } from "react-toastify";
+import { validarEmailRealista, validarNombreReal, validarTelefono10 } from "../../utils/textValidators.js";
 
 const styles = `
     :root {
@@ -129,6 +131,7 @@ const FormularioPerfil = () => {
         await updateProfile(payload, user._id);
         setOpen(false);
     };
+    const onInvalid = () => toast.error("Rellene todos los campos correctamente.");
 
     useEffect(() => {
         if (user) {
@@ -165,14 +168,17 @@ const FormularioPerfil = () => {
                             <button type="button" className="prof-modal-close" onClick={() => setOpen(false)}>X</button>
                         </div>
                         <div className="prof-form-body">
-                            <form onSubmit={handleSubmit(updateUser)} noValidate>
+                            <form onSubmit={handleSubmit(updateUser, onInvalid)} noValidate>
                                 <div className="prof-field">
                                     <label className="prof-label">Nombre</label>
                                     <input
                                         type="text"
                                         placeholder="Ej: Juan"
                                         className="prof-input"
-                                        {...register("nombre", { required: "El nombre es obligatorio" })}
+                                        {...register("nombre", {
+                                            required: "El nombre es obligatorio",
+                                            validate: value => validarNombreReal(value, 2)
+                                        })}
                                     />
                                     {errors.nombre && <p className="prof-error">{errors.nombre.message}</p>}
                                 </div>
@@ -183,7 +189,10 @@ const FormularioPerfil = () => {
                                         type="text"
                                         placeholder="Ej: Garcia"
                                         className="prof-input"
-                                        {...register("apellido", { required: "El apellido es obligatorio" })}
+                                        {...register("apellido", {
+                                            required: "El apellido es obligatorio",
+                                            validate: value => validarNombreReal(value, 2)
+                                        })}
                                     />
                                     {errors.apellido && <p className="prof-error">{errors.apellido.message}</p>}
                                 </div>
@@ -209,10 +218,8 @@ const FormularioPerfil = () => {
                                         className="prof-input"
                                         {...register("telefono", {
                                             required: "El telefono es obligatorio",
-                                            pattern: {
-                                                value: /^[0-9]{7,15}$/,
-                                                message: "Debe tener entre 7 y 15 digitos",
-                                            },
+                                            setValueAs: value => String(value || '').replace(/\D/g, ''),
+                                            validate: validarTelefono10,
                                         })}
                                     />
                                     {errors.telefono && <p className="prof-error">{errors.telefono.message}</p>}
@@ -225,7 +232,11 @@ const FormularioPerfil = () => {
                                             type="email"
                                             placeholder="tucorreo@ejemplo.com"
                                             className="prof-input"
-                                            {...register("email", { required: "El correo es obligatorio" })}
+                                            {...register("email", {
+                                                required: "El correo es obligatorio",
+                                                setValueAs: value => String(value || '').trim().toLowerCase(),
+                                                validate: validarEmailRealista
+                                            })}
                                         />
                                         {errors.email && <p className="prof-error">{errors.email.message}</p>}
                                     </div>

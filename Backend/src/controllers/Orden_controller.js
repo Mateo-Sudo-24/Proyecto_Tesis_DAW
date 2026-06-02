@@ -10,6 +10,11 @@ import stripe from '../config/stripe.js';
 
 const limpiarTexto = (valor) => String(valor ?? '').trim();
 const soloDigitos = (valor) => String(valor ?? '').replace(/\D/g, '');
+const nombreRegex = /^(?=.{2,60}$)(?=(?:.*[\p{L}]){2,})[\p{L}\p{M}]+(?:[\s.'-][\p{L}\p{M}]+)*$/u;
+const nombreOrdenRegex = /^(?=.{5,60}$)(?=(?:.*[\p{L}]){5,})[\p{L}\p{M}]+(?:[\s.'-][\p{L}\p{M}]+)*$/u;
+const emailRegex = /^[^\s@]+@[^\s@]+\.[A-Za-z]{2,24}$/;
+const telefonoRegex = /^0\d{9}$/;
+const documentoRegex = /^(\d{10}|\d{13})$/;
 const flujoManualOrden = ['pagado', 'procesando', 'listo', 'entregado'];
 const esPagoTarjetaOnline = (metodo = '') => {
     const normalizado = String(metodo).toLowerCase();
@@ -56,6 +61,24 @@ const validarAvanceManualOrden = (estadoActualRaw, estadoSiguiente) => {
 };
 
 const crearEmailGuest = () => `guest.${Date.now()}.${Math.random().toString(36).slice(2, 7)}@intex.local`;
+
+const validarDatosFacturacion = (datos = {}, { minLetras = 5 } = {}) => {
+    const nombre = limpiarTexto(datos.nombre);
+    const apellido = limpiarTexto(datos.apellido);
+    const correo = limpiarTexto(datos.correo || datos.email).toLowerCase();
+    const direccion = limpiarTexto(datos.direccion);
+    const ruc = soloDigitos(datos.ruc);
+    const telefono = soloDigitos(datos.telefono);
+    const regexNombre = minLetras >= 5 ? nombreOrdenRegex : nombreRegex;
+
+    if (!regexNombre.test(nombre)) return `El nombre debe tener al menos ${minLetras} letras y solo caracteres validos.`;
+    if (!regexNombre.test(apellido)) return `El apellido debe tener al menos ${minLetras} letras y solo caracteres validos.`;
+    if (!emailRegex.test(correo)) return 'Ingresa un correo valido.';
+    if (!documentoRegex.test(ruc)) return 'Usa cedula de 10 digitos o RUC de 13.';
+    if (!telefonoRegex.test(telefono)) return 'El telefono debe tener 10 digitos y empezar con 0.';
+    if (direccion.length < 5) return 'La direccion debe tener al menos 5 caracteres.';
+    return null;
+};
 
 const normalizarDatosFacturacion = (datos = {}) => {
     const ruc = soloDigitos(datos.ruc);
@@ -262,6 +285,11 @@ const registrarOrden = async (req, res) => {
             }
             : undefined;
 
+        const errorFacturacion = validarDatosFacturacion(datosFacturacionLimpios, { minLetras: 5 });
+        if (errorFacturacion) {
+            return res.status(400).json({ msg: errorFacturacion });
+        }
+
         const vendedorAsignado = req.usuario.rol === 'vendedor'
             ? req.usuario._id
             : await seleccionarVendedorRotativo();
@@ -317,7 +345,17 @@ const registrarOrdenTienda = async (req, res) => {
         return res.status(403).json({ msg: "Solo los vendedores pueden registrar pedidos en tienda." });
     }
 
-    const { items = [], cliente = {}, metodoPago = 'Pago efectivo / tarjeta debito', desglose } = req.body;
+    const {
+        items = [],
+        cliente = {},
+        metodoPago = 'Pago efectivo / tarjeta debito',
+        desglose,
+        tipoEntrega = 'venta_local',
+        direccionEnvio,
+        datosFacturacion: datosFacturacionBody,
+    } = req.body;
+    const tipoEntregaFinal = tipoEntrega === 'domicilio' ? 'domicilio' : 'venta_local';
+    const esVentaLocal = tipoEntregaFinal === 'venta_local';
     if (!Array.isArray(items) || items.length === 0) {
         return res.status(400).json({ msg: "Agrega al menos un producto para registrar la venta." });
     }
@@ -325,6 +363,20 @@ const registrarOrdenTienda = async (req, res) => {
     const nombreCliente = limpiarTexto(cliente.nombre);
     if (!nombreCliente) {
         return res.status(400).json({ msg: "El nombre del cliente es obligatorio." });
+    }
+    const errorClienteTienda = validarDatosFacturacion({
+        nombre: cliente.nombre,
+        apellido: cliente.apellido,
+        correo: cliente.email,
+        direccion: cliente.direccion,
+        telefono: cliente.telefono,
+        ruc: cliente.ruc
+    }, { minLetras: 2 });
+    if (errorClienteTienda) {
+        return res.status(400).json({ msg: errorClienteTienda });
+    }
+    if (tipoEntregaFinal === 'domicilio' && (typeof direccionEnvio !== 'object' || direccionEnvio === null)) {
+        return res.status(400).json({ msg: "La direccion de envio es obligatoria para pedidos a domicilio." });
     }
 
     const emailCliente = limpiarTexto(cliente.email).toLowerCase();
@@ -411,7 +463,7 @@ const registrarOrdenTienda = async (req, res) => {
         const comisionPago = Number(desglose?.comisionPago) || 0;
         const totalFinal = Number(desglose?.totalFinal) || Number((subtotal + iva + envio + comisionPago).toFixed(2));
 
-        const datosFacturacion = normalizarDatosFacturacion({
+        const datosFacturacion = normalizarDatosFacturacion(datosFacturacionBody && typeof datosFacturacionBody === 'object' ? datosFacturacionBody : {
             nombre: clienteOrden.nombre,
             apellido: clienteOrden.apellido,
             correo: clienteOrden.email,
@@ -432,13 +484,14 @@ const registrarOrdenTienda = async (req, res) => {
             envio,
             comisionPago,
             totalFinal,
-            tipoEntrega: 'venta_local',
+            tipoEntrega: tipoEntregaFinal,
+            direccionEnvio: tipoEntregaFinal === 'domicilio' ? direccionEnvio : undefined,
             origenPedido: 'tienda',
             clienteGuest: !emailCliente || !clienteOrden.confirmEmail,
             datosFacturacion,
-            estadoPago: 'completado',
-            estadoOrden: 'pagado',
-            fechaPago: new Date()
+            estadoPago: esVentaLocal ? 'completado' : 'pendiente',
+            estadoOrden: esVentaLocal ? 'pagado' : 'pendiente',
+            fechaPago: esVentaLocal ? new Date() : undefined
         });
 
         await Promise.all(productosPedido.map(item =>

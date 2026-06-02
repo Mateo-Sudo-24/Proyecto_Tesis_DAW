@@ -3,6 +3,7 @@ import { useForm } from "react-hook-form";
 import { toast } from "react-toastify";
 import storeProfile from "../../context/storeProfile";
 import PasswordInput from "../ui/PasswordInput";
+import { validarEmailRealista } from "../../utils/textValidators.js";
 
 const styles = `
     .email-card {
@@ -130,8 +131,6 @@ const styles = `
     .email-modal-btn.secondary:hover { background:#e5e7eb; }
 `;
 
-const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
-
 const CardEmail = () => {
     const { user, updateProfile } = storeProfile();
     const [open, setOpen] = useState(false);
@@ -203,7 +202,8 @@ const CardEmail = () => {
                                     placeholder="nuevo@ejemplo.com"
                                     {...register("emailNuevo", {
                                         required: "El correo es obligatorio.",
-                                        pattern: { value: emailRegex, message: "Correo inválido." },
+                                        setValueAs: value => String(value || '').trim().toLowerCase(),
+                                        validate: validarEmailRealista,
                                     })}
                                 />
                                 {errors.emailNuevo && <p className="email-error">{errors.emailNuevo.message}</p>}
@@ -217,6 +217,7 @@ const CardEmail = () => {
                                     placeholder="Repite el nuevo correo"
                                     {...register("emailConfirmar", {
                                         required: "Confirma el correo.",
+                                        setValueAs: value => String(value || '').trim().toLowerCase(),
                                         validate: (value) => value === watch("emailNuevo") || "Los correos no coinciden.",
                                     })}
                                 />

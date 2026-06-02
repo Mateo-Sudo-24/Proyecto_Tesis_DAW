@@ -5,6 +5,7 @@ import { useNavigate } from "react-router-dom";
 import { useForm } from "react-hook-form";
 import { toast } from "react-toastify";
 import storeProfile from "../../context/storeProfile";
+import { validarEmailRealista, validarNombreReal, validarTelefono10 } from "../../utils/textValidators.js";
 
 const styles = `
     :root {
@@ -195,6 +196,7 @@ const FormCliente = ({ clienteToUpdate, onSuccess, tipoInicial }) => {
             setIsSubmitting(false);
         }
     };
+    const onInvalid = () => toast.error("Rellene todos los campos correctamente.");
 
     const isEditing = !!clienteToUpdate;
     const tipoEfectivo = soloClientes ? 'cliente' : tipoUsuario;
@@ -236,7 +238,7 @@ const FormCliente = ({ clienteToUpdate, onSuccess, tipoInicial }) => {
                     )}
 
 
-                    <form onSubmit={handleSubmit(onSubmit)} noValidate>
+                    <form onSubmit={handleSubmit(onSubmit, onInvalid)} noValidate>
                         {/* Nombre */}
                         <div className="ux-field">
                             <label className="ux-label">Nombre *</label>
@@ -244,7 +246,10 @@ const FormCliente = ({ clienteToUpdate, onSuccess, tipoInicial }) => {
                                 type="text"
                                 placeholder="Ej: Juan"
                                 className="ux-input"
-                                {...register("nombre", { required: "El nombre es obligatorio" })}
+                                {...register("nombre", {
+                                    required: "El nombre es obligatorio",
+                                    validate: value => validarNombreReal(value, 2)
+                                })}
                             />
                             {errors.nombre && <p className="ux-error">⚠ {errors.nombre.message}</p>}
                         </div>
@@ -258,8 +263,8 @@ const FormCliente = ({ clienteToUpdate, onSuccess, tipoInicial }) => {
                                     placeholder="Ej: García"
                                     className="ux-input"
                                     {...register("apellido", tipoUsuario === "vendedor"
-                                        ? { required: "El apellido es obligatorio para vendedores" }
-                                        : {}
+                                        ? { required: "El apellido es obligatorio para vendedores", validate: value => validarNombreReal(value, 2) }
+                                        : { validate: value => !value || validarNombreReal(value, 2) }
                                     )}
                                 />
                                 {errors.apellido && <p className="ux-error">⚠ {errors.apellido.message}</p>}
@@ -274,11 +279,9 @@ const FormCliente = ({ clienteToUpdate, onSuccess, tipoInicial }) => {
                                 placeholder="ejemplo@correo.com"
                                 className="ux-input"
                                 {...register("email", {
-                                    required: "El correo electrónico es obligatorio",
-                                    pattern: {
-                                        value: /^[A-Z0-9._%+-]+@[A-Z0-9.-]+\.[A-Z]{2,}$/i,
-                                        message: "Correo inválido"
-                                    }
+                                    required: "El correo electronico es obligatorio",
+                                    setValueAs: value => String(value || '').trim().toLowerCase(),
+                                    validate: validarEmailRealista
                                 })}
                             />
                             {errors.email && <p className="ux-error">⚠ {errors.email.message}</p>}
@@ -306,11 +309,9 @@ const FormCliente = ({ clienteToUpdate, onSuccess, tipoInicial }) => {
                                 placeholder="Ej: 0987654321"
                                 className="ux-input"
                                 {...register("telefono", {
-                                    required: "El teléfono es obligatorio",
-                                    pattern: {
-                                        value: /^[0-9]{7,15}$/,
-                                        message: "Debe tener entre 7 y 15 dígitos"
-                                    }
+                                    required: "El telefono es obligatorio",
+                                    setValueAs: value => String(value || '').replace(/\D/g, ''),
+                                    validate: validarTelefono10
                                 })}
                             />
                             {errors.telefono && <p className="ux-error">⚠ {errors.telefono.message}</p>}

@@ -52,14 +52,18 @@ const loginUnificado = async (req, res) => {
         if (usuario.rol === 'cliente' && usuario.proveedor && usuario.proveedor !== 'local') {
             return res.status(400).json({ msg: "Esta cuenta fue registrada con Google. Inicia sesion con Google." });
         }
-        if (usuario.rol === 'cliente' && !usuario.confirmEmail) {
-            return res.status(403).json({ msg: "Debes confirmar tu cuenta antes de iniciar sesion." });
-        }
         if (usuario.rol === 'vendedor' && usuario.status !== 'activo') {
             return res.status(403).json({ msg: "Tu cuenta no esta activa. Revisa el correo de invitacion." });
         }
         if (!await usuario.matchPassword(password)) {
             return res.status(401).json({ msg: "Contrasena incorrecta." });
+        }
+        if (usuario.rol === 'cliente' && !usuario.confirmEmail) {
+            if (usuario.token) {
+                return res.status(403).json({ msg: "Debes confirmar tu cuenta antes de iniciar sesion." });
+            }
+            usuario.confirmEmail = true;
+            await usuario.save();
         }
 
         return responderLogin(res, usuario);
