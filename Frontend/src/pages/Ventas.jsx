@@ -42,6 +42,22 @@ const pageStyles = `
     .vt-page-btn:hover:not(:disabled) { background:var(--orange-light); border-color:var(--orange-main); color:var(--orange-dark); }
     .vt-page-btn.current { background:var(--orange-main); border-color:var(--orange-main); color:#fff; }
     .vt-page-btn:disabled { opacity:0.4; cursor:not-allowed; }
+    @media (max-width: 900px) {
+        .vt-page { max-width: 100%; padding: 0 0.75rem; }
+        .vt-table-wrap { overflow-x: auto; border-radius: 0.85rem; }
+        .vt-table { min-width: 820px; }
+        .vt-metrics { grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 0.75rem; }
+        .vt-metric { padding: 1rem; border-radius: 0.85rem; }
+    }
+    @media (max-width: 560px) {
+        .vt-header { align-items: stretch; }
+        .vt-title { font-size: 1.25rem; }
+        .vt-refresh-btn, .vt-select, .vt-page-btn { width: 100%; }
+        .vt-filters { flex-direction: column; align-items: stretch; }
+        .vt-metrics { grid-template-columns: 1fr; }
+        .vt-metric-value { font-size: 1.35rem; }
+        .vt-pagination { align-items: stretch; }
+    }
 `;
 
 const ITEMS_PER_PAGE = 10;

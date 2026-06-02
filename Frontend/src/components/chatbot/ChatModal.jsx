@@ -248,9 +248,9 @@ const ChatModal = ({ onClose }) => {
                 <div className="chat-messages-container">
                     {messages.length === 0 && (
                         <div className="chat-welcome-message">
-                            <p>âœ¨ Â¡Hola! Soy tu asesor experto en telas.</p>
-                            <p>ðŸ“¸ Puedes subir hasta {MAX_IMAGES} fotos para analizar.</p>
-                            <p>ðŸ’¬ Â¿En quÃ© puedo ayudarte hoy?</p>
+                            <p>Hola, soy tu asesor experto en telas.</p>
+                            <p>Puedes subir hasta {MAX_IMAGES} fotos para analizar.</p>
+                            <p>Cuéntame qué tela buscas o qué necesitas comparar.</p>
                             <button type="button" className="chat-cta-btn" onClick={irAProductos}>
                                 {token ? 'Ver productos' : 'Iniciar sesion'}
                             </button>

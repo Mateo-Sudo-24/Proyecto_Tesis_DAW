@@ -29,6 +29,35 @@ const usuariosConectados = new Map();
 
 // Helper: conversationId canónico entre dos usuarios
 const convId = (a, b) => [String(a), String(b)].sort().join('_');
+const supportConvId = (clienteId) => `${String(clienteId)}_staff`;
+
+const isClienteId = async (id) => {
+    if (!id) return false;
+    try {
+        return !!await Cliente.exists({ _id: id });
+    } catch {
+        return false;
+    }
+};
+
+const getConversationId = async (usuario, otherId) => {
+    if (usuario.rol === 'cliente' && !otherId) return supportConvId(usuario.id);
+    if (usuario.rol === 'administrador' && await isClienteId(otherId)) return supportConvId(otherId);
+    return convId(usuario.id, otherId);
+};
+
+const isStaffId = async (id) => {
+    if (!id) return false;
+    try {
+        const [admin, vendedor] = await Promise.all([
+            Administrador.exists({ _id: id }),
+            Vendedor.exists({ _id: id }),
+        ]);
+        return !!admin || !!vendedor;
+    } catch {
+        return false;
+    }
+};
 
 // Devuelve todos los clientes, vendedores y admins ACTIVOS con su estado online
 const getListaCompletaUsuarios = async () => {
@@ -117,7 +146,7 @@ io.on('connection', async (socket) => {
     // ── Cliente envía mensaje a soporte o a vendedor específico ──
     socket.on('mensaje_cliente', async ({ texto, para }) => {
         if (!texto?.trim()) return;
-        const cid = convId(socket.usuario.id, para || 'staff');
+        const cid = await getConversationId(socket.usuario, para);
         const msg = {
             de: { id: socket.usuario.id, nombre: socket.usuario.nombre, rol: 'cliente' },
             texto: texto.trim(),
@@ -138,7 +167,9 @@ io.on('connection', async (socket) => {
     // ── Staff envía mensaje a un cliente o vendedor específico ──
     socket.on('mensaje_staff', async ({ para, texto }) => {
         if (!texto?.trim() || !para) return;
-        const cid = convId(socket.usuario.id, para);
+        if (String(para) === String(socket.usuario.id)) return;
+        const paraEsStaff = await isStaffId(para);
+        const cid = await getConversationId(socket.usuario, para);
         const msg = {
             de: { id: socket.usuario.id, nombre: socket.usuario.nombre, rol: socket.usuario.rol },
             texto: texto.trim(),
@@ -149,14 +180,18 @@ io.on('connection', async (socket) => {
             await ChatMessage.create({ conversationId: cid, de: msg.de, texto: msg.texto });
         } catch { /* no bloquear */ }
 
-        io.to(para).emit('mensaje_de_staff', msg);
-        io.to('staff_room').emit('mensaje_de_cliente', { clienteId: para, msg });
+        if (paraEsStaff) {
+            io.to(para).emit('mensaje_de_cliente', { clienteId: socket.usuario.id, msg });
+        } else {
+            io.to(para).emit('mensaje_de_staff', msg);
+            io.to('staff_room').emit('mensaje_de_cliente', { clienteId: para, msg });
+        }
     });
 
     // ── Staff solicita historial de una conversación ──
     socket.on('solicitar_historial', async ({ clienteId }) => {
         try {
-            const cid = convId(socket.usuario.id, clienteId);
+            const cid = await getConversationId(socket.usuario, clienteId);
             const mensajes = await ChatMessage.find({ conversationId: cid })
                 .sort({ createdAt: 1 })
                 .limit(200)
@@ -174,7 +209,7 @@ io.on('connection', async (socket) => {
     // ── Marcar mensajes como vistos ──
     socket.on('marcar_visto', async ({ para }) => {
         if (!para) return;
-        const cid = convId(socket.usuario.id, para);
+        const cid = await getConversationId(socket.usuario, para);
         // Marcar como vistos en BD los mensajes enviados por "para"
         try {
             await ChatMessage.updateMany(

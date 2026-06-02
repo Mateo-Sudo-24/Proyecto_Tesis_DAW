@@ -126,6 +126,226 @@ const detailStyles = `
         box-shadow: 0 8px 28px rgba(0,0,0,0.08);
         overflow: hidden;
     }
+    .pd-card-grid {
+        display: grid;
+        grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+        min-height: 520px;
+    }
+    .pd-image-panel {
+        position: relative;
+        background: #f3f4f6;
+        min-height: 520px;
+        overflow: hidden;
+    }
+    .pd-image-panel img {
+        width: 100%;
+        height: 100%;
+        object-fit: cover;
+        display: block;
+    }
+    .pd-discount-badge {
+        position: absolute;
+        top: 1rem;
+        left: 1rem;
+        background: #ef4444;
+        color: #fff;
+        font-size: 0.78rem;
+        font-weight: 900;
+        padding: 0.35rem 0.75rem;
+        border-radius: 0.6rem;
+        box-shadow: 0 4px 14px rgba(0,0,0,0.18);
+    }
+    .pd-info {
+        padding: 2.5rem;
+        display: flex;
+        flex-direction: column;
+        justify-content: center;
+    }
+    .pd-eyebrow {
+        color: var(--orange-main);
+        font-size: 0.72rem;
+        font-weight: 900;
+        letter-spacing: 0.08em;
+        text-transform: uppercase;
+        margin-bottom: 0.6rem;
+    }
+    .pd-title {
+        color: #111827;
+        font-size: clamp(1.9rem, 4vw, 2.65rem);
+        line-height: 1.08;
+        font-weight: 900;
+        margin: 0 0 1rem;
+    }
+    .pd-stars {
+        display: flex;
+        align-items: center;
+        gap: 0.25rem;
+        margin-bottom: 1rem;
+    }
+    .pd-star-on { color: #f59e0b; }
+    .pd-star-off { color: #e5e7eb; }
+    .pd-rating-text {
+        color: #6b7280;
+        font-size: 0.86rem;
+        margin-left: 0.35rem;
+    }
+    .pd-description {
+        color: #4b5563;
+        font-size: 1rem;
+        line-height: 1.7;
+        margin: 0 0 1.5rem;
+    }
+    .pd-price-row {
+        display: flex;
+        align-items: flex-end;
+        gap: 0.85rem;
+        flex-wrap: wrap;
+        margin-bottom: 1.5rem;
+    }
+    .pd-price-old {
+        color: #9ca3af;
+        text-decoration: line-through;
+        font-size: 1.1rem;
+        font-weight: 700;
+    }
+    .pd-price {
+        color: var(--orange-dark);
+        font-size: clamp(2rem, 4vw, 2.8rem);
+        line-height: 1;
+        font-weight: 900;
+    }
+    .pd-meta-grid {
+        display: grid;
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+        gap: 0.85rem;
+        margin-bottom: 1.5rem;
+    }
+    .pd-meta-card {
+        background: #f9fafb;
+        border: 1px solid #eef2f7;
+        border-radius: 0.85rem;
+        padding: 0.85rem 1rem;
+    }
+    .pd-meta-label {
+        color: #6b7280;
+        font-size: 0.72rem;
+        font-weight: 800;
+        margin: 0 0 0.25rem;
+        text-transform: uppercase;
+        letter-spacing: 0.04em;
+    }
+    .pd-meta-value {
+        color: #111827;
+        font-size: 0.92rem;
+        font-weight: 800;
+        margin: 0;
+    }
+    .pd-meta-value.in { color: #16a34a; }
+    .pd-meta-value.out { color: #dc2626; }
+    .pd-unit-buttons {
+        display: flex;
+        gap: 0.6rem;
+        margin-bottom: 0.85rem;
+        flex-wrap: wrap;
+    }
+    .pd-unit-btn {
+        border: 2px solid #e5e7eb;
+        background: #fff;
+        color: #4b5563;
+        border-radius: 0.75rem;
+        padding: 0.58rem 1rem;
+        font-size: 0.86rem;
+        font-weight: 900;
+        cursor: pointer;
+    }
+    .pd-unit-btn.active {
+        background: #1f2937;
+        border-color: #1f2937;
+        color: #fff;
+    }
+    .pd-qty-label {
+        display: block;
+        color: #374151;
+        font-size: 0.9rem;
+        font-weight: 800;
+        margin-bottom: 0.45rem;
+    }
+    .pd-buy-row {
+        display: flex;
+        align-items: center;
+        gap: 0.75rem;
+    }
+    .pd-qty-input {
+        width: 7rem;
+        border: 2px solid #e5e7eb;
+        border-radius: 0.8rem;
+        padding: 0.72rem 0.85rem;
+        color: #111827;
+        font-size: 0.95rem;
+        font-weight: 800;
+        text-align: center;
+        outline: none;
+    }
+    .pd-qty-input:focus {
+        border-color: var(--orange-main);
+        box-shadow: 0 0 0 3px rgba(232,118,10,0.12);
+    }
+    .pd-cart-btn {
+        flex: 1;
+        border: none;
+        border-radius: 0.85rem;
+        background: #1f2937;
+        color: #fff;
+        padding: 0.86rem 1.25rem;
+        font-size: 0.96rem;
+        font-weight: 900;
+        cursor: pointer;
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        gap: 0.55rem;
+        box-shadow: 0 4px 14px rgba(31,41,55,0.22);
+    }
+    .pd-cart-btn:hover:not(:disabled) {
+        background: var(--orange-dark);
+    }
+    .pd-cart-btn:disabled {
+        opacity: 0.6;
+        cursor: not-allowed;
+    }
+    .pd-center-state {
+        min-height: 360px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        text-align: center;
+        padding: 2rem;
+    }
+    .pd-state-icon {
+        font-size: 3.5rem;
+        margin-bottom: 1rem;
+    }
+    .pd-state-title {
+        color: #374151;
+        font-size: 1.5rem;
+        font-weight: 900;
+        margin: 0 0 0.4rem;
+    }
+    .pd-state-text {
+        color: #6b7280;
+        margin: 0 0 1.25rem;
+    }
+    .pd-state-btn {
+        display: inline-flex;
+        align-items: center;
+        gap: 0.5rem;
+        background: #1f2937;
+        color: #fff;
+        padding: 0.78rem 1.25rem;
+        border-radius: 0.75rem;
+        text-decoration: none;
+        font-weight: 900;
+    }
     @media (max-width: 768px) {
         .pd-header-inner { padding: 0.75rem 1.5rem; }
         .pd-nav { display: none; }
@@ -133,6 +353,12 @@ const detailStyles = `
         .pd-login, .pd-register { padding: 0.45rem 0.75rem; }
         .pd-hero { padding: 2rem 1.5rem; }
         .pd-shell { padding: 1.5rem; }
+        .pd-card-grid { grid-template-columns: 1fr; min-height: 0; }
+        .pd-image-panel { min-height: 320px; }
+        .pd-info { padding: 1.5rem; }
+        .pd-meta-grid { grid-template-columns: 1fr; }
+        .pd-buy-row { flex-direction: column; align-items: stretch; }
+        .pd-qty-input { width: 100%; }
     }
 `;
 
@@ -249,10 +475,10 @@ const ProductDetails = () => {
             <div className="pd-page">
                 <style>{detailStyles}</style>
                 <PublicProductHeader />
-                <div className="flex-1 flex items-center justify-center">
-                    <div className="animate-pulse text-center">
-                        <div className="text-5xl mb-4">⏳</div>
-                        <p className="text-gray-500 font-semibold">Cargando producto...</p>
+                <div className="pd-center-state">
+                    <div>
+                        <div className="pd-state-icon">...</div>
+                        <p className="pd-state-text">Cargando producto...</p>
                     </div>
                 </div>
             </div>
@@ -264,11 +490,11 @@ const ProductDetails = () => {
             <div className="pd-page">
                 <style>{detailStyles}</style>
                 <PublicProductHeader />
-                <div className="flex-1 flex flex-col items-center justify-center text-center px-6">
-                    <div className="text-6xl mb-4">😕</div>
-                    <h2 className="text-2xl font-bold text-gray-700 mb-2">Producto no encontrado</h2>
-                    <p className="text-gray-500 mb-6">El producto que buscas no existe o fue removido.</p>
-                    <Link to="/products" className="bg-gray-700 text-slate-300 font-bold px-6 py-3 rounded-xl hover:bg-gray-900 transition flex items-center gap-2">
+                <div className="pd-center-state">
+                    <div className="pd-state-icon">!</div>
+                    <h2 className="pd-state-title">Producto no encontrado</h2>
+                    <p className="pd-state-text">El producto que buscas no existe o fue removido.</p>
+                    <Link to="/products" className="pd-state-btn">
                         <FaArrowLeft /> Volver al catálogo
                     </Link>
                 </div>
@@ -291,74 +517,74 @@ const ProductDetails = () => {
                 </Link>
 
                 <div className="pd-card">
-                    <div className="grid grid-cols-1 md:grid-cols-2 gap-0">
+                    <div className="pd-card-grid">
                         {/* Image */}
-                        <div className="relative bg-gray-100 h-96 md:h-auto overflow-hidden">
+                        <div className="pd-image-panel">
                             <img
                                 src={producto.imagenUrl || "/images/no-image.png"}
                                 alt={producto.nombre}
-                                className="w-full h-full object-cover"
                             />
                             {producto.descuento > 0 && (
-                                <span className="absolute top-4 left-4 bg-red-500 text-white font-bold text-sm px-3 py-1.5 rounded-xl shadow">
+                                <span className="pd-discount-badge">
                                     -{producto.descuento}% DESCUENTO
                                 </span>
                             )}
                         </div>
 
                         {/* Info */}
-                        <div className="p-8 md:p-10 flex flex-col justify-center">
-                            <span className="text-gray-600 font-bold uppercase text-xs tracking-widest mb-2">Detalle del producto</span>
-                            <h1 className="text-3xl md:text-4xl font-extrabold text-gray-900 mb-4">{producto.nombre}</h1>
+                        <div className="pd-info">
+                            <span className="pd-eyebrow">Detalle del producto</span>
+                            <h1 className="pd-title">{producto.nombre}</h1>
 
                             {producto.calificacionPromedio > 0 && (
-                                <div className="flex items-center gap-1 mb-4">
+                                <div className="pd-stars">
                                     {[...Array(5)].map((_, i) => (
-                                        <FaStar key={i} className={i < Math.round(producto.calificacionPromedio) ? 'text-yellow-400' : 'text-gray-200'} />
+                                        <FaStar key={i} className={i < Math.round(producto.calificacionPromedio) ? 'pd-star-on' : 'pd-star-off'} />
                                     ))}
-                                    <span className="text-sm text-gray-500 ml-1">({producto.calificacionPromedio.toFixed(1)})</span>
+                                    <span className="pd-rating-text">({producto.calificacionPromedio.toFixed(1)})</span>
                                 </div>
                             )}
 
-                            <p className="text-gray-600 text-base leading-relaxed mb-6">{producto.descripcion}</p>
+                            <p className="pd-description">{producto.descripcion}</p>
 
                             {/* Price */}
-                            <div className="mb-6">
+                            <div className="pd-price-row">
                                 {producto.descuento > 0 ? (
-                                    <div className="flex items-end gap-3">
-                                        <span className="text-gray-400 line-through text-lg">${producto.precio.toLocaleString()}</span>
-                                        <span className="text-4xl font-extrabold text-gray-700">${precioFinal.toLocaleString('es-ES', { minimumFractionDigits: 2 })}</span>
-                                    </div>
+                                    <>
+                                        <span className="pd-price-old">${producto.precio.toLocaleString()}</span>
+                                        <span className="pd-price">${precioFinal.toLocaleString('es-ES', { minimumFractionDigits: 2 })}</span>
+                                    </>
                                 ) : (
-                                    <span className="text-4xl font-extrabold text-gray-700">${producto.precio.toLocaleString('es-ES', { minimumFractionDigits: 2 })}</span>
+                                    <span className="pd-price">${producto.precio.toLocaleString('es-ES', { minimumFractionDigits: 2 })}</span>
                                 )}
                             </div>
 
                             {/* Details grid */}
-                            <div className="grid grid-cols-2 gap-4 mb-6">
-                            {/* Disponibilidad con metros/rollos */}
-                                <div className="bg-gray-50 rounded-xl p-3">
-                                    <p className="text-xs text-gray-500 mb-0.5">Disponibilidad</p>
+                            <div className="pd-meta-grid">
+                                <div className="pd-meta-card">
+                                    <p className="pd-meta-label">Disponibilidad</p>
                                     {(() => {
                                         const metros = producto.metrosDisponibles ?? producto.stock ?? 0;
                                         const metrosPorRollo = producto.metrosPorRollo || 100;
                                         const rollos = Math.floor(metros / metrosPorRollo);
                                         return metros > 0 ? (
-                                            <p className="font-bold text-sm text-green-600">
-                                                ✅ {metros} m ({rollos} rollos)
+                                            <p className="pd-meta-value in">
+                                                {metros} m ({rollos} rollos)
                                             </p>
                                         ) : (
-                                            <p className="font-bold text-sm text-red-500">❌ Agotado</p>
+                                            <p className="pd-meta-value out">Agotado</p>
                                         );
-                                    })()}                                </div>                                {producto.color && (
-                                    <div className="bg-gray-50 rounded-xl p-3">
-                                        <p className="text-xs text-gray-500 mb-0.5">Color</p>
-                                        <p className="font-bold text-sm text-gray-800">{producto.color}</p>
+                                    })()}
+                                </div>
+                                {producto.color && (
+                                    <div className="pd-meta-card">
+                                        <p className="pd-meta-label">Color</p>
+                                        <p className="pd-meta-value">{producto.color}</p>
                                     </div>
                                 )}
-                                <div className="bg-gray-50 rounded-xl p-3">
-                                    <p className="text-xs text-gray-500 mb-0.5">Estado</p>
-                                    <p className="font-bold text-sm text-gray-800 capitalize">{producto.estado}</p>
+                                <div className="pd-meta-card">
+                                    <p className="pd-meta-label">Estado</p>
+                                    <p className="pd-meta-value">{producto.estado}</p>
                                 </div>
                             </div>
 
@@ -367,26 +593,23 @@ const ProductDetails = () => {
                                 <div>
                                     {/* Selector de unidad si tiene ambos */}
                                     {producto.unidadVenta === 'ambos' && (
-                                        <div className="flex gap-2 mb-3">
+                                        <div className="pd-unit-buttons">
                                             {['metro', 'rollo'].map(u => (
                                                 <button
                                                     key={u}
+                                                    type="button"
                                                     onClick={() => { setUnidadSeleccionada(u); setCantidad(u === 'rollo' ? '1' : '0.5'); }}
-                                                    className={`px-4 py-2 rounded-xl font-bold text-sm border-2 transition ${
-                                                        unidadSeleccionada === u
-                                                            ? 'border-gray-700 bg-gray-700 text-white'
-                                                            : 'border-gray-200 bg-white text-gray-600 hover:border-gray-400'
-                                                    }`}
+                                                    className={`pd-unit-btn${unidadSeleccionada === u ? ' active' : ''}`}
                                                 >
                                                     {u.charAt(0).toUpperCase() + u.slice(1)}
                                                 </button>
                                             ))}
                                         </div>
                                     )}
-                                    <label className="block text-sm font-bold text-gray-700 mb-2">
+                                    <label className="pd-qty-label">
                                         Cantidad ({unidadSeleccionada})
                                     </label>
-                                    <div className="flex gap-3 items-center">
+                                    <div className="pd-buy-row">
                                         <input
                                             type="number"
                                             min={unidadSeleccionada === 'rollo' ? 1 : 0.01}
@@ -403,12 +626,12 @@ const ProductDetails = () => {
                                                 }
                                                 setCantidad(String(unidadSeleccionada === 'rollo' ? Math.ceil(v) : v));
                                             }}
-                                            className="w-28 border-2 border-gray-200 rounded-xl px-3 py-2.5 font-bold text-gray-800 text-center focus:border-gray-700 outline-none"
+                                            className="pd-qty-input"
                                         />
                                         <button
                                             onClick={handleAddToCart}
                                             disabled={agregando}
-                                            className="flex-1 bg-gray-700 text-slate-300 font-bold py-3 px-6 rounded-xl hover:bg-gray-900 transition shadow-md hover:shadow-lg flex items-center justify-center gap-2"
+                                            className="pd-cart-btn"
                                         >
                                             <FaShoppingCart /> {agregando ? 'Agregando...' : 'Agregar al carrito'}
                                         </button>

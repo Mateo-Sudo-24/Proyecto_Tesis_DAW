@@ -597,7 +597,7 @@ const Notificaciones = () => {
                                                     </div>
                                                 )}
 
-                                                {enPendienteLocal && (
+                                                {enPendienteLocal && filtro === 'pendientes' && (
                                                     <div className="gestion-row">
                                                         <button
                                                             className="btn-paso2-ok"

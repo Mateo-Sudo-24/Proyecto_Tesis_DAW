@@ -84,6 +84,30 @@ const pageStyles = `
     .mp-modal-cancel, .mp-modal-confirm { border:none; border-radius:0.6rem; padding:0.6rem 1rem; font-size:0.85rem; font-weight:800; cursor:pointer; }
     .mp-modal-cancel { background:#f3f4f6; color:#374151; }
     .mp-modal-confirm { background:#16a34a; color:#fff; }
+    @media (max-width: 760px) {
+        .mp-container { max-width: 100%; padding: 0 0.75rem; }
+        .mp-header { align-items: flex-start; }
+        .mp-title { font-size: 1.25rem; }
+        .mp-card { padding: 1rem; border-radius: 0.85rem; }
+        .mp-card-top { flex-direction: column; align-items: stretch; }
+        .mp-badges { justify-content: flex-start; }
+        .mp-card-body { display: grid; grid-template-columns: 1fr 1fr; gap: 0.75rem; }
+        .mp-progress { gap: 0.2rem; padding-bottom: 0.5rem; }
+        .mp-step { min-width: 64px; }
+        .mp-step-label { white-space: normal; max-width: 74px; line-height: 1.2; }
+        .mp-factura-row, .mp-actions-row { justify-content: stretch; }
+        .mp-actions-row > *, .mp-factura-row > * { width: 100%; }
+    }
+    @media (max-width: 480px) {
+        .mp-container { padding: 0 0.5rem; }
+        .mp-card-body { grid-template-columns: 1fr; }
+        .mp-item-row { align-items: flex-start; gap: 0.5rem; }
+        .mp-item-name { display: block; }
+        .mp-total-row { justify-content: space-between; }
+        .mp-modal { padding: 1.1rem; }
+        .mp-modal-actions { flex-direction: column-reverse; }
+        .mp-modal-cancel, .mp-modal-confirm { width: 100%; }
+    }
 `;
 
 const STEPS_DOMICILIO      = ['Pedido recibido', 'Procesando', 'Motorizado en camino a su hogar', 'Entregado'];

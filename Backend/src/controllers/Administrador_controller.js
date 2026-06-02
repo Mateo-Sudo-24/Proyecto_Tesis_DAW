@@ -202,7 +202,7 @@ const obtenerUsuariosChat = async (req, res) => {
     try {
         const Cliente  = (await import('../models/Cliente.js')).default;
         const Vendedor = (await import('../models/Vendedor.js')).default;
-        const miId = req.usuario?.id;
+        const miId = String(req.usuario?._id || req.usuario?.id || '');
 
         const [clientes, vendedores, admins] = await Promise.all([
             Cliente.find({ status: true, confirmEmail: true }).select('_id nombre apellido email').lean(),

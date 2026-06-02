@@ -68,6 +68,52 @@ const styles = `
         text-transform: uppercase;
         letter-spacing: 0.07em;
     }
+    .ch-group-toggle {
+        width: calc(100% - 1rem);
+        margin: 0.35rem 0.5rem 0.15rem;
+        padding: 0.45rem 0.55rem;
+        border: 1px solid rgba(255,255,255,0.08);
+        border-radius: 0.5rem;
+        background: rgba(255,255,255,0.04);
+        color: #d1d5db;
+        cursor: pointer;
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        gap: 0.5rem;
+        font-size: 0.68rem;
+        font-weight: 900;
+        text-transform: uppercase;
+        letter-spacing: 0.04em;
+    }
+    .ch-group-toggle:hover { background: rgba(255,255,255,0.07); }
+    .ch-group-caret { color: var(--orange-main); font-size: 0.8rem; }
+    .ch-pagination {
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        gap: 0.45rem;
+        padding: 0.6rem 0.75rem 0.75rem;
+    }
+    .ch-page-btn {
+        border: 1px solid rgba(255,255,255,0.12);
+        background: rgba(255,255,255,0.05);
+        color: #f9fafb;
+        border-radius: 0.45rem;
+        padding: 0.32rem 0.55rem;
+        font-size: 0.72rem;
+        font-weight: 800;
+        cursor: pointer;
+    }
+    .ch-page-btn:disabled {
+        opacity: 0.35;
+        cursor: not-allowed;
+    }
+    .ch-page-info {
+        color: #9ca3af;
+        font-size: 0.72rem;
+        font-weight: 800;
+    }
 
     .ch-contact {
         display: flex;
@@ -340,6 +386,8 @@ const styles = `
     }
 `;
 
+const CLIENTES_POR_PAGINA = 3;
+
 const Chat = () => {
     const { user } = storeProfile();
     const { token } = storeAuth();
@@ -354,6 +402,13 @@ const Chat = () => {
     const [conversacionesCliente, setConversacionesCliente] = useState({}); // mensajes cliente: { contactId: [] }
     const [showConversacion, setShowConversacion] = useState(false);
     const [vistoIds, setVistoIds] = useState(new Set()); // IDs de contactos que han visto mis mensajes
+    const [clientePage, setClientePage] = useState(1);
+    const [gruposAbiertos, setGruposAbiertos] = useState({
+        admins: true,
+        vendedores: true,
+        clientesOnline: true,
+        clientesOffline: true,
+    });
 
     const { register, handleSubmit, reset, watch } = useForm();
     const msgText = watch('mensaje', '');
@@ -367,10 +422,20 @@ const Chat = () => {
     // Fusionar usuarios con estado online del socket
     const usuariosConEstado = usuarios.map(u => ({ ...u, online: onlineIds.has(u.id) }));
 
+    const toggleGrupo = (key) => {
+        setGruposAbiertos(prev => ({ ...prev, [key]: !prev[key] }));
+    };
+
     // Scroll al último mensaje
     useEffect(() => {
         messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
     }, [conversaciones, conversacionesCliente, clienteActivo, contactoActivo]);
+
+    useEffect(() => {
+        const totalClientes = usuarios.filter(u => u.rol === 'cliente').length;
+        const totalPaginas = Math.max(1, Math.ceil(totalClientes / CLIENTES_POR_PAGINA));
+        setClientePage(prev => Math.min(prev, totalPaginas));
+    }, [usuarios]);
 
     // Cargar usuarios verificados via HTTP al montar (staff)
     useEffect(() => {
@@ -425,18 +490,33 @@ const Chat = () => {
         sock.on('mensaje_de_cliente', ({ clienteId, msg }) => {
             setConversaciones(prev => ({
                 ...prev,
-                [clienteId]: [...(prev[clienteId] || []), msg],
+                [clienteId]: (() => {
+                    const actuales = prev[clienteId] || [];
+                    const duplicado = msg.de?.id === miId && actuales.some(m =>
+                        m.de?.id === msg.de?.id &&
+                        m.texto === msg.texto &&
+                        Math.abs(new Date(m.timestamp) - new Date(msg.timestamp)) < 5000
+                    );
+                    return duplicado ? actuales : [...actuales, msg];
+                })(),
             }));
         });
 
         // Staff: recibir historial al seleccionar usuario
         sock.on('historial_chat', ({ clienteId, historial }) => {
-            setConversaciones(prev => ({ ...prev, [clienteId]: historial }));
+            if (isStaff) {
+                setConversaciones(prev => ({ ...prev, [clienteId]: historial }));
+            } else {
+                setConversacionesCliente(prev => ({
+                    ...prev,
+                    [clienteId || 'soporte']: historial,
+                }));
+            }
         });
 
         // Cliente: recibir respuesta de soporte o vendedor
         sock.on('mensaje_de_staff', (msg) => {
-            const contactId = msg.de?.id || 'soporte';
+            const contactId = msg.de?.rol === 'administrador' ? 'soporte' : (msg.de?.id || 'soporte');
             setConversacionesCliente(prev => ({
                 ...prev,
                 [contactId]: [...(prev[contactId] || []), msg]
@@ -449,7 +529,12 @@ const Chat = () => {
         });
 
         return () => sock.disconnect();
-    }, [token]);
+    }, [token, miId, isStaff]);
+
+    useEffect(() => {
+        if (!socket || isStaff) return;
+        socket.emit('solicitar_historial', { clienteId: contactoActivo?.id });
+    }, [socket, isStaff, contactoActivo]);
 
     // Emitir marcar_visto cuando hay mensajes del otro y yo los estoy viendo
     useEffect(() => {
@@ -475,6 +560,15 @@ const Chat = () => {
 
         if (isStaff) {
             if (!clienteActivo) return;
+            const msg = {
+                de: { id: miId, nombre: miNombre, rol: miRol },
+                texto: mensaje.trim(),
+                timestamp: new Date(),
+            };
+            setConversaciones(prev => ({
+                ...prev,
+                [clienteActivo.id]: [...(prev[clienteActivo.id] || []), msg],
+            }));
             socket.emit('mensaje_staff', { para: clienteActivo.id, texto: mensaje.trim() });
         } else {
             const contactId = contactoActivo?.id || 'soporte';
@@ -532,9 +626,19 @@ const Chat = () => {
                                 <p className="ch-no-contacts">Sin usuarios registrados</p>
                             ) : (
                                 (() => {
-                                    const admins   = usuariosConEstado.filter(u => u.rol === 'administrador');
+                                    const admins = usuariosConEstado.filter(u => u.rol === 'administrador' && u.id !== miId);
                                     const vendedoresLista = usuariosConEstado.filter(u => u.rol === 'vendedor' && u.id !== miId);
-                                    const clientes = usuariosConEstado.filter(u => u.rol === 'cliente');
+                                    const clientes = usuariosConEstado
+                                        .filter(u => u.rol === 'cliente')
+                                        .sort((a, b) => Number(b.online) - Number(a.online) || a.nombre.localeCompare(b.nombre));
+                                    const totalPaginasClientes = Math.max(1, Math.ceil(clientes.length / CLIENTES_POR_PAGINA));
+                                    const paginaClientes = Math.min(clientePage, totalPaginasClientes);
+                                    const clientesPagina = clientes.slice(
+                                        (paginaClientes - 1) * CLIENTES_POR_PAGINA,
+                                        paginaClientes * CLIENTES_POR_PAGINA
+                                    );
+                                    const clientesOnline = clientesPagina.filter(u => u.online);
+                                    const clientesOffline = clientesPagina.filter(u => !u.online);
 
                                     const renderUsuario = (u) => (
                                         <button
@@ -559,24 +663,54 @@ const Chat = () => {
                                         </button>
                                     );
 
+                                    const renderGrupo = (key, label, items) => {
+                                        if (items.length === 0) return null;
+                                        const abierto = gruposAbiertos[key];
+                                        return (
+                                            <>
+                                                <button
+                                                    type="button"
+                                                    className="ch-group-toggle"
+                                                    onClick={() => toggleGrupo(key)}
+                                                >
+                                                    <span>{label} ({items.length})</span>
+                                                    <span className="ch-group-caret">{abierto ? '-' : '+'}</span>
+                                                </button>
+                                                {abierto && items.map(renderUsuario)}
+                                            </>
+                                        );
+                                    };
+
                                     return (
                                         <>
-                                            {admins.length > 0 && (
-                                                <>
-                                                    <p className="ch-group-label">🛡️ Administradores ({admins.length})</p>
-                                                    {admins.map(renderUsuario)}
-                                                </>
-                                            )}
-                                            {vendedoresLista.length > 0 && (
-                                                <>
-                                                    <p className="ch-group-label">🏪 Vendedores ({vendedoresLista.length})</p>
-                                                    {vendedoresLista.map(renderUsuario)}
-                                                </>
-                                            )}
+                                            {renderGrupo('admins', 'Administradores', admins)}
+                                            {renderGrupo('vendedores', 'Vendedores', vendedoresLista)}
                                             {clientes.length > 0 && (
                                                 <>
-                                                    <p className="ch-group-label">👤 Clientes ({clientes.length})</p>
-                                                    {clientes.map(renderUsuario)}
+                                                    <p className="ch-group-label">Clientes ({clientes.length})</p>
+                                                    {renderGrupo('clientesOnline', 'Clientes en linea', clientesOnline)}
+                                                    {renderGrupo('clientesOffline', 'Clientes offline', clientesOffline)}
+                                                    {clientes.length > CLIENTES_POR_PAGINA && (
+                                                        <div className="ch-pagination">
+                                                            <button
+                                                                type="button"
+                                                                className="ch-page-btn"
+                                                                onClick={() => setClientePage(p => Math.max(1, p - 1))}
+                                                                disabled={paginaClientes === 1}
+                                                            >
+                                                                Prev
+                                                            </button>
+                                                            <span className="ch-page-info">{paginaClientes}/{totalPaginasClientes}</span>
+                                                            <button
+                                                                type="button"
+                                                                className="ch-page-btn"
+                                                                onClick={() => setClientePage(p => Math.min(totalPaginasClientes, p + 1))}
+                                                                disabled={paginaClientes === totalPaginasClientes}
+                                                            >
+                                                                Next
+                                                            </button>
+                                                        </div>
+                                                    )}
                                                 </>
                                             )}
                                         </>
