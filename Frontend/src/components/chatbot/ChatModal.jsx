@@ -34,7 +34,7 @@ const esSaludo = (texto = '') => /^(hola|buenas|buenos dias|buenas tardes|buenas
 
 const respuestaSaludo = (nombre = '') => {
     const nombreLimpio = limpiarTextoChat(nombre).trim();
-    return `Hola${nombreLimpio ? ` ${nombreLimpio}` : ''}. Te puedo ayudar con:\n- Buscar telas por color, textura, material o uso.\n- Analizar hasta ${MAX_IMAGES} fotos de telas.\n- Recomendar productos similares del catalogo.\n- Orientarte para comprar por metros o rollos.`;
+    return `Hola${nombreLimpio ? ` ${nombreLimpio}` : ''}. Te puedo ayudar con:\n- Buscar telas por color, textura, material o uso.\n- Analizar hasta ${MAX_IMAGES} fotos de telas.\n- Recomendar productos similares del catálogo.\n- Orientarte para comprar por metros o rollos.`;
 };
 
 const obtenerNombreUsuario = () => {
@@ -95,13 +95,13 @@ const renderMarkdown = (text) => {
 // Extrae palabras clave de telas de la respuesta de la IA.
 const extractFabricKeywords = (text) => {
     const lower = normalizarTexto(limpiarTextoChat(text));
-    const nombres = ['algodon', 'lino', 'seda', 'poliester', 'lana', 'nylon', 'viscosa', 'terciopelo', 'denim', 'jersey', 'saten', 'gasa', 'tul', 'encaje', 'polar', 'fleece', 'gabardina', 'tafetan'];
-    const colores = ['blanco', 'negro', 'azul', 'rojo', 'verde', 'amarillo', 'beige', 'gris', 'marron', 'rosado', 'morado', 'naranja', 'celeste', 'crema', 'cafe'];
-    const texturas = ['suave', 'rugoso', 'brillante', 'opaco', 'elastico', 'rigido', 'transpirable', 'ligero', 'pesado'];
+    const nombres = ['algodón', 'lino', 'seda', 'poliéster', 'lana', 'nylon', 'viscosa', 'terciopelo', 'denim', 'jersey', 'satén', 'gasa', 'tul', 'encaje', 'polar', 'fleece', 'gabardina', 'tafetán'];
+    const colores = ['blanco', 'negro', 'azul', 'rojo', 'verde', 'amarillo', 'beige', 'gris', 'marrón', 'rosado', 'morado', 'naranja', 'celeste', 'crema', 'café'];
+    const texturas = ['suave', 'rugoso', 'brillante', 'opaco', 'elástico', 'rígido', 'transpirable', 'ligero', 'pesado'];
 
-    const nombre = nombres.find(n => lower.includes(n)) || '';
-    const color = colores.find(c => lower.includes(c)) || '';
-    const textura = texturas.find(t => lower.includes(t)) || '';
+    const nombre = nombres.find(n => lower.includes(normalizarTexto(n))) || '';
+    const color = colores.find(c => lower.includes(normalizarTexto(c))) || '';
+    const textura = texturas.find(t => lower.includes(normalizarTexto(t))) || '';
     return { nombre, color, textura };
 };
 
@@ -191,7 +191,7 @@ const ChatModal = ({ onClose }) => {
         const imagenesSnapshot = [...selectedImages];
         const userMessage = {
             role: 'user',
-            content: input.trim() || 'Analiza estas imagenes de tela',
+            content: input.trim() || '📸 Analiza estas imágenes de tela',
             images: imagenesSnapshot,
         };
 
@@ -229,7 +229,7 @@ const ChatModal = ({ onClose }) => {
                     {
                         id: botMessageId,
                         role: 'assistant',
-                        content: 'Soy Intex IA, tu asesor textil. Puedo ayudarte aunque no tengas foto: dime color, textura, uso de la tela, si la necesitas por metro o rollo, y buscare coincidencias o alternativas del catalogo.',
+                        content: 'Soy Intex IA, tu asesor textil. Puedo ayudarte aunque no tengas foto: dime color, textura, uso de la tela, si la necesitas por metro o rollo, y buscaré coincidencias o alternativas del catálogo.',
                     },
                 ];
                 if (mostrarCtaProductos) respuestas.push(crearCtaProgresivo(botMessageId + 1));
@@ -246,7 +246,7 @@ const ChatModal = ({ onClose }) => {
                     {
                         id: botMessageId,
                         role: 'assistant',
-                        content: 'Soy Intex IA. Puedo orientarte por color, material, textura, uso y disponibilidad. Cuentame que tela buscas, por ejemplo: "algodon blanco para camisas", "tela negra elastica" o "rollos de poliester".',
+                        content: 'Soy Intex IA. Puedo orientarte por color, material, textura, uso y disponibilidad. Cuéntame qué tela buscas, por ejemplo: "algodón blanco para camisas", "tela negra elástica" o "rollos de poliéster".',
                     },
                 ];
                 if (mostrarCtaProductos) respuestas.push(crearCtaProgresivo(botMessageId + 1));
@@ -298,8 +298,8 @@ const ChatModal = ({ onClose }) => {
                     role: 'assistant',
                     type: 'products',
                     content: response?.tipoRecomendacion === 'general'
-                        ? 'No encontre una coincidencia exacta en nuestros productos. Te recomendamos estas alternativas disponibles:'
-                        : 'Productos verificados en nuestros productos que coinciden con el analisis:',
+                        ? 'No encontré una coincidencia exacta en nuestros productos. Te recomendamos estas alternativas disponibles:'
+                        : 'Productos verificados en nuestros productos que coinciden con el análisis:',
                     productos: productosCoincidentes,
                     verified: response?.tipoRecomendacion !== 'general',
                 }]);
@@ -448,17 +448,17 @@ const ChatModal = ({ onClose }) => {
                 {showCamera && (
                     <div className="camera-modal">
                         <div className="camera-modal-content">
-                            <h3>Capturar foto</h3>
+                            <h3>📷 Capturar foto</h3>
                             <Webcam ref={webcamRef} screenshotFormat="image/jpeg" className="chat-webcam" />
                             <div className="camera-buttons">
-                                <button onClick={capturePhoto} className="btn-primary">Capturar</button>
+                                <button onClick={capturePhoto} className="btn-primary">Capturar 📸</button>
                                 <button onClick={() => setShowCamera(false)} className="btn-secondary">Cancelar</button>
                             </div>
                         </div>
                     </div>
                 )}
 
-                {/* Tira de imagenes seleccionadas */}
+                {/* Tira de imágenes seleccionadas */}
                 {selectedImages.length > 0 && (
                     <div className="chat-images-strip">
                         {selectedImages.map((img, i) => (
@@ -475,7 +475,7 @@ const ChatModal = ({ onClose }) => {
                             <button
                                 className="chat-thumb-add"
                                 onClick={() => fileInputRef.current.click()}
-                                title="Agregar mas imagenes"
+                                title="Agregar más imágenes"
                             >
                                 <MdAdd size={22} />
                             </button>
@@ -488,7 +488,7 @@ const ChatModal = ({ onClose }) => {
                     <div className="chat-input-buttons">
                         <button
                             onClick={() => setShowCamera(true)}
-                            title="Capturar foto"
+                            title="📷 Capturar foto"
                             className="chat-button-action"
                             disabled={selectedImages.length >= MAX_IMAGES}
                         >
@@ -496,7 +496,7 @@ const ChatModal = ({ onClose }) => {
                         </button>
                         <button
                             onClick={() => fileInputRef.current.click()}
-                            title={`Subir imagenes (${selectedImages.length}/${MAX_IMAGES})`}
+                            title={`📎 Subir imágenes (${selectedImages.length}/${MAX_IMAGES})`}
                             className="chat-button-action"
                             disabled={selectedImages.length >= MAX_IMAGES}
                         >
@@ -538,5 +538,3 @@ const ChatModal = ({ onClose }) => {
 };
 
 export default ChatModal;
-
-

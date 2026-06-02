@@ -7,8 +7,8 @@ const ChatbotBubble = () => {
     const [isModalOpen, setIsModalOpen] = useState(false);
     const location = useLocation();
 
-    // No mostrar en rutas de autenticación
-    const rutasOcultas = ['/login', '/register', '/forgot', '/reset', '/confirm'];
+    // No mostrar en rutas de autenticacion
+    const rutasOcultas = ['/login', '/register', '/forgot', '/reset', '/confirm', '/setup-account', '/oauth-success'];
     const debeOcultar = rutasOcultas.some(ruta => location.pathname.includes(ruta));
 
     if (debeOcultar) {
@@ -38,3 +38,4 @@ const ChatbotBubble = () => {
 }
 
 export default ChatbotBubble;
+
