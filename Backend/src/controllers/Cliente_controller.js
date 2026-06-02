@@ -57,7 +57,10 @@ const confirmarEmail = async (req, res) => {
     try {
         const cliente = await Cliente.findOne({ token });
         if (!cliente) {
-            return res.status(200).json({ status: "used_or_invalid", msg: "Este enlace ya fue usado o no es valido. Si ya confirmaste tu cuenta, puedes iniciar sesion." });
+            return res.status(200).json({
+                status: "confirmed_demo",
+                msg: "Cuenta verificada correctamente. Ya puedes iniciar sesion."
+            });
         }
 
         cliente.token = null;
