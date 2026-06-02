@@ -62,8 +62,7 @@ const loginUnificado = async (req, res) => {
             if (usuario.token) {
                 return res.status(403).json({ msg: "Debes confirmar tu cuenta antes de iniciar sesion." });
             }
-            usuario.confirmEmail = true;
-            await usuario.save();
+            return res.status(403).json({ msg: "Debes confirmar tu cuenta desde el enlace enviado a tu correo." });
         }
 
         return responderLogin(res, usuario);

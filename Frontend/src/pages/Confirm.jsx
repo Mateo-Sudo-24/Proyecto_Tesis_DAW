@@ -98,9 +98,9 @@ export const Confirm = () => {
                     return;
                 }
 
-                if (data.status === "used_or_invalid" || data.status === "confirmed_demo") {
+                if (data.status === "used_or_invalid" || data.status === "confirmed_demo" || data.status === "already_verified") {
                     setStatus("success");
-                    setMessage(data.msg || "Cuenta verificada correctamente. Ya puedes iniciar sesion.");
+                    setMessage(data.msg || "Token verificado correctamente. Puedes intentar iniciar sesion.");
                     sessionStorage.setItem(confirmKey, "success");
                     return;
                 }
