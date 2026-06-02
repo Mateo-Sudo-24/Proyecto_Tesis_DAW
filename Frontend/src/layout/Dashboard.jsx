@@ -16,7 +16,7 @@ const styles = `
         display: flex;
         min-height: 100vh;
     }
-    /* Ã¢â€â‚¬Ã¢â€â‚¬ Sidebar Ã¢â€â‚¬Ã¢â€â‚¬ */
+    /* ──── Sidebar ──── */
     .dsb-sidebar {
         width: 240px;
         min-width: 240px;
@@ -60,7 +60,7 @@ const styles = `
         text-transform: uppercase;
         letter-spacing: 0.08em;
     }
-    /* Ã¢â€â‚¬Ã¢â€â‚¬ User Card Ã¢â€â‚¬Ã¢â€â‚¬ */
+    /* ──── User Card ──── */
     .dsb-user-card {
         padding: 1rem 1.25rem;
         border-bottom: 1px solid rgba(255,255,255,0.07);
@@ -99,7 +99,7 @@ const styles = `
         text-transform: capitalize;
         font-weight: 600;
     }
-    /* Ã¢â€â‚¬Ã¢â€â‚¬ Nav Ã¢â€â‚¬Ã¢â€â‚¬ */
+    /* ──── Nav ──── */
     .dsb-nav {
         flex: 1;
         padding: 0.75rem 0.625rem;
@@ -176,7 +176,7 @@ const styles = `
         transition: transform 0.2s;
     }
     .dsb-chevron.open { transform: rotate(180deg); }
-    /* Ã¢â€â‚¬Ã¢â€â‚¬ Dropdown submenu Ã¢â€â‚¬Ã¢â€â‚¬ */
+    /* ──── Dropdown submenu ──── */
     .dsb-submenu {
         overflow: hidden;
         max-height: 0;
@@ -186,7 +186,7 @@ const styles = `
         margin-left: 1.1rem;
     }
     .dsb-submenu.open { max-height: 200px; }
-    /* Ã¢â€â‚¬Ã¢â€â‚¬ Footer Ã¢â€â‚¬Ã¢â€â‚¬ */
+    /* ──── Footer ──── */
     .dsb-sidebar-footer {
         padding: 0.875rem 0.625rem;
         border-top: 1px solid rgba(255,255,255,0.07);
@@ -211,7 +211,7 @@ const styles = `
         background: rgba(220,38,38,0.18);
         color: #fca5a5;
     }
-    /* Ã¢â€â‚¬Ã¢â€â‚¬ Main area Ã¢â€â‚¬Ã¢â€â‚¬ */
+    /* ──── Main area ──── */
     .dsb-main {
         flex: 1;
         display: flex;
@@ -326,7 +326,7 @@ const styles = `
         letter-spacing: 0.03em;
         border-top: 1px solid rgba(255,255,255,0.06);
     }
-    /* Ã¢â€â‚¬Ã¢â€â‚¬ Mobile sidebar Ã¢â€â‚¬Ã¢â€â‚¬ */
+    /* ──── Mobile sidebar ──── */
     .dsb-sidebar-overlay {
         display: none;
         position: fixed;
@@ -355,7 +355,7 @@ const styles = `
         .dsb-mobile-logout { display: inline-flex; }
         .dsb-topbar-name { display: none; }
     }
-    /* Ã¢â€â‚¬Ã¢â€â‚¬ Hamburger button Ã¢â€â‚¬Ã¢â€â‚¬ */
+    /* ──── Hamburger button ──── */
     .dsb-hamburger {
         display: none;
         background: none;
@@ -403,13 +403,13 @@ const Dashboard = () => {
             <style>{styles}</style>
             <div className="dsb-layout">
 
-                {/* Ã¢â€â‚¬Ã¢â€â‚¬ Overlay mÃƒÂ³vil Ã¢â€â‚¬Ã¢â€â‚¬ */}
+                {/* ──── Overlay móvil ──── */}
                 <div
                     className={`dsb-sidebar-overlay${sidebarOpen ? ' open' : ''}`}
                     onClick={closeSidebar}
                 />
 
-                {/* Ã¢â€â‚¬Ã¢â€â‚¬ Sidebar Ã¢â€â‚¬Ã¢â€â‚¬ */}
+                {/* ──── Sidebar ──── */}
                 <aside className={`dsb-sidebar${sidebarOpen ? ' mobile-open' : ''}`}>
 
                     {/* Brand */}
@@ -446,7 +446,7 @@ const Dashboard = () => {
                             <span className="dsb-icon">💬</span> Chat
                         </Link>
 
-                        {/* GestiÃƒÂ³n (admin + vendedor) */}
+                        {/* Gestión (admin + vendedor) */}
                         {(isVendedor || isAdmin) && (
                             <>
                                 <span className="dsb-nav-section">Gestión</span>
@@ -456,7 +456,7 @@ const Dashboard = () => {
                             </>
                         )}
 
-                        {/* Admin especÃƒÂ­fico */}
+                        {/* Admin específico */}
                         {isAdmin && (
                             <>
                                 <Link to="/dashboard/productos-admin" className={lc('/dashboard/productos-admin')} onClick={closeSidebar}>
@@ -471,7 +471,7 @@ const Dashboard = () => {
                             </>
                         )}
 
-                        {/* Vendedor Ã¢â‚¬â€ productos + pedidos */}
+                        {/* Vendedor — productos + pedidos */}
                         {isVendedor && (
                             <>
                                 <Link to="/dashboard/productos-admin" className={lc('/dashboard/productos-admin')} onClick={closeSidebar}>
@@ -489,7 +489,7 @@ const Dashboard = () => {
                             </>
                         )}
 
-                        {/* Cliente especÃƒÂ­fico */}
+                        {/* Cliente específico */}
                         {isCliente && (
                             <>
                                 <span className="dsb-nav-section">Tienda</span>
@@ -517,10 +517,10 @@ const Dashboard = () => {
                     </div>
                 </aside>
 
-                {/* Ã¢â€â‚¬Ã¢â€â‚¬ Main Ã¢â€â‚¬Ã¢â€â‚¬ */}
+                {/* ──── Main ──── */}
                 <div className="dsb-main">
                     <header className="dsb-topbar">
-                        {/* BotÃƒÂ³n hamburguesa (solo mÃƒÂ³vil) */}
+                        {/* Botón hamburguesa (solo móvil) */}
                         <button
                             className="dsb-hamburger"
                             onClick={() => setSidebarOpen(o => !o)}

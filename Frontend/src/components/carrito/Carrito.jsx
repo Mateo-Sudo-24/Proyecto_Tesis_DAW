@@ -39,7 +39,7 @@ const cartStyles = `
         --orange-border: #f0943a;
     }
 
-    /* Ã¢â€â‚¬Ã¢â€â‚¬ Contenedor principal Ã¢â€â‚¬Ã¢â€â‚¬ */
+    /* ──── Contenedor principal ──── */
     .cart-wrapper {
         max-width: 1100px;
         margin: 0 auto;
@@ -66,7 +66,7 @@ const cartStyles = `
         font-size: 1.1rem;
     }
 
-    /* Ã¢â€â‚¬Ã¢â€â‚¬ Spinner Ã¢â€â‚¬Ã¢â€â‚¬ */
+    /* ──── Spinner ──── */
     .cart-spinner-wrap {
         display: flex;
         justify-content: center;
@@ -82,7 +82,7 @@ const cartStyles = `
     }
     @keyframes cart-spin { to { transform: rotate(360deg); } }
 
-    /* Ã¢â€â‚¬Ã¢â€â‚¬ Estado vacÃƒÂ­o Ã¢â€â‚¬Ã¢â€â‚¬ */
+    /* ──── Estado vacío ──── */
     .cart-empty {
         text-align: center;
         padding: 5rem 2rem;
@@ -95,7 +95,7 @@ const cartStyles = `
     .cart-empty h3 { font-size: 1.2rem; font-weight: 700; color: #374151; margin-bottom: 0.5rem; }
     .cart-empty p { font-size: 0.875rem; color: #9ca3af; margin-bottom: 1.75rem; }
 
-    /* Ã¢â€â‚¬Ã¢â€â‚¬ Grid Ã¢â€â‚¬Ã¢â€â‚¬ */
+    /* ──── Grid ──── */
     .cart-grid {
         display: grid;
         grid-template-columns: 1fr;
@@ -115,7 +115,7 @@ const cartStyles = `
         .cart-delivery-options { grid-template-columns: 1fr; }
     }
 
-    /* Ã¢â€â‚¬Ã¢â€â‚¬ Card base Ã¢â€â‚¬Ã¢â€â‚¬ */
+    /* ──── Card base ──── */
     .cart-card {
         background: #fff;
         border-radius: 1.25rem;
@@ -124,7 +124,7 @@ const cartStyles = `
         overflow: hidden;
     }
 
-    /* Ã¢â€â‚¬Ã¢â€â‚¬ Tabla Ã¢â€â‚¬Ã¢â€â‚¬ */
+    /* ──── Tabla ──── */
     .cart-table-wrap { overflow-x: auto; }
     .cart-table {
         width: 100%;
@@ -193,7 +193,7 @@ const cartStyles = `
     }
     .cart-delete-btn:hover { background: #fee2e2; color: #dc2626; }
 
-    /* Ã¢â€â‚¬Ã¢â€â‚¬ Footer tabla Ã¢â€â‚¬Ã¢â€â‚¬ */
+    /* ──── Footer tabla ──── */
     .cart-table-footer {
         display: flex;
         justify-content: space-between;
@@ -227,10 +227,10 @@ const cartStyles = `
     }
     .cart-continue-link:hover { color: var(--orange-main); }
 
-    /* Ã¢â€â‚¬Ã¢â€â‚¬ Panel lateral Ã¢â€â‚¬Ã¢â€â‚¬ */
+    /* ──── Panel lateral ──── */
     .cart-sidebar { display: flex; flex-direction: column; gap: 1rem; }
 
-    /* Ã¢â€â‚¬Ã¢â€â‚¬ Resumen Ã¢â€â‚¬Ã¢â€â‚¬ */
+    /* ──── Resumen ──── */
     .cart-summary { padding: 1.25rem 1.5rem; }
     .cart-summary h3 {
         font-size: 0.95rem;
@@ -259,7 +259,7 @@ const cartStyles = `
     }
     .cart-summary-total-amount { color: var(--orange-main); }
 
-    /* Ã¢â€â‚¬Ã¢â€â‚¬ Selector tipo entrega Ã¢â€â‚¬Ã¢â€â‚¬ */
+    /* ──── Selector tipo entrega ──── */
     .cart-delivery-section { padding: 1.25rem 1.5rem; }
     .cart-delivery-section h3 {
         font-size: 0.95rem;
@@ -304,7 +304,7 @@ const cartStyles = `
     }
     .cart-delivery-opt.selected .cart-delivery-opt-label { color: #c4620a; }
 
-    /* Ã¢â€â‚¬Ã¢â€â‚¬ DirecciÃƒÂ³n domicilio Ã¢â€â‚¬Ã¢â€â‚¬ */
+    /* ──── Dirección domicilio ──── */
     .cart-addr-btn {
         width: 100%;
         padding: 0.75rem 1rem;
@@ -348,7 +348,7 @@ const cartStyles = `
         text-decoration: underline;
     }
 
-    /* Ã¢â€â‚¬Ã¢â€â‚¬ Formulario envÃƒÂ­o Ã¢â€â‚¬Ã¢â€â‚¬ */
+    /* ──── Formulario envío ──── */
     .cart-form { padding: 1.25rem 1.5rem; }
     .cart-form h3 {
         font-size: 0.95rem;
@@ -388,7 +388,7 @@ const cartStyles = `
     }
     .cart-input::placeholder { color: #d1d5db; }
 
-    /* Ã¢â€â‚¬Ã¢â€â‚¬ BotÃƒÂ³n confirmar Ã¢â€â‚¬Ã¢â€â‚¬ */
+    /* ──── Botón confirmar ──── */
     .cart-submit-btn {
         width: 100%;
         padding: 0.9rem 1.5rem;
@@ -416,7 +416,7 @@ const cartStyles = `
     .cart-submit-btn:active:not(:disabled) { transform: scale(0.97); }
     .cart-submit-btn:disabled { opacity: 0.55; cursor: not-allowed; }
 
-    /* Ã¢â€â‚¬Ã¢â€â‚¬ Link vaciar/tienda (empty state) Ã¢â€â‚¬Ã¢â€â‚¬ */
+    /* ──── Link vaciar/tienda (empty state) ──── */
     .cart-shop-link {
         display: inline-block;
         background: #111827;
@@ -596,7 +596,7 @@ const Carrito = () => {
         setConfirmVaciar(false);
     };
 
-    // FunciÃƒÂ³n para cerrar el modal
+    // Función para cerrar el modal
     const closeModalPago = () => {
         setShowModalPago(false);
         setOrdenCreada(null);
@@ -700,7 +700,7 @@ const Carrito = () => {
                     </div>
                 ) : (
                     <div className="cart-grid">
-                        {/* Ã¢â€â‚¬Ã¢â€â‚¬ Tabla de items Ã¢â€â‚¬Ã¢â€â‚¬ */}
+                        {/* ──── Tabla de items ──── */}
                         <div className="cart-card">
                             <div className="cart-table-wrap">
                                 <table className="cart-table">
@@ -804,7 +804,7 @@ const Carrito = () => {
                             </div>
                         </div>
 
-                        {/* Ã¢â€â‚¬Ã¢â€â‚¬ Panel lateral Ã¢â€â‚¬Ã¢â€â‚¬ */}
+                        {/* ──── Panel lateral ──── */}
                         <div className="cart-sidebar">
                             {/* Resumen */}
                             <div className="cart-card cart-summary">
