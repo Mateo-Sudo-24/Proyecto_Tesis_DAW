@@ -205,7 +205,7 @@ const Reset = () => {
         }
         setIsLoading(true);
         try {
-            const url = `${import.meta.env.VITE_BACKEND_URL}/auth/nuevo-password/${token}`;
+            const url = `${import.meta.env.VITE_BACKEND_URL}/api/auth/nuevo-password/${token}`;
             const response = await fetchDataBackend(url, { password: data.password }, 'POST');
 
             if (response?.msg) {
@@ -224,7 +224,7 @@ const Reset = () => {
     useEffect(() => {
         const verifyToken = async () => {
             try {
-                const url = `${import.meta.env.VITE_BACKEND_URL}/auth/recuperar-password/${token}`;
+                const url = `${import.meta.env.VITE_BACKEND_URL}/api/auth/recuperar-password/${token}`;
                 const response = await fetchDataBackend(url, null, 'GET');
                 if (response?.msg) {
                     toast.success(response.msg);

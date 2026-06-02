@@ -18,8 +18,10 @@ const getAuthData = () => {
 };
 
 const getApiUrlByRole = (rol, action) => {
-    const baseUrl = import.meta.env.VITE_BACKEND_URL;
+    const baseUrl = `${import.meta.env.VITE_BACKEND_URL}/api`;
     if (!baseUrl || !rol) return null;
+
+    const apiBase = baseUrl;
 
     let path;
     switch (rol) {
@@ -47,7 +49,7 @@ const getApiUrlByRole = (rol, action) => {
         default:
             return null;
     }
-    return `${baseUrl}${path}`;
+    return `${apiBase}${path}`;
 };
 
 const getAuthHeaders = () => {

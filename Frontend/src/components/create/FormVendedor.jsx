@@ -133,7 +133,7 @@ const FormVendedor = ({ vendedor }) => {
 
     const onSubmit = async (data) => {
         setIsSubmitting(true);
-        const url = `${import.meta.env.VITE_BACKEND_URL}/vendedores/${vendedor._id}`;
+        const url = `${import.meta.env.VITE_BACKEND_URL}/api/vendedores/${vendedor._id}`;
         try {
             const response = await fetchDataBackend(url, data, "PUT");
             if (response) {

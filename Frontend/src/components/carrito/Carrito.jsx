@@ -472,7 +472,7 @@ const Carrito = () => {
     useEffect(() => {
         const fetchCarrito = async () => {
             setIsLoadingCart(true);
-            const response = await fetchDataBackend(`${import.meta.env.VITE_BACKEND_URL}/carrito`);
+            const response = await fetchDataBackend(`${import.meta.env.VITE_BACKEND_URL}/api/carrito`);
             if (response) setCarrito(response);
             setIsLoadingCart(false);
         };
@@ -491,7 +491,7 @@ const Carrito = () => {
                 return;
             }
 
-            const vendedores = await fetchDataBackend(`${import.meta.env.VITE_BACKEND_URL}/vendedores/publicos`);
+            const vendedores = await fetchDataBackend(`${import.meta.env.VITE_BACKEND_URL}/api/vendedores/publicos`);
             if (Array.isArray(vendedores) && vendedores.length > 0) {
                 const candidatos = [...vendedores].sort((a, b) => Number(b.online) - Number(a.online));
                 const currentIndex = Number(localStorage.getItem('intex-vendedor-rotacion') || 0);
@@ -510,7 +510,7 @@ const Carrito = () => {
         if (!Number.isFinite(cant) || cant <= 0) return null;
         setUpdatingItems(prev => ({ ...prev, [productoId]: true }));
         const response = await fetchDataBackend(
-            `${import.meta.env.VITE_BACKEND_URL}/carrito/items`,
+            `${import.meta.env.VITE_BACKEND_URL}/api/carrito/items`,
             { productoId, cantidad: cant, unidadSeleccionada },
             "POST"
         );
@@ -577,7 +577,7 @@ const Carrito = () => {
     const eliminarItem = async (productoId) => {
         setUpdatingItems(prev => ({ ...prev, [productoId]: true }));
         const response = await fetchDataBackend(
-            `${import.meta.env.VITE_BACKEND_URL}/carrito/items/${productoId}`,
+            `${import.meta.env.VITE_BACKEND_URL}/api/carrito/items/${productoId}`,
             null,
             "DELETE"
         );
@@ -588,7 +588,7 @@ const Carrito = () => {
     // Vaciar carrito
     const vaciarCarrito = async () => {
         const response = await fetchDataBackend(
-            `${import.meta.env.VITE_BACKEND_URL}/carrito`,
+            `${import.meta.env.VITE_BACKEND_URL}/api/carrito`,
             null,
             "DELETE"
         );

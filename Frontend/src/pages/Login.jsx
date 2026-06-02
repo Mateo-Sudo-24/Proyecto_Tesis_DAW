@@ -304,7 +304,7 @@ const Login = () => {
             return;
         }
 
-        const url = `${baseUrl}/auth/login`;
+        const url = `${baseUrl}/api/auth/login`;
 
         try {
             const response = await fetchDataBackend(url, data, 'POST');

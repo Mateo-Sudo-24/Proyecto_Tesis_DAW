@@ -1,4 +1,4 @@
-const BACKEND_URL = import.meta.env.VITE_BACKEND_URL || 'https://unitex-backend.onrender.com/api';
+const BACKEND_URL = (`${import.meta.env.VITE_BACKEND_URL}/api`) || 'https://unitex-backend.onrender.com/api';
 
 export const buscarProductosSimilares = async (nombre, color, textura) => {
   try {

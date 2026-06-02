@@ -131,18 +131,10 @@ export const Confirm = () => {
     const [message, setMessage] = useState('Verificando tu cuenta...');
 
     const getVerificationDetails = () => {
-        const path = location.pathname;
-        if (path.includes('/vendedores/setup-account/')) {
-            return {
-                url: `${import.meta.env.VITE_BACKEND_URL}/vendedores/setup-account/${token}`,
-                method: 'POST',
-                role: 'vendedor'
-            };
-        }
         return {
-            url: `${import.meta.env.VITE_BACKEND_URL}/clientes/confirmar/${token}`,
+            url: `${import.meta.env.VITE_BACKEND_URL}/api/clientes/confirmar/${token}`,
             method: 'GET',
-            role: 'cliente'
+            role: 'usuario'
         };
     };
 
@@ -154,19 +146,16 @@ export const Confirm = () => {
                 return;
             }
 
-            const { url, method } = getVerificationDetails();
+            const { url } = getVerificationDetails();
 
             try {
-                let respuesta;
-                if (method === 'GET') {
-                    const response = await fetch(url);
-                    if (!response.ok) {
-                        throw new Error(`HTTP ${response.status}`);
-                    }
-                    respuesta = await response.json();
-                } else if (method === 'POST') {
-                    throw new Error("La activación de cuenta de vendedor requiere establecer una contraseña.");
+                const response = await fetch(url);
+                const respuesta = await response.json();
+
+                if (!response.ok) {
+                    throw new Error(respuesta.msg || `Error ${response.status}`);
                 }
+
                 setMessage(respuesta.msg || '¡Cuenta confirmada exitosamente!');
                 setStatus('success');
                 toast.success(respuesta.msg || 'Cuenta confirmada!');

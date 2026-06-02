@@ -222,7 +222,7 @@ export const Forgot = () => {
     const { fetchDataBackend, isLoading } = useFetch();
 
     const sendMail = (data) => {
-        const url = `${import.meta.env.VITE_BACKEND_URL}/auth/recuperar-password`;
+        const url = `${import.meta.env.VITE_BACKEND_URL}/api/auth/recuperar-password`;
         fetchDataBackend(url, data, 'POST');
     };
 

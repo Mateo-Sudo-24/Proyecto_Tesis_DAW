@@ -155,7 +155,7 @@ const CheckoutForm = ({ orden, closeModal }) => {
 
     const pagarOrden = async (paymentMethodId) => {
         const authToken = JSON.parse(localStorage.getItem("auth-token"))?.state?.token || '';
-        const response = await fetch(`${import.meta.env.VITE_BACKEND_URL}/ordenes/pagar`, {
+        const response = await fetch(`${import.meta.env.VITE_BACKEND_URL}/api/ordenes/pagar`, {
             method: "POST",
             headers: {
                 "Content-Type": "application/json",

@@ -1,7 +1,7 @@
 import Administrador from "../models/Administrador.js";
 import Cliente from "../models/Cliente.js";
 import Vendedor from "../models/Vendedor.js";
-import { sendMailToRecoveryPassword } from "../config/nodemailer.js";
+import { sendMailToRecoveryPassword, sendMailToRegister } from "../config/nodemailer.js";
 import { crearTokenJWT } from "../middlewares/JWT.js";
 import { normalizarEmail, buscarDocumentoPorEmail } from "../utils/emailLookup.js";
 
@@ -89,10 +89,6 @@ const actualizar = async (req, res) => {
             if (!adminActual || !await adminActual.matchPassword(passwordActual)) {
                 return res.status(401).json({ msg: "La contrasena actual es incorrecta." });
             }
-            const [Vendedor, Cliente] = await Promise.all([
-                import('../models/Vendedor.js').then(m => m.default),
-                import('../models/Cliente.js').then(m => m.default),
-            ]);
             const [adminConf, vendConf, cliConf] = await Promise.all([
                 Administrador.findOne({ email: emailNuevo, _id: { $ne: _id } }).lean(),
                 Vendedor.findOne({ email: emailNuevo }).lean(),
@@ -102,10 +98,25 @@ const actualizar = async (req, res) => {
                 const rolExistente = adminConf ? 'administrador' : vendConf ? 'vendedor' : 'cliente';
                 return res.status(400).json({ msg: `Este correo ya está registrado como ${rolExistente}. Usa un correo distinto para este usuario.` });
             }
-            datosActualizar.email = emailNuevo;
+
+            // Si el email cambia, se requiere nueva confirmación
+            if (emailNuevo !== adminActual.email) {
+                datosActualizar.email = emailNuevo;
+                datosActualizar.confirmEmail = false;
+                const token = adminActual.crearToken();
+                datosActualizar.token = token;
+
+                // Enviar correo de confirmación al nuevo email
+                try {
+                    await sendMailToRegister(emailNuevo, token);
+                } catch (mailError) {
+                    console.error("❌ Error SMTP al enviar correo de confirmación:", mailError);
+                }
+            }
         }
         const adminActualizado = await Administrador.findByIdAndUpdate(_id, datosActualizar, { new: true }).select("-password -token -__v");
-        res.status(200).json({ msg: "Perfil actualizado correctamente", admin: adminActualizado });
+        const extraMsg = datosActualizar.email ? ". Revisa tu nuevo correo para confirmar la cuenta." : "";
+        res.status(200).json({ msg: `Perfil actualizado correctamente${extraMsg}`, admin: adminActualizado });
     } catch (error) {
         res.status(500).json({ msg: "Error al actualizar el perfil." });
     }

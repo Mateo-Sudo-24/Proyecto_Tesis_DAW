@@ -177,10 +177,10 @@ const FormCliente = ({ clienteToUpdate, onSuccess, tipoInicial }) => {
         // Si el usuario es vendedor, forzamos siempre el endpoint de clientes
         const tipo = soloClientes ? 'cliente' : tipoUsuario;
         let baseUrl = tipo === "cliente" ? "/clientes" : "/vendedores";
-        let url = `${import.meta.env.VITE_BACKEND_URL}${baseUrl}`;
+        let url = `${import.meta.env.VITE_BACKEND_URL}/api${baseUrl}`;
         let method = "POST";
         if (clienteToUpdate?._id) {
-            url = `${import.meta.env.VITE_BACKEND_URL}${baseUrl}/${clienteToUpdate._id}`;
+            url = `${import.meta.env.VITE_BACKEND_URL}/api${baseUrl}/${clienteToUpdate._id}`;
             method = "PUT";
         }
         try {

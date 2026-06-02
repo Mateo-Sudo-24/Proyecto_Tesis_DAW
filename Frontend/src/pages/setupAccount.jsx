@@ -282,7 +282,7 @@ const SetupAccount = () => {
         if (data.password !== data.confirmPassword) {
             return toast.error("Las contraseñas no coinciden.");
         }
-        const url = `${import.meta.env.VITE_BACKEND_URL}/${entityPath}/setup-account/${token}`;
+        const url = `${import.meta.env.VITE_BACKEND_URL}/api/${entityPath}/setup-account/${token}`;
         const response = await fetchDataBackend(url, { password: data.password }, 'POST');
         if (response) {
             toast.success("¡Cuenta activada! Redirigiendo al login…");

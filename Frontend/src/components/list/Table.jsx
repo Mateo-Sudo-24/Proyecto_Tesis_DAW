@@ -117,7 +117,7 @@ const Table = ({ tipo = "clientes" }) => {
                 toast.error("No estas autenticado.");
                 return;
             }
-            const url = `${import.meta.env.VITE_BACKEND_URL}/${tipo}`;
+            const url = `${import.meta.env.VITE_BACKEND_URL}/api/${tipo}`;
             const response = await fetchDataBackend(url, null, "GET");
             setData(Array.isArray(response) ? response : []);
         } catch {
@@ -152,7 +152,7 @@ const Table = ({ tipo = "clientes" }) => {
         if (!confirmTarget) return;
         const { id } = confirmTarget;
         setConfirmTarget(null);
-        const url = `${import.meta.env.VITE_BACKEND_URL}/${tipo}/${id}`;
+        const url = `${import.meta.env.VITE_BACKEND_URL}/api/${tipo}/${id}`;
         const res = await fetchDataBackend(url, null, "DELETE");
         if (!res) return;
         setData(prev => prev.filter(item => item._id !== id));

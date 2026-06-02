@@ -205,7 +205,7 @@ const Details = () => {
         if (!user?.rol) return;
         try {
             const entityType = tipoFromNav || (isVendedor ? 'clientes' : 'vendedores');
-            const url = `${import.meta.env.VITE_BACKEND_URL}/${entityType}/${id}`;
+            const url = `${import.meta.env.VITE_BACKEND_URL}/api/${entityType}/${id}`;
             const response = await fetchDataBackend(url, null, "GET");
             if (response) setEntityDetails(response);
         } catch {

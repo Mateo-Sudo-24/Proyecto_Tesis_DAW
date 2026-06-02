@@ -445,7 +445,7 @@ const Chat = () => {
     useEffect(() => {
         if (!token || !isStaff) return;
         const headers = { Authorization: `Bearer ${token}` };
-        fetch(`${import.meta.env.VITE_BACKEND_URL}/admin/usuarios-chat`, { headers })
+        fetch(`${import.meta.env.VITE_BACKEND_URL}/api/admin/usuarios-chat`, { headers })
             .then(r => r.json())
             .then(data => { if (Array.isArray(data)) setUsuarios(data); })
             .catch(() => {});
@@ -455,7 +455,7 @@ const Chat = () => {
     useEffect(() => {
         if (!token || isStaff) return;
         const headers = { Authorization: `Bearer ${token}` };
-        fetch(`${import.meta.env.VITE_BACKEND_URL}/vendedores/publicos`, { headers })
+        fetch(`${import.meta.env.VITE_BACKEND_URL}/api/vendedores/publicos`, { headers })
             .then(r => r.json())
             .then(data => { if (Array.isArray(data)) setVendedores(data); })
             .catch(() => {});

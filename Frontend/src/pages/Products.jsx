@@ -408,7 +408,7 @@ const Products = () => {
             });
             if (selectedColor) params.append('color', selectedColor);
 
-            const res = await fetch(`${import.meta.env.VITE_BACKEND_URL}/productos?${params.toString()}`);
+            const res = await fetch(`${import.meta.env.VITE_BACKEND_URL}/api/productos?${params.toString()}`);
             const data = await res.json();
 
             setProductos(data.productos || []);
@@ -416,7 +416,7 @@ const Products = () => {
 
             // Obtener colores únicos (esto idealmente vendría de otro endpoint o se haría una vez)
             if (colors.length === 0) {
-                const resAll = await fetch(`${import.meta.env.VITE_BACKEND_URL}/productos?limite=1000`);
+                const resAll = await fetch(`${import.meta.env.VITE_BACKEND_URL}/api/productos?limite=1000`);
                 const dataAll = await resAll.json();
                 const all = dataAll.productos || [];
                 setColors([...new Set(all.map(p => p.color).filter(Boolean))]);
@@ -445,7 +445,7 @@ const Products = () => {
         const unidadSeleccionada = unidadesCompra[productoId] || unidadDefault(producto);
         setAgregando(productoId);
         try {
-            const res = await fetch(`${import.meta.env.VITE_BACKEND_URL}/carrito/items`, {
+            const res = await fetch(`${import.meta.env.VITE_BACKEND_URL}/api/carrito/items`, {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
                 body: JSON.stringify({ productoId, cantidad: 1, unidadSeleccionada }),

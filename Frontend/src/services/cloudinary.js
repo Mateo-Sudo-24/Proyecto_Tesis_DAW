@@ -38,7 +38,7 @@ export const editCloudinaryImage = async ({ file }) => {
 };
 
 export const deleteCloudinaryImage = async (productId, token) => {
-    const backendUrl = import.meta.env.VITE_BACKEND_URL;
+    const backendUrl = `${import.meta.env.VITE_BACKEND_URL}/api`;
     if (!backendUrl || !productId) return null;
 
     const res = await fetch(`${backendUrl}/productos/${productId}/imagen`, {
@@ -77,7 +77,7 @@ export const revokePreviewUrl = (url) => {
  */
 export const checkDuplicateProductName = async (nombre, token) => {
     try {
-        const backendUrl = import.meta.env.VITE_BACKEND_URL;
+        const backendUrl = `${import.meta.env.VITE_BACKEND_URL}/api`;
         const res = await fetch(
             `${backendUrl}/productos?busqueda=${encodeURIComponent(nombre.trim())}&limite=100`,
             { headers: { Authorization: `Bearer ${token}` } }

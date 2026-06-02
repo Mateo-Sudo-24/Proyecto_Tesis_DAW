@@ -669,7 +669,7 @@ const ModalOrdenPago = ({
         }
 
         const response = await fetchDataBackend(
-            `${import.meta.env.VITE_BACKEND_URL}/ordenes`,
+            `${import.meta.env.VITE_BACKEND_URL}/api/ordenes`,
             orderData,
             'POST'
         )
@@ -688,7 +688,7 @@ const ModalOrdenPago = ({
         }
 
         const pagoRes = await fetchDataBackend(
-            `${import.meta.env.VITE_BACKEND_URL}/ordenes/pagar`,
+            `${import.meta.env.VITE_BACKEND_URL}/api/ordenes/pagar`,
             { ordenId: ordenRecien._id },
             'POST'
         )

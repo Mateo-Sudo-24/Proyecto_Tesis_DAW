@@ -22,7 +22,7 @@ const registro = async (req, res) => {
             Vendedor.findOne({ email: emailNormalizado }).lean(),
         ]);
         if (existeCliente || existeAdmin || existeVendedor) return res.status(400).json({ msg: "Este correo ya esta registrado en el sistema." });
-        
+
         const nuevoCliente = new Cliente({ ...req.body, email: emailNormalizado });
         const token = nuevoCliente.crearToken();
 
@@ -39,7 +39,7 @@ const registro = async (req, res) => {
                 msg: `Cuenta creada, pero no se pudo enviar el correo de confirmación. Error SMTP: ${mailError.message}`
             });
         }
-        
+
         res.status(200).json({ msg: "Registro exitoso. Revisa tu correo para confirmar tu cuenta." });
     } catch (error) {
         console.error("❌ Error en registro:", error);
@@ -50,22 +50,37 @@ const registro = async (req, res) => {
     }
 };
 
-/*Confirmar la cuenta de un nuevo cliente usando un token.
+/*Confirmar la cuenta de un usuario (Cliente, Vendedor o Admin) usando un token.
  @route   GET /api/clientes/confirmar/:token */
 const confirmarEmail = async (req, res) => {
     const { token } = req.params;
     try {
-        const cliente = await Cliente.findOne({ token });
-        if (!cliente) {
+        // Buscar en todos los modelos para permitir confirmación unificada
+        const [cliente, vendedor, admin] = await Promise.all([
+            Cliente.findOne({ token }),
+            Vendedor.findOne({ token }),
+            Administrador.findOne({ token })
+        ]);
+
+        const usuario = cliente || vendedor || admin;
+
+        if (!usuario) {
             return res.status(404).json({ msg: "El enlace no es válido o la cuenta ya ha sido confirmada." });
         }
 
-        cliente.token = null;
-        cliente.confirmEmail = true;
-        await cliente.save();
-        
+        usuario.token = null;
+        usuario.confirmEmail = true;
+
+        // Si es un vendedor, actualizamos también su status
+        if (usuario.rol === 'vendedor') {
+            usuario.status = 'activo';
+        }
+
+        await usuario.save();
+
         res.status(200).json({ msg: "¡Cuenta confirmada exitosamente! Ya puedes iniciar sesión." });
     } catch (error) {
+        console.error("❌ Error al confirmar email:", error);
         res.status(500).json({ msg: "Error en el servidor al confirmar la cuenta." });
     }
 };
@@ -82,7 +97,7 @@ const login = async (req, res) => {
         const cliente = await buscarDocumentoPorEmail(Cliente, email);
         if (!cliente) return res.status(404).json({ msg: "Credencial incorrecta: correo o contraseña." });
         if (cliente.proveedor && cliente.proveedor !== 'local') return res.status(400).json({ msg: "Esta cuenta fue registrada usando Google. Por favor, inicia sesión con Google." });
-        
+
         if (!await cliente.matchPassword(password)) {
             return res.status(401).json({ msg: "Credencial incorrecta: correo o contraseña." });
         }
@@ -91,10 +106,10 @@ const login = async (req, res) => {
             cliente.confirmEmail = true;
             await cliente.save();
         }
-        
+
         const token = crearTokenJWT(cliente._id, cliente.rol);
         const { _id, nombre, rol } = cliente;
-        
+
         res.status(200).json({ token, _id, nombre, email: cliente.email, rol });
     } catch (error) {
         res.status(500).json({ msg: "Error en el servidor al iniciar sesión." });
@@ -122,7 +137,7 @@ const recuperarPassword = async (req, res) => {
         const token = cliente.crearToken();
         await sendMailToRecoveryPassword(email, token);
         await cliente.save();
-        
+
         res.status(200).json({ msg: "Se ha enviado un correo con las instrucciones." });
     } catch (error) {
         res.status(500).json({ msg: "Error en el servidor durante la recuperación." });
@@ -134,7 +149,7 @@ const comprobarTokenPassword = async (req, res) => {
     try {
         const cliente = await Cliente.findOne({ token });
         if (!cliente) return res.status(404).json({ msg: "El enlace no es válido o ya ha expirado." });
-        
+
         res.status(200).json({ msg: "Token válido." });
     } catch (error) {
         res.status(500).json({ msg: "Error al validar el token." });
@@ -148,11 +163,11 @@ const crearNuevoPassword = async (req, res) => {
     try {
         const cliente = await Cliente.findOne({ token });
         if (!cliente) return res.status(404).json({ msg: "El enlace no es válido o ya ha expirado." });
-        
+
         cliente.password = password;
         cliente.token = null;
         await cliente.save();
-        
+
         res.status(200).json({ msg: "¡Contraseña restablecida correctamente! Ya puedes iniciar sesión." });
     } catch (error) {
         res.status(500).json({ msg: "Error al guardar la nueva contraseña." });
@@ -183,10 +198,6 @@ const actualizarPerfil = async (req, res) => {
             if (!clienteActual || !await clienteActual.matchPassword(passwordActual)) {
                 return res.status(401).json({ msg: "La contrasena actual es incorrecta." });
             }
-            const [Administrador, Vendedor] = await Promise.all([
-                import('../models/Administrador.js').then(m => m.default),
-                import('../models/Vendedor.js').then(m => m.default),
-            ]);
             const [cliConf, adminConf, vendConf] = await Promise.all([
                 Cliente.findOne({ email: emailNuevo, _id: { $ne: _id } }).lean(),
                 Administrador.findOne({ email: emailNuevo }).lean(),
@@ -196,10 +207,25 @@ const actualizarPerfil = async (req, res) => {
                 const rolExistente = adminConf ? 'administrador' : vendConf ? 'vendedor' : 'cliente';
                 return res.status(400).json({ msg: `Este correo ya está registrado como ${rolExistente}. No se puede usar en otro rol.` });
             }
-            datosActualizar.email = emailNuevo;
+
+            // Si el email cambia, se requiere nueva confirmación
+            if (emailNuevo !== clienteActual.email) {
+                datosActualizar.email = emailNuevo;
+                datosActualizar.confirmEmail = false;
+                const token = clienteActual.crearToken();
+                datosActualizar.token = token;
+
+                // Enviar correo de confirmación al nuevo email
+                try {
+                    await sendMailToRegister(emailNuevo, token);
+                } catch (mailError) {
+                    console.error("❌ Error SMTP al enviar correo de confirmación:", mailError);
+                }
+            }
         }
         const clienteActualizado = await Cliente.findByIdAndUpdate(_id, datosActualizar, { new: true }).select("-password -token -__v");
-        res.status(200).json({ msg: "Perfil actualizado correctamente.", cliente: clienteActualizado });
+        const extraMsg = datosActualizar.email ? " Revisa tu nuevo correo para confirmar la cuenta." : "";
+        res.status(200).json({ msg: `Perfil actualizado correctamente.${extraMsg}`, cliente: clienteActualizado });
     } catch (error) {
         res.status(500).json({ msg: "Error al actualizar el perfil." });
     }

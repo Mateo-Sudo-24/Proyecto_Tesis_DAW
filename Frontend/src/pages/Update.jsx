@@ -15,7 +15,7 @@ const Update = () => {
     useEffect(() => {
         const searchEntity = async () => {
             try {
-                const url = `${import.meta.env.VITE_BACKEND_URL}/${tipo}/${id}`;
+                const url = `${import.meta.env.VITE_BACKEND_URL}/api/${tipo}/${id}`;
                 const response = await fetchDataBackend(url, null, "GET");
                 if (response) {
                     setEntity(response);

@@ -319,10 +319,10 @@ export default function BandejaMensajes() {
             if (!token) { setPollingActivo(false); return; }
             const rol = getRol();
             const endpoint = rol === 'vendedor'
-                ? `${import.meta.env.VITE_BACKEND_URL}/notificaciones/vendedor`
+                ? `${import.meta.env.VITE_BACKEND_URL}/api/notificaciones/vendedor`
                 : rol === 'cliente'
-                    ? `${import.meta.env.VITE_BACKEND_URL}/notificaciones/cliente`
-                    : `${import.meta.env.VITE_BACKEND_URL}/notificaciones`;
+                    ? `${import.meta.env.VITE_BACKEND_URL}/api/notificaciones/cliente`
+                    : `${import.meta.env.VITE_BACKEND_URL}/api/notificaciones`;
             const res = await fetch(endpoint, {
                 headers: { Authorization: `Bearer ${token}` }
             });
@@ -362,10 +362,10 @@ export default function BandejaMensajes() {
             const token = getToken();
             const rol = getRol();
             const endpoint = rol === 'vendedor'
-                ? `${import.meta.env.VITE_BACKEND_URL}/notificaciones/vendedor/${id}/leida`
+                ? `${import.meta.env.VITE_BACKEND_URL}/api/notificaciones/vendedor/${id}/leida`
                 : rol === 'cliente'
-                    ? `${import.meta.env.VITE_BACKEND_URL}/notificaciones/cliente/${id}/leida`
-                    : `${import.meta.env.VITE_BACKEND_URL}/notificaciones/${id}/leida`;
+                    ? `${import.meta.env.VITE_BACKEND_URL}/api/notificaciones/cliente/${id}/leida`
+                    : `${import.meta.env.VITE_BACKEND_URL}/api/notificaciones/${id}/leida`;
             const res = await fetch(endpoint, {
                 method: 'PATCH',
                 headers: { Authorization: `Bearer ${token}` }
@@ -378,7 +378,7 @@ export default function BandejaMensajes() {
         setGestionando(id);
         try {
             const token = getToken();
-            const res = await fetch(`${import.meta.env.VITE_BACKEND_URL}/notificaciones/${id}/${decision}`, {
+            const res = await fetch(`${import.meta.env.VITE_BACKEND_URL}/api/notificaciones/${id}/${decision}`, {
                 method: 'PATCH',
                 headers: { Authorization: `Bearer ${token}` }
             });
@@ -398,7 +398,7 @@ export default function BandejaMensajes() {
     const moverAPendiente = async (id) => {
         try {
             const token = getToken();
-            const res = await fetch(`${import.meta.env.VITE_BACKEND_URL}/notificaciones/${id}/pendiente`, {
+            const res = await fetch(`${import.meta.env.VITE_BACKEND_URL}/api/notificaciones/${id}/pendiente`, {
                 method: 'PATCH',
                 headers: { Authorization: `Bearer ${token}` }
             });

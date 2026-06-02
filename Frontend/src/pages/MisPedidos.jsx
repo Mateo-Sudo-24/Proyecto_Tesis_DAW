@@ -201,7 +201,7 @@ const ProgressBar = ({ estadoOrden, estadoPago, tipoEntrega, isVendedor, ordenId
         setUpdating(true);
         try {
             const res = await fetch(
-                `${import.meta.env.VITE_BACKEND_URL}/ordenes/${ordenId}`,
+                `${import.meta.env.VITE_BACKEND_URL}/api/ordenes/${ordenId}`,
                 {
                     method: 'PATCH',
                     headers: {
@@ -311,7 +311,7 @@ const OrdenCard = ({ orden: ordenInicial, index, isVendedor, token }) => {
     const confirmarPago = async () => {
         setActualizandoPago(true);
         try {
-            const res = await fetch(`${import.meta.env.VITE_BACKEND_URL}/ordenes/${orden._id}`, {
+            const res = await fetch(`${import.meta.env.VITE_BACKEND_URL}/api/ordenes/${orden._id}`, {
                 method: 'PATCH',
                 headers: {
                     'Content-Type': 'application/json',
@@ -469,7 +469,7 @@ const MisPedidos = () => {
         const fetchOrdenes = async () => {
             if (!token) return;
             try {
-                const url = `${import.meta.env.VITE_BACKEND_URL}/ordenes`;
+                const url = `${import.meta.env.VITE_BACKEND_URL}/api/ordenes`;
                 const res = await fetch(url, {
                     headers: { Authorization: `Bearer ${token}` },
                 });

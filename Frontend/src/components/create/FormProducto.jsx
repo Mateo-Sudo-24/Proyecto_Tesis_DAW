@@ -149,7 +149,7 @@ export const FormProducto = ({ productoToUpdate, onSuccess, onCancel }) => {
     useEffect(() => {
         const fetchCategorias = async () => {
             try {
-                const res = await fetch(`${import.meta.env.VITE_BACKEND_URL}/productos/categorias`, {
+                const res = await fetch(`${import.meta.env.VITE_BACKEND_URL}/api/productos/categorias`, {
                     headers: { Authorization: `Bearer ${token}` }
                 });
                 if (!res.ok) throw new Error();
@@ -267,8 +267,8 @@ export const FormProducto = ({ productoToUpdate, onSuccess, onCancel }) => {
             if (finalImagenId) formData.append('imagenID', finalImagenId);
 
             const url = isEdit
-                ? `${import.meta.env.VITE_BACKEND_URL}/productos/${productoToUpdate._id}`
-                : `${import.meta.env.VITE_BACKEND_URL}/productos`;
+                ? `${import.meta.env.VITE_BACKEND_URL}/api/productos/${productoToUpdate._id}`
+                : `${import.meta.env.VITE_BACKEND_URL}/api/productos`;
             const method = isEdit ? 'PUT' : 'POST';
 
             const res = await fetch(url, {

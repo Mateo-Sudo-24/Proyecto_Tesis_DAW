@@ -43,7 +43,7 @@ const useOrderStore = create((set, get) => ({
         }
 
         try {
-            const url = `${import.meta.env.VITE_BACKEND_URL}/ordenes`;
+            const url = `${import.meta.env.VITE_BACKEND_URL}/api/ordenes`;
             const response = await fetch(url, {
                 method: 'POST',
                 headers: config.headers,
@@ -81,7 +81,7 @@ const useOrderStore = create((set, get) => ({
         if (!config) return set({ loading: false });
 
         try {
-            const url = `${import.meta.env.VITE_BACKEND_URL}/ordenes`;
+            const url = `${import.meta.env.VITE_BACKEND_URL}/api/ordenes`;
             const response = await fetch(url, {
                 method: 'GET',
                 headers: config.headers,
@@ -110,7 +110,7 @@ const useOrderStore = create((set, get) => ({
         if (!config) return set({ loading: false });
 
         try {
-            const url = `${import.meta.env.VITE_BACKEND_URL}/ordenes/${id}`;
+            const url = `${import.meta.env.VITE_BACKEND_URL}/api/ordenes/${id}`;
             const response = await fetch(url, {
                 method: 'GET',
                 headers: config.headers,
@@ -140,7 +140,7 @@ const useOrderStore = create((set, get) => ({
         if (!config) return set({ loading: false });
 
         try {
-            const url = `${import.meta.env.VITE_BACKEND_URL}/ordenes/${id}`;
+            const url = `${import.meta.env.VITE_BACKEND_URL}/api/ordenes/${id}`;
             const response = await fetch(url, {
                 method: 'PATCH',
                 headers: config.headers,

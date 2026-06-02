@@ -255,7 +255,7 @@ export const Register = () => {
     const checkEmailExists = async (email) => {
         if (!email || validarEmailRealista(email) !== true) return;
         try {
-            const url = `${import.meta.env.VITE_BACKEND_URL}/auth/check-email`;
+            const url = `${import.meta.env.VITE_BACKEND_URL}/api/auth/check-email`;
             const response = await fetchDataBackend(url, { email }, 'POST');
             if (response?.existe) {
                 setError("email", { type: "manual", message: "El correo ya está registrado" });
@@ -268,7 +268,7 @@ export const Register = () => {
     };
 
     const registro = async (data) => {
-        const url = `${import.meta.env.VITE_BACKEND_URL}/clientes/registro`;
+        const url = `${import.meta.env.VITE_BACKEND_URL}/api/clientes/registro`;
         const response = await fetchDataBackend(url, data, 'POST');
         if (response) {
             setTimeout(() => {

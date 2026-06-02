@@ -1,4 +1,4 @@
-const BACKEND_URL = import.meta.env.VITE_BACKEND_URL;
+const BACKEND_URL = `${import.meta.env.VITE_BACKEND_URL}/api`;
 
 export const consultarGroqBackendCompleto = async (mensaje, imagenBase64 = null, historial = [], imagenesBase64 = []) => {
     try {

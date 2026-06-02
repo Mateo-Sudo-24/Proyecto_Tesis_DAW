@@ -306,7 +306,7 @@ const Productos = () => {
                     limite,
                     busqueda: debouncedSearch
                 });
-                const res = await fetch(`${import.meta.env.VITE_BACKEND_URL}/productos?${params.toString()}`);
+                const res = await fetch(`${import.meta.env.VITE_BACKEND_URL}/api/productos?${params.toString()}`);
                 const data = await res.json();
                 setProductos(data.productos || []);
                 setTotalPaginas(data.totalPaginas || 1);
@@ -337,7 +337,7 @@ const Productos = () => {
         setAgregando(productoId);
         const toastId = toast.loading(`${nombreProducto || 'Producto'} se está agregando al carrito...`);
         try {
-            const res = await fetch(`${import.meta.env.VITE_BACKEND_URL}/carrito/items`, {
+            const res = await fetch(`${import.meta.env.VITE_BACKEND_URL}/api/carrito/items`, {
                 method: "POST",
                 headers: { "Content-Type": "application/json", Authorization: `Bearer ${token}` },
                 body: JSON.stringify({ productoId, cantidad, unidadSeleccionada }),
