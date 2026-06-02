@@ -1,4 +1,4 @@
-import { toast } from 'react-toastify';
+﻿import { toast } from 'react-toastify';
 import 'react-toastify/dist/ReactToastify.css';
 import { useEffect, useState } from 'react';
 import useFetch from '../hooks/useFetch';
@@ -7,7 +7,7 @@ import { useForm } from 'react-hook-form';
 import PasswordInput from '../components/ui/PasswordInput';
 
 const resetStyles = `
-    /* ─── Layout ─── */
+    /* â”€â”€â”€ Layout â”€â”€â”€ */
     .reset-wrapper {
         display: flex;
         height: 100vh;
@@ -18,7 +18,7 @@ const resetStyles = `
         justify-content: center;
     }
 
-    /* ─── Card ─── */
+    /* â”€â”€â”€ Card â”€â”€â”€ */
     .reset-card {
         width: 100%;
         max-width: 460px;
@@ -32,7 +32,7 @@ const resetStyles = `
         margin: 1.5rem;
     }
 
-    /* ─── Logo / Ícono ─── */
+    /* â”€â”€â”€ Logo / Ãcono â”€â”€â”€ */
     .reset-logo {
         text-align: center;
         font-size: 1.75rem;
@@ -56,7 +56,7 @@ const resetStyles = `
     }
     .reset-icon svg { color: #92400e; }
 
-    /* ─── Encabezado ─── */
+    /* â”€â”€â”€ Encabezado â”€â”€â”€ */
     .reset-title {
         font-size: 2rem;
         font-weight: 900;
@@ -72,7 +72,7 @@ const resetStyles = `
         text-align: center;
     }
 
-    /* ─── Token inválido ─── */
+    /* â”€â”€â”€ Token invÃ¡lido â”€â”€â”€ */
     .reset-invalid {
         text-align: center;
         padding: 2rem 0 1rem;
@@ -83,7 +83,7 @@ const resetStyles = `
         margin-bottom: 1.5rem;
     }
 
-    /* ─── Grupos de campo ─── */
+    /* â”€â”€â”€ Grupos de campo â”€â”€â”€ */
     .reset-field {
         margin-bottom: 1.75rem;
     }
@@ -149,7 +149,7 @@ const resetStyles = `
         font-weight: 500;
     }
 
-    /* ─── Botón principal ─── */
+    /* â”€â”€â”€ BotÃ³n principal â”€â”€â”€ */
     .reset-btn-primary {
         width: 100%;
         display: flex;
@@ -177,7 +177,7 @@ const resetStyles = `
     .reset-btn-primary:active:not(:disabled) { transform: scale(0.97); }
     .reset-btn-primary:disabled { opacity: 0.6; cursor: not-allowed; }
 
-    /* ─── Footer del card ─── */
+    /* â”€â”€â”€ Footer del card â”€â”€â”€ */
     .reset-footer {
         display: flex;
         justify-content: center;
@@ -211,26 +211,27 @@ const Reset = () => {
     const navigate = useNavigate();
     const [tokenback, setTokenBack] = useState(false);
     const [isLoading, setIsLoading] = useState(false);
-    const { register, handleSubmit, formState: { errors } } = useForm();
+    const { register, handleSubmit, watch, formState: { errors } } = useForm();
+    const password = watch("password");
 
     const changePassword = async (data) => {
-        if (data.password !== data.confirmpassword) {
-            toast.error("Las contraseñas no coinciden");
+        if (data.password !== data.passwordConfirmar) {
+            toast.error("Las contraseÃ±as no coinciden");
             return;
         }
         setIsLoading(true);
         try {
             const url = `${import.meta.env.VITE_BACKEND_URL}/clientes/nuevo-password/${token}`;
-            const response = await fetchDataBackend(url, data, 'POST');
+            const response = await fetchDataBackend(url, { password: data.password }, 'POST');
 
             if (response?.msg) {
                 toast.success(response.msg);
                 setTimeout(() => navigate('/login'), 3000);
             } else {
-                toast.error("Hubo un error al cambiar la contraseña");
+                toast.error("Hubo un error al cambiar la contraseÃ±a");
             }
         } catch (error) {
-            toast.error("Error inesperado al cambiar la contraseña");
+            toast.error("Error inesperado al cambiar la contraseÃ±a");
         } finally {
             setIsLoading(false);
         }
@@ -245,7 +246,7 @@ const Reset = () => {
                     toast.success(response.msg);
                     setTokenBack(true);
                 } else {
-                    toast.error("Token inválido o expirado");
+                    toast.error("Token invÃ¡lido o expirado");
                 }
             } catch (error) {
                 toast.error("Error al verificar el token");
@@ -262,28 +263,31 @@ const Reset = () => {
                 {/* Logo */}
                 <p className="reset-logo">In<span>tex</span></p>
 
-                {/* Ícono candado */}
+                {/* Ãcono candado */}
                 <div className="reset-icon">
                     <LockIcon />
                 </div>
 
                 {/* Encabezado */}
-                <h1 className="reset-title">Nueva contraseña</h1>
-                <p className="reset-subtitle">Ingresa y confirma tu nueva contraseña</p>
+                <h1 className="reset-title">Nueva contraseÃ±a</h1>
+                <p className="reset-subtitle">Ingresa y confirma tu nueva contraseÃ±a</p>
 
                 {tokenback ? (
                     <form onSubmit={handleSubmit(changePassword)} noValidate>
-                        {/* Nueva contraseña */}
+                        {/* Nueva contraseÃ±a */}
                         <div className="reset-field">
                             <label htmlFor="password" className="reset-label">
-                                Nueva contraseña
+                                Nueva contraseÃ±a
                             </label>
                             <div className="reset-input-wrapper">
                                 <PasswordInput
                                     id="password"
-                                    placeholder="••••••••"
+                                    placeholder="â€¢â€¢â€¢â€¢â€¢â€¢â€¢â€¢"
                                     className={`reset-input${errors.password ? ' input-error' : ''}`}
-                                    {...register("password", { required: "La contraseña es obligatoria" })}
+                                    {...register("password", {
+                                        required: "La contrasena es obligatoria",
+                                        minLength: { value: 8, message: "Minimo 8 caracteres" }
+                                    })}
                                 />
                             </div>
                             {errors.password && (
@@ -296,44 +300,46 @@ const Reset = () => {
                             )}
                         </div>
 
-                        {/* Confirmar contraseña */}
+                        {/* Confirmar contrasena */}
                         <div className="reset-field">
-                            <label htmlFor="confirmpassword" className="reset-label">
-                                Confirmar contraseña
+                            <label htmlFor="passwordConfirmar" className="reset-label">
+                                Confirmar contrasena
                             </label>
                             <div className="reset-input-wrapper">
                                 <PasswordInput
-                                    id="confirmpassword"
-                                    placeholder="••••••••"
-                                    className={`reset-input${errors.confirmpassword ? ' input-error' : ''}`}
-                                    {...register("confirmpassword", { required: "La confirmación es obligatoria" })}
+                                    id="passwordConfirmar"
+                                    placeholder="Minimo 8 caracteres"
+                                    className={`reset-input${errors.passwordConfirmar ? ' input-error' : ''}`}
+                                    {...register("passwordConfirmar", {
+                                        required: "La confirmacion es obligatoria",
+                                        validate: value => value === password || "Las contrasenas no coinciden"
+                                    })}
                                 />
                             </div>
-                            {errors.confirmpassword && (
+                            {errors.passwordConfirmar && (
                                 <p className="reset-error-msg">
                                     <svg width="14" height="14" fill="currentColor" viewBox="0 0 20 20">
                                         <path fillRule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7 4a1 1 0 11-2 0 1 1 0 012 0zm-1-9a1 1 0 00-1 1v4a1 1 0 102 0V6a1 1 0 00-1-1z" clipRule="evenodd" />
                                     </svg>
-                                    {errors.confirmpassword.message}
+                                    {errors.passwordConfirmar.message}
                                 </p>
                             )}
                         </div>
-
-                        {/* Botón */}
+                        {/* BotÃ³n */}
                         <button type="submit" disabled={isLoading} className="reset-btn-primary">
-                            {isLoading ? 'Guardando…' : 'Cambiar contraseña'}
+                            {isLoading ? 'Guardandoâ€¦' : 'Cambiar contraseÃ±a'}
                         </button>
                     </form>
                 ) : (
                     <div className="reset-invalid">
-                        <p>Verificando el enlace de recuperación...</p>
+                        <p>Verificando el enlace de recuperaciÃ³n...</p>
                     </div>
                 )}
 
                 {/* Footer */}
                 <div className="reset-footer">
                     <Link to="/login" className="reset-back-link">
-                        ← Volver al inicio de sesión
+                        â† Volver al inicio de sesiÃ³n
                     </Link>
                 </div>
             </div>
@@ -342,3 +348,4 @@ const Reset = () => {
 };
 
 export default Reset;
+

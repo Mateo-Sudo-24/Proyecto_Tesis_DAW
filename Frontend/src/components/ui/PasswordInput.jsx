@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { forwardRef, useState } from "react";
 import PropTypes from "prop-types";
 
 const styles = `
@@ -54,13 +54,13 @@ const EyeIcon = ({ hidden }) => (
 
 EyeIcon.propTypes = { hidden: PropTypes.bool };
 
-const PasswordInput = ({ className = "", wrapperClassName = "", buttonClassName = "", ...props }) => {
+const PasswordInput = forwardRef(({ className = "", wrapperClassName = "", buttonClassName = "", ...props }, ref) => {
     const [visible, setVisible] = useState(false);
 
     return (
         <div className={`pw-input-wrap ${wrapperClassName}`.trim()}>
             <style>{styles}</style>
-            <input {...props} type={visible ? "text" : "password"} className={className} />
+            <input ref={ref} {...props} type={visible ? "text" : "password"} className={className} />
             <button
                 type="button"
                 className={`pw-toggle ${buttonClassName}`.trim()}
@@ -71,7 +71,9 @@ const PasswordInput = ({ className = "", wrapperClassName = "", buttonClassName 
             </button>
         </div>
     );
-};
+});
+
+PasswordInput.displayName = "PasswordInput";
 
 PasswordInput.propTypes = {
     className: PropTypes.string,

@@ -4,6 +4,164 @@ import { toast } from "react-toastify";
 import { FaArrowLeft, FaShoppingCart, FaStar } from "react-icons/fa";
 import storeAuth from "../context/storeAuth";
 
+const detailStyles = `
+    :root {
+        --orange-main: #e8760a;
+        --orange-dark: #c4620a;
+        --orange-light: #fde8ce;
+        --orange-border: #f0943a;
+    }
+    .pd-page {
+        min-height: 100vh;
+        background: #f9fafb;
+        font-family: 'Inter', system-ui, sans-serif;
+    }
+    .pd-header {
+        width: 100%;
+        background: #fff;
+        border-bottom: 1px solid #e5e7eb;
+        box-shadow: 0 1px 6px rgba(0,0,0,0.07);
+        position: sticky;
+        top: 0;
+        z-index: 50;
+    }
+    .pd-header-inner {
+        max-width: 1280px;
+        margin: 0 auto;
+        padding: 1rem 3rem;
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        gap: 2rem;
+    }
+    .pd-logo {
+        font-size: 2rem;
+        font-weight: 900;
+        color: var(--orange-main);
+        letter-spacing: -1px;
+        text-decoration: none;
+    }
+    .pd-logo span { color: #111827; }
+    .pd-nav {
+        display: flex;
+        gap: 2rem;
+        list-style: none;
+        margin: 0;
+        padding: 0;
+    }
+    .pd-nav a {
+        font-weight: 600;
+        font-size: 0.95rem;
+        color: #4b5563;
+        text-decoration: none;
+    }
+    .pd-nav a:hover,
+    .pd-nav a.activo {
+        color: var(--orange-main);
+        text-decoration: underline;
+    }
+    .pd-header-btns {
+        display: flex;
+        gap: 0.75rem;
+        flex-shrink: 0;
+    }
+    .pd-login,
+    .pd-register {
+        padding: 0.5rem 1.25rem;
+        border-radius: 0.5rem;
+        font-weight: 700;
+        font-size: 0.875rem;
+        text-decoration: none;
+        border: 2px solid var(--orange-main);
+    }
+    .pd-login {
+        background: var(--orange-main);
+        color: #fff;
+    }
+    .pd-login:hover { background: var(--orange-dark); border-color: var(--orange-dark); }
+    .pd-register {
+        background: #fff;
+        color: var(--orange-main);
+    }
+    .pd-register:hover { background: var(--orange-light); }
+    .pd-hero {
+        background: #1f2937;
+        color: #fff;
+        padding: 2.3rem 3rem;
+    }
+    .pd-hero-inner {
+        max-width: 1280px;
+        margin: 0 auto;
+    }
+    .pd-hero h1 {
+        margin: 0;
+        font-size: clamp(1.45rem, 3vw, 2.25rem);
+        font-weight: 900;
+    }
+    .pd-hero span { color: var(--orange-border); }
+    .pd-hero p {
+        color: #9ca3af;
+        margin: 0.35rem 0 0;
+        font-size: 0.95rem;
+    }
+    .pd-shell {
+        max-width: 1280px;
+        margin: 0 auto;
+        padding: 2.5rem 3rem;
+    }
+    .pd-back {
+        display: inline-flex;
+        align-items: center;
+        gap: 0.5rem;
+        color: #4b5563;
+        font-weight: 700;
+        font-size: 0.9rem;
+        margin-bottom: 1.4rem;
+        text-decoration: none;
+    }
+    .pd-back:hover { color: var(--orange-main); }
+    .pd-card {
+        background: #fff;
+        border-radius: 1rem;
+        box-shadow: 0 8px 28px rgba(0,0,0,0.08);
+        overflow: hidden;
+    }
+    @media (max-width: 768px) {
+        .pd-header-inner { padding: 0.75rem 1.5rem; }
+        .pd-nav { display: none; }
+        .pd-header-btns { gap: 0.5rem; }
+        .pd-login, .pd-register { padding: 0.45rem 0.75rem; }
+        .pd-hero { padding: 2rem 1.5rem; }
+        .pd-shell { padding: 1.5rem; }
+    }
+`;
+
+const PublicProductHeader = () => (
+    <>
+        <header className="pd-header">
+            <div className="pd-header-inner">
+                <Link to="/home" className="pd-logo">IN<span>TEX</span></Link>
+                <ul className="pd-nav">
+                    <li><Link to="/home">Inicio</Link></li>
+                    <li><Link to="/nosotros">Nosotros</Link></li>
+                    <li><Link to="/products" className="activo">Productos</Link></li>
+                    <li><Link to="/contacto">Contacto</Link></li>
+                </ul>
+                <div className="pd-header-btns">
+                    <Link to="/login" className="pd-login">Iniciar sesion</Link>
+                    <Link to="/register" className="pd-register">Registrarse</Link>
+                </div>
+            </div>
+        </header>
+        <section className="pd-hero">
+            <div className="pd-hero-inner">
+                <h1>Detalle de <span>Producto</span></h1>
+                <p>Consulta disponibilidad, precio y unidad de venta</p>
+            </div>
+        </section>
+    </>
+);
+
 const ProductDetails = () => {
     const { id } = useParams();
     const [producto, setProducto] = useState(null);
@@ -88,7 +246,9 @@ const ProductDetails = () => {
 
     if (loading) {
         return (
-            <div className="min-h-screen flex flex-col bg-gray-50">
+            <div className="pd-page">
+                <style>{detailStyles}</style>
+                <PublicProductHeader />
                 <div className="flex-1 flex items-center justify-center">
                     <div className="animate-pulse text-center">
                         <div className="text-5xl mb-4">⏳</div>
@@ -101,7 +261,9 @@ const ProductDetails = () => {
 
     if (!producto) {
         return (
-            <div className="min-h-screen flex flex-col bg-gray-50">
+            <div className="pd-page">
+                <style>{detailStyles}</style>
+                <PublicProductHeader />
                 <div className="flex-1 flex flex-col items-center justify-center text-center px-6">
                     <div className="text-6xl mb-4">😕</div>
                     <h2 className="text-2xl font-bold text-gray-700 mb-2">Producto no encontrado</h2>
@@ -119,14 +281,16 @@ const ProductDetails = () => {
         : producto.precio;
 
     return (
-        <div className="min-h-screen flex flex-col bg-gray-50">
+        <div className="pd-page">
+            <style>{detailStyles}</style>
+            <PublicProductHeader />
 
-            <div className="max-w-7xl mx-auto px-4 md:px-8 py-10">
-                <Link to="/products" className="inline-flex items-center gap-2 text-gray-600 hover:text-gray-900 font-semibold text-sm mb-8 transition">
+            <div className="pd-shell">
+                <Link to="/products" className="pd-back">
                     <FaArrowLeft /> Volver al catálogo
                 </Link>
 
-                <div className="bg-white rounded-2xl shadow-lg overflow-hidden">
+                <div className="pd-card">
                     <div className="grid grid-cols-1 md:grid-cols-2 gap-0">
                         {/* Image */}
                         <div className="relative bg-gray-100 h-96 md:h-auto overflow-hidden">
