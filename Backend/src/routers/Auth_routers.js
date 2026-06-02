@@ -4,7 +4,8 @@ import {
     loginUnificado,
     recuperarPasswordUnificado,
     comprobarTokenPasswordUnificado,
-    crearNuevoPasswordUnificado
+    crearNuevoPasswordUnificado,
+    verificarEmail
 } from '../controllers/Auth_controller.js';
 
 const router = Router();

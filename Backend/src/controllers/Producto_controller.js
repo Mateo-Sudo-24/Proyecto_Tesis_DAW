@@ -278,7 +278,7 @@ const actualizarProducto = async (req, res) => {
 // GET /api/productos (con la versión de filtros)
 const listarProducto = async (req, res) => {
     try {
-        const { categoria, precioMin, precioMax, busqueda, enStock, ordenarPor, orden, pagina = 1, limite = 10 } = req.query;
+        const { categoria, precioMin, precioMax, busqueda, color, enStock, ordenarPor, orden, pagina = 1, limite = 10 } = req.query;
         let filtro = { estado: { $ne: "inactivo" } };
         
         if (busqueda) {
@@ -288,6 +288,7 @@ const listarProducto = async (req, res) => {
             ];
         }
         if (categoria) filtro.categoria = categoria;
+        if (color) filtro.color = { $regex: color, $options: "i" };
         if (precioMin || precioMax) {
             filtro.precio = {};
             if (precioMin) filtro.precio.$gte = parseFloat(precioMin);

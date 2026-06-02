@@ -374,13 +374,18 @@ const Products = () => {
     // Paginación
     const [pagina, setPagina] = useState(1);
     const [totalPaginas, setTotalPaginas] = useState(1);
-    const limite = 6;
+    const limite = 8;
 
     const token = storeAuth(state => state.token);
 
     const handleImageError = (e) => {
         e.currentTarget.onerror = null;
         e.currentTarget.src = NO_IMAGE_SRC;
+    };
+
+    const cambiarPagina = (nuevaPagina) => {
+        setPagina(nuevaPagina);
+        window.scrollTo(0, 0);
     };
 
     // Debounce búsqueda
@@ -663,7 +668,7 @@ const Products = () => {
                         <div className="prod-pagination">
                             <button
                                 className="btn-pag"
-                                onClick={() => setPagina(p => Math.max(1, p - 1))}
+                                onClick={() => cambiarPagina(Math.max(1, pagina - 1))}
                                 disabled={pagina === 1}
                             >
                                 &lt;
@@ -672,14 +677,14 @@ const Products = () => {
                                 <button
                                     key={i+1}
                                     className={`btn-pag${pagina === i + 1 ? ' active' : ''}`}
-                                    onClick={() => setPagina(i + 1)}
+                                    onClick={() => cambiarPagina(i + 1)}
                                 >
                                     {i + 1}
                                 </button>
                             ))}
                             <button
                                 className="btn-pag"
-                                onClick={() => setPagina(p => Math.min(totalPaginas, p + 1))}
+                                onClick={() => cambiarPagina(Math.min(totalPaginas, pagina + 1))}
                                 disabled={pagina === totalPaginas}
                             >
                                 &gt;
