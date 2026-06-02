@@ -110,20 +110,39 @@ const crearNuevoPasswordUnificado = async (req, res) => {
     const { token } = req.params;
     const { password } = req.body;
     if (!password || password.length < 8) {
-        return res.status(400).json({ msg: "La contrasena debe tener al menos 8 caracteres." });
+        return res.status(400).json({ msg: "La contraseña debe tener al menos 8 caracteres." });
     }
 
     try {
         const usuario = await buscarUsuarioPorToken(token);
-        if (!usuario) return res.status(404).json({ msg: "El enlace no es valido o ya ha expirado." });
+        if (!usuario) return res.status(404).json({ msg: "El enlace no es válido o ya ha expirado." });
 
         usuario.password = password;
         usuario.token = null;
         await usuario.save();
 
-        return res.status(200).json({ msg: "Contrasena restablecida correctamente. Ya puedes iniciar sesion." });
+        return res.status(200).json({ msg: "Contraseña restablecida correctamente. Ya puedes iniciar sesión." });
     } catch (error) {
-        return res.status(500).json({ msg: "Error al guardar la nueva contrasena." });
+        return res.status(500).json({ msg: "Error al guardar la nueva contraseña." });
+    }
+};
+
+const verificarEmail = async (req, res) => {
+    const { email } = req.body;
+    if (!email) return res.status(400).json({ msg: "El email es requerido." });
+
+    try {
+        const emailNormalizado = normalizarEmail(email);
+        const usuario = await buscarUsuarioPorEmail(emailNormalizado);
+
+        if (usuario) {
+            return res.json({ existe: true, msg: "El correo electrónico ya está registrado." });
+        }
+
+        return res.json({ existe: false, msg: "El correo electrónico está disponible." });
+    } catch (error) {
+        console.error("Error al verificar email:", error);
+        return res.status(500).json({ msg: "Error al verificar la disponibilidad del correo." });
     }
 };
 
@@ -132,4 +151,5 @@ export {
     recuperarPasswordUnificado,
     comprobarTokenPasswordUnificado,
     crearNuevoPasswordUnificado,
+    verificarEmail
 };

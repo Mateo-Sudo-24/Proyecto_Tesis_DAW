@@ -112,7 +112,7 @@ const registerStyles = `
         font-weight: 600;
         pointer-events: none;
         white-space: nowrap;
-    }
+    }
     .reg-error-msg {
         display: flex;
         align-items: center;
@@ -247,9 +247,25 @@ const ErrorMsg = ({ msg }) => (
 );
 
 export const Register = () => {
-    const { register, handleSubmit, formState: { errors } } = useForm();
+    const { register, handleSubmit, watch, formState: { errors }, setError, clearErrors } = useForm();
     const { fetchDataBackend, isLoading } = useFetch();
     const navigate = useNavigate();
+    const emailValue = watch("email");
+
+    const checkEmailExists = async (email) => {
+        if (!email || validarEmailRealista(email) !== true) return;
+        try {
+            const url = `${import.meta.env.VITE_BACKEND_URL}/auth/check-email`;
+            const response = await fetchDataBackend(url, { email }, 'POST');
+            if (response?.existe) {
+                setError("email", { type: "manual", message: "El correo ya está registrado" });
+            } else {
+                clearErrors("email");
+            }
+        } catch (error) {
+            console.error("Error al verificar email:", error);
+        }
+    };
 
     const registro = async (data) => {
         const url = `${import.meta.env.VITE_BACKEND_URL}/clientes/registro`;
@@ -362,6 +378,7 @@ export const Register = () => {
                                     setValueAs: value => String(value || '').trim().toLowerCase(),
                                     validate: validarEmailRealista
                                 })}
+                                onBlur={(e) => checkEmailExists(e.target.value)}
                             />
                             {errors.email && <ErrorMsg msg={errors.email.message} />}
                         </div>

@@ -13,5 +13,6 @@ router.post('/login', validateLogin, loginUnificado);
 router.post('/recuperar-password', validatePasswordRecovery, recuperarPasswordUnificado);
 router.get('/recuperar-password/:token', comprobarTokenPasswordUnificado);
 router.post('/nuevo-password/:token', validatePasswordReset, crearNuevoPasswordUnificado);
+router.post('/check-email', verificarEmail);
 
 export default router;

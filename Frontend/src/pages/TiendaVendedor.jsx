@@ -31,6 +31,18 @@ const styles = `
     @media (min-width:700px) { .tv-grid { grid-template-columns:repeat(2,minmax(0,1fr)); } }
     @media (min-width:1120px) { .tv-grid { grid-template-columns:repeat(3,minmax(0,1fr)); } }
     @media (max-width:980px) { .tv-layout { grid-template-columns:1fr; } }
+
+    /* Paginación y Búsqueda */
+    .tv-search-bar { position: relative; margin-bottom: 1rem; width: 100%; max-width: 400px; }
+    .tv-search-icon { position: absolute; left: 0.8rem; top: 50%; transform: translateY(-50%); color: #9ca3af; }
+    .tv-search-input { width: 100%; padding: 0.6rem 1rem 0.6rem 2.4rem; border: 1.5px solid #e5e7eb; border-radius: 0.6rem; font-size: 0.875rem; outline: none; transition: border-color 0.2s; }
+    .tv-search-input:focus { border-color: #e8760a; }
+
+    .tv-pagination { display: flex; justify-content: center; align-items: center; gap: 0.5rem; margin-top: 1.5rem; }
+    .tv-btn-pag { width: 34px; height: 34px; display: flex; align-items: center; justify-content: center; border: 1.5px solid #e5e7eb; background: #fff; color: #374151; border-radius: 0.4rem; font-size: 0.82rem; font-weight: 700; cursor: pointer; transition: all 0.15s; }
+    .tv-btn-pag:hover:not(:disabled) { border-color: #e8760a; color: #e8760a; }
+    .tv-btn-pag.active { background: #e8760a; color: #fff; border-color: #e8760a; }
+    .tv-btn-pag:disabled { opacity: 0.4; cursor: not-allowed; }
     @media (max-width:640px) {
         .tv-page { padding:0.85rem; }
         .tv-header { align-items:stretch; }
@@ -91,6 +103,9 @@ const TiendaVendedor = () => {
     const { user } = storeProfile();
     const navigate = useNavigate();
     const [productos, setProductos] = useState([]);
+    const [pagina, setPagina] = useState(1);
+    const [paginas, setPaginas] = useState(1);
+    const [busqueda, setBusqueda] = useState("");
     const [loading, setLoading] = useState(true);
     const [cantidades, setCantidades] = useState({});
     const [unidades, setUnidades] = useState({});
@@ -119,19 +134,24 @@ const TiendaVendedor = () => {
     };
 
     useEffect(() => {
-        const cargar = async () => {
-            try {
-                const res = await fetch(`${import.meta.env.VITE_BACKEND_URL}/productos?limite=100`);
-                const data = await res.json();
-                setProductos(data.productos || data || []);
-            } catch {
-                toast.error("No se pudieron cargar los productos.");
-            } finally {
-                setLoading(false);
-            }
-        };
-        cargar();
-    }, []);
+        const timeoutId = setTimeout(() => {
+            const cargar = async () => {
+                setLoading(true);
+                try {
+                    const res = await fetch(`${import.meta.env.VITE_BACKEND_URL}/productos?pagina=${pagina}&limite=6&busqueda=${busqueda}`);
+                    const data = await res.json();
+                    setProductos(data.productos || []);
+                    setPaginas(data.paginas || 1);
+                } catch {
+                    toast.error("No se pudieron cargar los productos.");
+                } finally {
+                    setLoading(false);
+                }
+            };
+            cargar();
+        }, busqueda ? 500 : 0);
+        return () => clearTimeout(timeoutId);
+    }, [pagina, busqueda]);
 
     const totales = useMemo(() => {
         const subtotalBruto = carrito.reduce((sum, item) => {
@@ -291,10 +311,24 @@ const TiendaVendedor = () => {
                 </div>
 
                 <div className="tv-layout">
-                    <div className="tv-grid">
-                        {loading ? (
-                            <div className="tv-cart-empty">Cargando productos...</div>
-                        ) : productos.map(producto => {
+                    <div>
+                        <div className="tv-search-bar">
+                            <span className="tv-search-icon">🔍</span>
+                            <input
+                                type="text"
+                                className="tv-search-input"
+                                placeholder="Buscar productos..."
+                                value={busqueda}
+                                onChange={(e) => { setBusqueda(e.target.value); setPagina(1); }}
+                            />
+                        </div>
+
+                        <div className="tv-grid">
+                            {loading ? (
+                                <div className="tv-cart-empty">Cargando productos...</div>
+                            ) : productos.length === 0 ? (
+                                <div className="tv-cart-empty">No se encontraron productos.</div>
+                            ) : productos.map(producto => {
                             const unidadDefault = producto.unidadVenta === 'rollo' ? 'rollo' : 'metro';
                             const unidad = unidades[producto._id] || unidadDefault;
                             const metros = Number(producto.metrosDisponibles) || 0;
@@ -330,6 +364,23 @@ const TiendaVendedor = () => {
                                 </article>
                             );
                         })}
+                        </div>
+
+                        {paginas > 1 && (
+                            <div className="tv-pagination">
+                                <button className="tv-btn-pag" disabled={pagina === 1} onClick={() => setPagina(p => p - 1)}>←</button>
+                                {[...Array(paginas)].map((_, i) => (
+                                    <button
+                                        key={i}
+                                        className={`tv-btn-pag${pagina === i + 1 ? ' active' : ''}`}
+                                        onClick={() => setPagina(i + 1)}
+                                    >
+                                        {i + 1}
+                                    </button>
+                                ))}
+                                <button className="tv-btn-pag" disabled={pagina === paginas} onClick={() => setPagina(p => p + 1)}>→</button>
+                            </div>
+                        )}
                     </div>
 
                     <aside className="tv-cart">
