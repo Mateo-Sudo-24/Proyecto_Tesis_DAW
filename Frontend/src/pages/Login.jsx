@@ -320,7 +320,7 @@ const Login = () => {
                 navigate('/dashboard');
             }
         } catch (error) {
-            toast.error(error.message || "Credenciales invalidas o usuario no encontrado.");
+            toast.error(error.message || "Credencial incorrecta: correo o contraseña.");
         } finally {
             setIsLoading(false);
         }

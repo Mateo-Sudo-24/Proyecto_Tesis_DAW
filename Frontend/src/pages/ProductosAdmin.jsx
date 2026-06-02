@@ -12,10 +12,10 @@ const styles = `
         --orange-border: #f0943a;
     }
 
-    /* â”€â”€ Page â”€â”€ */
+    /* ── Page ── */
     .pa-page { max-width: 1100px; margin: 0 auto; }
 
-    /* â”€â”€ Header â”€â”€ */
+    /* ── Header ── */
     .pa-header {
         display: flex;
         align-items: flex-end;
@@ -50,7 +50,7 @@ const styles = `
         border: none;
     }
 
-    /* â”€â”€ Toolbar â”€â”€ */
+    /* ── Toolbar ── */
     .pa-toolbar {
         display: flex;
         gap: 0.75rem;
@@ -107,7 +107,7 @@ const styles = `
     }
     .btn-pa-add:hover { background: var(--orange-dark); transform: translateY(-1px); }
 
-    /* â”€â”€ Spinner â”€â”€ */
+    /* ── Spinner ── */
     .pa-spinner-wrap {
         display: flex;
         justify-content: center;
@@ -123,7 +123,7 @@ const styles = `
     }
     @keyframes pa-spin { to { transform: rotate(360deg); } }
 
-    /* â”€â”€ Empty â”€â”€ */
+    /* ── Empty ── */
     .pa-empty {
         background: #fff;
         border-radius: 1rem;
@@ -135,14 +135,14 @@ const styles = `
     .pa-empty-icon { font-size: 2.5rem; margin-bottom: 0.5rem; }
     .pa-empty p { font-size: 0.9rem; margin: 0; }
 
-    /* â”€â”€ Grid â”€â”€ */
+    /* ── Grid ── */
     .pa-grid {
         display: grid;
         grid-template-columns: repeat(auto-fill, minmax(290px, 1fr));
         gap: 1.25rem;
     }
 
-    /* â”€â”€ Card â”€â”€ */
+    /* ── Card ── */
     .pa-card {
         background: #fff;
         border-radius: 1rem;
@@ -158,7 +158,7 @@ const styles = `
         transform: translateY(-2px);
     }
 
-    /* â”€â”€ Card image â”€â”€ */
+    /* ── Card image ── */
     .pa-card-img {
         position: relative;
         height: 170px;
@@ -191,7 +191,7 @@ const styles = `
         border-radius: 999px;
     }
 
-    /* â”€â”€ Card body â”€â”€ */
+    /* ── Card body ── */
     .pa-card-body {
         padding: 1rem 1.1rem;
         flex: 1;
@@ -260,7 +260,7 @@ const styles = `
     }
     .pa-color-chip b { color: #374151; }
 
-    /* â”€â”€ Card actions â”€â”€ */
+    /* ── Card actions ── */
     .pa-card-actions {
         display: flex;
         gap: 0.5rem;
@@ -292,7 +292,7 @@ const styles = `
     }
     .btn-pa-delete:hover { background: #fee2e2; }
 
-    /* â”€â”€ Modal overlay â”€â”€ */
+    /* ── Modal overlay ── */
     .pa-modal-overlay {
         position: fixed;
         inset: 0;

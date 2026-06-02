@@ -7,7 +7,7 @@ import { useForm } from 'react-hook-form';
 import PasswordInput from '../components/ui/PasswordInput';
 
 const resetStyles = `
-    /* â”€â”€â”€ Layout â”€â”€â”€ */
+    /* ─── Layout ─── */
     .reset-wrapper {
         display: flex;
         height: 100vh;
@@ -18,7 +18,7 @@ const resetStyles = `
         justify-content: center;
     }
 
-    /* â”€â”€â”€ Card â”€â”€â”€ */
+    /* ─── Card ─── */
     .reset-card {
         width: 100%;
         max-width: 460px;
@@ -32,7 +32,7 @@ const resetStyles = `
         margin: 1.5rem;
     }
 
-    /* â”€â”€â”€ Logo / Ícono â”€â”€â”€ */
+    /* ─── Logo / Ícono ─── */
     .reset-logo {
         text-align: center;
         font-size: 1.75rem;
@@ -56,7 +56,7 @@ const resetStyles = `
     }
     .reset-icon svg { color: #92400e; }
 
-    /* â”€â”€â”€ Encabezado â”€â”€â”€ */
+    /* ─── Encabezado ─── */
     .reset-title {
         font-size: 2rem;
         font-weight: 900;
@@ -72,7 +72,7 @@ const resetStyles = `
         text-align: center;
     }
 
-    /* â”€â”€â”€ Token inválido â”€â”€â”€ */
+    /* ─── Token inválido ─── */
     .reset-invalid {
         text-align: center;
         padding: 2rem 0 1rem;
@@ -83,7 +83,7 @@ const resetStyles = `
         margin-bottom: 1.5rem;
     }
 
-    /* â”€â”€â”€ Grupos de campo â”€â”€â”€ */
+    /* ─── Grupos de campo ─── */
     .reset-field {
         margin-bottom: 1.75rem;
     }
@@ -133,7 +133,7 @@ const resetStyles = `
         font-weight: 500;
     }
 
-    /* â”€â”€â”€ Botón principal â”€â”€â”€ */
+    /* ─── Botón principal ─── */
     .reset-btn-primary {
         width: 100%;
         display: flex;
@@ -161,7 +161,7 @@ const resetStyles = `
     .reset-btn-primary:active:not(:disabled) { transform: scale(0.97); }
     .reset-btn-primary:disabled { opacity: 0.6; cursor: not-allowed; }
 
-    /* â”€â”€â”€ Footer del card â”€â”€â”€ */
+    /* ─── Footer del card ─── */
     .reset-footer {
         display: flex;
         justify-content: center;
@@ -266,7 +266,7 @@ const Reset = () => {
                             <div className="reset-input-wrapper">
                                 <PasswordInput
                                     id="password"
-                                    placeholder="â€¢â€¢â€¢â€¢â€¢â€¢â€¢â€¢"
+                                    placeholder="••••••••"
                                     className={`reset-input${errors.password ? ' input-error' : ''}`}
                                     {...register("password", {
                                         required: "La contrasena es obligatoria",
@@ -311,7 +311,7 @@ const Reset = () => {
                         </div>
                         {/* Botón */}
                         <button type="submit" disabled={isLoading} className="reset-btn-primary">
-                            {isLoading ? 'Guardandoâ€¦' : 'Cambiar contraseña'}
+                            {isLoading ? 'Guardando…' : 'Cambiar contraseña'}
                         </button>
                     </form>
                 ) : (
@@ -323,7 +323,7 @@ const Reset = () => {
                 {/* Footer */}
                 <div className="reset-footer">
                     <Link to="/login" className="reset-back-link">
-                        â† Volver al inicio de sesión
+                        ← Volver al inicio de sesión
                     </Link>
                 </div>
             </div>

@@ -75,7 +75,7 @@ const modalStyles = `
         --gray-900: #111827;
     }
 
-    /* â”€â”€ Overlay â”€â”€ */
+    /* ── Overlay ── */
     .mop-overlay {
         position: fixed;
         inset: 0;
@@ -84,7 +84,7 @@ const modalStyles = `
         backdrop-filter: blur(2px);
     }
 
-    /* â”€â”€ Modal container â”€â”€ */
+    /* ── Modal container ── */
     .mop-modal {
         position: fixed;
         top: 50%;
@@ -103,7 +103,7 @@ const modalStyles = `
         font-family: 'DM Sans', system-ui, sans-serif;
     }
 
-    /* â”€â”€ Modal header â”€â”€ */
+    /* ── Modal header ── */
     .mop-header {
         display: flex;
         align-items: center;
@@ -153,7 +153,7 @@ const modalStyles = `
     }
     .mop-close:hover { background: rgba(255,255,255,0.16); color: #fff; }
 
-    /* â”€â”€ Scrollable body â”€â”€ */
+    /* ── Scrollable body ── */
     .mop-body {
         flex: 1;
         min-height: 0;
@@ -171,7 +171,7 @@ const modalStyles = `
     .mop-body::-webkit-scrollbar-thumb { background: #d1d5db; border-radius: 999px; border: 2px solid var(--gray-100); }
     .mop-body::-webkit-scrollbar-thumb:hover { background: var(--gray-400); }
 
-    /* â”€â”€ Footer â”€â”€ */
+    /* ── Footer ── */
     .mop-footer {
         padding: 0.875rem 1.25rem;
         background: var(--gray-50);
@@ -273,7 +273,7 @@ const modalStyles = `
     .op-qr-box strong { display: block; color: var(--gray-900); margin-bottom: 0.35rem; }
     .op-qr-box p { margin: 0; color: var(--gray-600); font-size: 0.8rem; line-height: 1.45; }
 
-    /* â”€â”€ Mapa collapsible â”€â”€ */
+    /* ── Mapa collapsible ── */
     .mop-mapa-toggle {
         display: flex;
         align-items: center;
@@ -321,7 +321,7 @@ const modalStyles = `
         background: var(--gray-100);
     }
 
-    /* â”€â”€ Items table â”€â”€ */
+    /* ── Items table ── */
     .mop-items-header {
         display: grid;
         grid-template-columns: 1fr 64px 86px 86px;
@@ -353,7 +353,7 @@ const modalStyles = `
         overflow-y: auto;
     }
 
-    /* â”€â”€ Totals â”€â”€ */
+    /* ── Totals ── */
     .op-totales {
         padding: 0.875rem 1.25rem;
         border-top: 1px solid var(--gray-200);
@@ -382,7 +382,7 @@ const modalStyles = `
         margin-top: 0.2rem;
     }
 
-    /* â”€â”€ Action buttons â”€â”€ */
+    /* ── Action buttons ── */
     .op-btn-reset {
         padding: 0.6rem 1.1rem;
         background: none;
@@ -416,7 +416,7 @@ const modalStyles = `
     .op-btn-pdf:hover { background: var(--orange-dark); transform: translateY(-1px); }
     .op-btn-pdf:disabled { opacity: 0.6; cursor: not-allowed; transform: none; }
 
-    /* â”€â”€ PDF template (removed) â”€â”€ */
+    /* ── PDF template (removed) ── */
     .pdf-template { display: none; }
     .pdf-top {
         display: flex;
