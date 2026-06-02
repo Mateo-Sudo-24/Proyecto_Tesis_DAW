@@ -6,6 +6,7 @@ import ModalOrdenPago from "./ModalOrdenPago.jsx";
 import ConfirmDialog from "../ui/ConfirmDialog.jsx";
 import { calcularDesglose } from "./ordenLocal.js";
 import storeProfile from "../../context/storeProfile";
+import { toast } from "react-toastify";
 
 const ENVIO_BASE = 2.5;
 
@@ -437,6 +438,7 @@ const Carrito = () => {
     const [showModalPago, setShowModalPago] = useState(false);
     const [ordenCreada, setOrdenCreada] = useState(null);
     const [pedidoExitoso, setPedidoExitoso] = useState(null); // { orden, facturacion }
+    const [cantidadDrafts, setCantidadDrafts] = useState({});
     const { fetchDataBackend } = useFetch();
 
     const getNombreVendedor = (vendedor) => {
@@ -481,14 +483,55 @@ const Carrito = () => {
 
     // Cambiar cantidad o unidad
     const cambiarCantidad = async (productoId, cantidad, unidadSeleccionada) => {
-        const cant = parseFloat(cantidad);
-        if (!cant || cant <= 0) return;
+        const cant = Number(cantidad);
+        if (!Number.isFinite(cant) || cant <= 0) return null;
         const response = await fetchDataBackend(
             `${import.meta.env.VITE_BACKEND_URL}/carrito/items`,
             { productoId, cantidad: cant, unidadSeleccionada },
             "POST"
         );
-        if (response) setCarrito(response);
+        if (response) {
+            setCarrito(response);
+            setCantidadDrafts(prev => {
+                const next = { ...prev };
+                delete next[productoId];
+                return next;
+            });
+        }
+        return response;
+    };
+
+    const getCantidadDraft = (item) => {
+        const productoId = item.producto?._id;
+        if (!productoId) return String(item.cantidad ?? '');
+        return cantidadDrafts[productoId] ?? String(item.cantidad ?? '');
+    };
+
+    const setCantidadDraft = (productoId, value) => {
+        setCantidadDrafts(prev => ({ ...prev, [productoId]: value }));
+    };
+
+    const confirmarCantidad = async (item, unidad) => {
+        const productoId = item.producto?._id;
+        if (!productoId) return;
+
+        const raw = cantidadDrafts[productoId] ?? String(item.cantidad ?? '');
+        const text = String(raw).trim();
+        if (text === '') {
+            setCantidadDrafts(prev => ({ ...prev, [productoId]: String(item.cantidad ?? '') }));
+            return;
+        }
+
+        const cantidad = Number(text);
+        if (!Number.isFinite(cantidad) || cantidad <= 0) {
+            toast.error("Ingresa una cantidad válida.");
+            setCantidadDrafts(prev => ({ ...prev, [productoId]: String(item.cantidad ?? '') }));
+            return;
+        }
+
+        const cantidadFinal = unidad === 'rollo' ? Math.ceil(cantidad) : cantidad;
+        setCantidadDrafts(prev => ({ ...prev, [productoId]: String(cantidadFinal) }));
+        await cambiarCantidad(productoId, cantidadFinal, unidad);
     };
 
     // Eliminar item
@@ -656,7 +699,11 @@ const Carrito = () => {
                                                         <select
                                                             className="cart-select"
                                                             value={unidad}
-                                                            onChange={e => cambiarCantidad(item.producto?._id, e.target.value === 'rollo' ? 1 : 0.5, e.target.value)}
+                                                            onChange={e => {
+                                                                const nextCantidad = e.target.value === 'rollo' ? 1 : 0.5;
+                                                                setCantidadDraft(item.producto?._id, String(nextCantidad));
+                                                                cambiarCantidad(item.producto?._id, nextCantidad, e.target.value);
+                                                            }}
                                                         >
                                                             <option value="metro">Metro</option>
                                                             <option value="rollo">Rollo</option>
@@ -675,8 +722,12 @@ const Carrito = () => {
                                                         type="number"
                                                         min={unidad === 'rollo' ? 1 : 0.01}
                                                         step={stepCantidad}
-                                                        value={item.cantidad}
-                                                        onChange={e => cambiarCantidad(item.producto?._id, e.target.value, unidad)}
+                                                        value={getCantidadDraft(item)}
+                                                        onChange={e => setCantidadDraft(item.producto?._id, e.target.value)}
+                                                        onBlur={() => confirmarCantidad(item, unidad)}
+                                                        onKeyDown={e => {
+                                                            if (e.key === 'Enter') e.currentTarget.blur();
+                                                        }}
                                                         className="cart-qty-input"
                                                     />
                                                 </td>

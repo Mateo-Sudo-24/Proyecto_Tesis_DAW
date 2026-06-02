@@ -8,15 +8,15 @@ const ProductDetails = () => {
     const { id } = useParams();
     const [producto, setProducto] = useState(null);
     const [loading, setLoading] = useState(true);
-    const [cantidad, setCantidad] = useState(1);
+    const [cantidad, setCantidad] = useState('1');
     const [unidadSeleccionada, setUnidadSeleccionada] = useState('metro');
     const [agregando, setAgregando] = useState(false);
     const token = storeAuth(state => state.token);
 
     useEffect(() => {
-        if (producto?.unidadVenta === 'rollo') setUnidadSeleccionada('rollo');
-        else setUnidadSeleccionada('metro');
-        setCantidad(unidadSeleccionada === 'rollo' ? 1 : 0.5);
+        const nextUnidad = producto?.unidadVenta === 'rollo' ? 'rollo' : 'metro';
+        setUnidadSeleccionada(nextUnidad);
+        setCantidad(nextUnidad === 'rollo' ? '1' : '0.5');
     // eslint-disable-next-line react-hooks/exhaustive-deps
     }, [producto]);
 
@@ -42,11 +42,16 @@ const ProductDetails = () => {
             toast.info('Inicia sesión para agregar productos.');
             return;
         }
+        const cantidadNum = Number(cantidad);
+        if (!Number.isFinite(cantidadNum) || cantidadNum <= 0) {
+            toast.error('Ingresa una cantidad válida.');
+            return;
+        }
         const metrosDisponibles = producto.metrosDisponibles ?? producto.stock ?? 0;
         const metrosPorRollo = producto.metrosPorRollo || 100;
         const metrosSolicitados = unidadSeleccionada === 'rollo'
-            ? Math.ceil(cantidad) * metrosPorRollo
-            : Number(cantidad);
+            ? Math.ceil(cantidadNum) * metrosPorRollo
+            : cantidadNum;
         if (metrosSolicitados > metrosDisponibles) {
             toast.error('No hay suficiente stock disponible');
             return;
@@ -57,14 +62,14 @@ const ProductDetails = () => {
             const res = await fetch(`${import.meta.env.VITE_BACKEND_URL}/carrito/items`, {
                 method: "POST",
                 headers: { "Content-Type": "application/json", Authorization: `Bearer ${token}` },
-                body: JSON.stringify({ productoId: producto._id, cantidad, unidadSeleccionada }),
+                body: JSON.stringify({ productoId: producto._id, cantidad: unidadSeleccionada === 'rollo' ? Math.ceil(cantidadNum) : cantidadNum, unidadSeleccionada }),
             });
             if (!res.ok) {
                 const data = await res.json().catch(() => ({}));
                 throw new Error(data.msg || "Error al agregar al carrito");
             }
                 toast.update(toastId, {
-                    render: `Agregado: ${cantidad} ${unidadSeleccionada}${Number(cantidad) !== 1 ? 's' : ''} al carrito`,
+                    render: `Agregado: ${unidadSeleccionada === 'rollo' ? Math.ceil(cantidadNum) : cantidadNum} ${unidadSeleccionada}${cantidadNum !== 1 ? 's' : ''} al carrito`,
                     type: 'success',
                     isLoading: false,
                     autoClose: 2500,
@@ -202,7 +207,7 @@ const ProductDetails = () => {
                                             {['metro', 'rollo'].map(u => (
                                                 <button
                                                     key={u}
-                                                    onClick={() => { setUnidadSeleccionada(u); setCantidad(u === 'rollo' ? 1 : 0.5); }}
+                                                    onClick={() => { setUnidadSeleccionada(u); setCantidad(u === 'rollo' ? '1' : '0.5'); }}
                                                     className={`px-4 py-2 rounded-xl font-bold text-sm border-2 transition ${
                                                         unidadSeleccionada === u
                                                             ? 'border-gray-700 bg-gray-700 text-white'
@@ -224,8 +229,15 @@ const ProductDetails = () => {
                                             step={unidadSeleccionada === 'rollo' ? 1 : 0.01}
                                             value={cantidad}
                                             onChange={e => {
-                                                const v = Number(e.target.value);
-                                                if (v > 0) setCantidad(unidadSeleccionada === 'rollo' ? Math.ceil(v) : v);
+                                                setCantidad(e.target.value);
+                                            }}
+                                            onBlur={() => {
+                                                const v = Number(cantidad);
+                                                if (!Number.isFinite(v) || v <= 0) {
+                                                    setCantidad(unidadSeleccionada === 'rollo' ? '1' : '0.5');
+                                                    return;
+                                                }
+                                                setCantidad(String(unidadSeleccionada === 'rollo' ? Math.ceil(v) : v));
                                             }}
                                             className="w-28 border-2 border-gray-200 rounded-xl px-3 py-2.5 font-bold text-gray-800 text-center focus:border-gray-700 outline-none"
                                         />

@@ -18,6 +18,16 @@ const esPagoTarjetaOnline = (metodo = '') => {
         || normalizado === 'stripe';
 };
 
+const esPaymentMethodDemo = (paymentMethodId = '') => (
+    ['demo_card_4242', 'pm_card_visa', 'pm_card_mastercard'].includes(String(paymentMethodId))
+);
+
+const pagosDemoHabilitados = () => (
+    process.env.STRIPE_DEMO_MODE === 'true'
+    || !process.env.STRIPE_PRIVATE_KEY
+    || String(process.env.STRIPE_PRIVATE_KEY).startsWith('sk_test_')
+);
+
 const esPagoPresencial = (metodo = '') => {
     const normalizado = String(metodo).toLowerCase();
     return normalizado.includes('efectivo')
@@ -779,6 +789,20 @@ const procesarPagoOrden = async (req, res) => {
         // ─── Pago con Stripe (Tarjeta de Crédito / Stripe) ──────────────────
         if (!paymentMethodId) {
             return res.status(400).json({ msg: "Se requiere el ID del método de pago de Stripe." });
+        }
+        if (esPaymentMethodDemo(paymentMethodId) && pagosDemoHabilitados()) {
+            orden.estadoPago = 'completado';
+            orden.estadoOrden = 'pagado';
+            orden.fechaPago = new Date();
+            orden.pagoStripeId = paymentMethodId;
+            await orden.save();
+            await crearNotificacionPago(orden);
+            return res.status(200).json({
+                msg: "Pago demo aprobado correctamente.",
+                orden,
+                estadoPago: 'completado',
+                estadoOrden: 'pagado'
+            });
         }
         if (!stripe) {
             return res.status(503).json({ msg: "Servicio de pagos no disponible. STRIPE_PRIVATE_KEY no está configurada." });
