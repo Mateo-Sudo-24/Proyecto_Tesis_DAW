@@ -421,6 +421,26 @@ const styles = `
         transition: background 0.15s;
     }
     .btn-pa-save:hover { background: var(--orange-dark); }
+
+    /* ── Paginación ── */
+    .pa-pagination {
+        display: flex;
+        justify-content: center;
+        align-items: center;
+        gap: 0.6rem;
+        margin-top: 2.5rem;
+    }
+    .btn-pa-pag {
+        width: 38px; height: 38px;
+        display: flex; align-items: center; justify-content: center;
+        border: 1.5px solid #e5e7eb;
+        background: #fff; color: #374151;
+        border-radius: 0.5rem; font-size: 0.875rem; font-weight: 700;
+        cursor: pointer; transition: all 0.15s;
+    }
+    .btn-pa-pag:hover:not(:disabled) { border-color: var(--orange-main); color: var(--orange-main); }
+    .btn-pa-pag.active { background: var(--orange-main); color: #fff; border-color: var(--orange-main); }
+    .btn-pa-pag:disabled { opacity: 0.4; cursor: not-allowed; }
 `;
 
 const STOCK_CRITICO = 50;
@@ -429,10 +449,16 @@ const ProductosAdmin = () => {
     const [productos, setProductos] = useState([]);
     const [loading, setLoading] = useState(true);
     const [busqueda, setBusqueda] = useState('');
+    const [debouncedSearch, setDebouncedSearch] = useState('');
     const [productoEditando, setProductoEditando] = useState(null);
     const [showEditModal, setShowEditModal] = useState(false);
     const [showNuevoModal, setShowNuevoModal] = useState(false);
     const [confirmEliminarId, setConfirmEliminarId] = useState(null);
+
+    // Paginación
+    const [pagina, setPagina] = useState(1);
+    const [totalPaginas, setTotalPaginas] = useState(1);
+    const limite = 6;
 
     const token = JSON.parse(localStorage.getItem('auth-token'))?.state?.token;
 
@@ -441,13 +467,29 @@ const ProductosAdmin = () => {
         e.currentTarget.src = "/images/no-image.png";
     };
 
+    // Debounce búsqueda
+    useEffect(() => {
+        const timer = setTimeout(() => {
+            setDebouncedSearch(busqueda);
+            setPagina(1);
+        }, 500);
+        return () => clearTimeout(timer);
+    }, [busqueda]);
+
     useEffect(() => {
         const fetchProductos = async () => {
+            setLoading(true);
             try {
-                const res = await fetch(`${import.meta.env.VITE_BACKEND_URL}/productos`);
+                const params = new URLSearchParams({
+                    pagina,
+                    limite,
+                    busqueda: debouncedSearch
+                });
+                const res = await fetch(`${import.meta.env.VITE_BACKEND_URL}/productos?${params.toString()}`);
                 if (!res.ok) throw new Error(`Error ${res.status}`);
                 const data = await res.json();
-                setProductos(Array.isArray(data) ? data : data?.productos || []);
+                setProductos(data.productos || []);
+                setTotalPaginas(data.totalPaginas || 1);
             } catch {
                 toast.error('Error al cargar productos');
                 setProductos([]);
@@ -456,7 +498,7 @@ const ProductosAdmin = () => {
             }
         };
         fetchProductos();
-    }, []);
+    }, [pagina, debouncedSearch]);
 
     const eliminarProducto = async (id) => {
         try {
@@ -488,16 +530,6 @@ const ProductosAdmin = () => {
         setShowEditModal(false);
     };
 
-    // Busca en nombre, descripción y color
-    const productosFiltrados = productos.filter(p => {
-        const q = busqueda.toLowerCase();
-        return (
-            p.nombre?.toLowerCase().includes(q) ||
-            p.descripcion?.toLowerCase().includes(q) ||
-            p.color?.toLowerCase().includes(q)
-        );
-    });
-
     const stockClass = (stock) => {
         if (stock > STOCK_CRITICO) return 'pa-stock-ok';
         if (stock > 0) return 'pa-stock-low';
@@ -528,7 +560,7 @@ const ProductosAdmin = () => {
                     <div>
                         <h1 className="pa-title">Gestión de productos</h1>
                         <p className="pa-sub">
-                            {loading ? 'Cargando...' : `${productosFiltrados.length} producto${productosFiltrados.length !== 1 ? 's' : ''} encontrado${productosFiltrados.length !== 1 ? 's' : ''}`}
+                            {loading ? 'Cargando...' : `Mostrando productos ${productos.length > 0 ? (pagina-1)*limite+1 : 0} - ${(pagina-1)*limite + productos.length}`}
                         </p>
                     </div>
                 </div>
@@ -556,14 +588,15 @@ const ProductosAdmin = () => {
                     <div className="pa-spinner-wrap">
                         <div className="pa-spinner" />
                     </div>
-                ) : productosFiltrados.length === 0 ? (
+                ) : productos.length === 0 ? (
                     <div className="pa-empty">
                         <div className="pa-empty-icon">📦</div>
                         <p>{busqueda ? `Sin resultados para "${busqueda}"` : 'No hay productos registrados.'}</p>
                     </div>
                 ) : (
+                    <>
                     <div className="pa-grid">
-                        {productosFiltrados.map(producto => (
+                        {productos.map(producto => (
                             <div key={producto._id} className="pa-card">
                                 <div className="pa-card-img">
                                     {producto.imagenUrl
@@ -601,6 +634,36 @@ const ProductosAdmin = () => {
                             </div>
                         ))}
                     </div>
+
+                    {/* Paginación */}
+                    {totalPaginas > 1 && (
+                        <div className="pa-pagination">
+                            <button
+                                className="btn-pa-pag"
+                                onClick={() => setPagina(p => Math.max(1, p - 1))}
+                                disabled={pagina === 1}
+                            >
+                                &lt;
+                            </button>
+                            {[...Array(totalPaginas)].map((_, i) => (
+                                <button
+                                    key={i+1}
+                                    className={`btn-pa-pag${pagina === i + 1 ? ' active' : ''}`}
+                                    onClick={() => setPagina(i + 1)}
+                                >
+                                    {i + 1}
+                                </button>
+                            ))}
+                            <button
+                                className="btn-pa-pag"
+                                onClick={() => setPagina(p => Math.min(totalPaginas, p + 1))}
+                                disabled={pagina === totalPaginas}
+                            >
+                                &gt;
+                            </button>
+                        </div>
+                    )}
+                    </>
                 )}
             </div>
 

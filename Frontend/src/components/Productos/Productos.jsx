@@ -200,6 +200,57 @@ const styles = `
     .btn-dash-add:hover:not(:disabled) { background: var(--orange-dark); transform: translateY(-1px); }
     .btn-dash-add:disabled { opacity: 0.55; cursor: not-allowed; }
 
+    /* Búsqueda */
+    .dash-search-wrap {
+        position: relative;
+        flex: 1;
+        max-width: 400px;
+    }
+    .dash-search-icon {
+        position: absolute;
+        left: 0.85rem;
+        top: 50%;
+        transform: translateY(-50%);
+        color: #9ca3af;
+        pointer-events: none;
+    }
+    .dash-search-input {
+        width: 100%;
+        padding: 0.65rem 1rem 0.65rem 2.5rem;
+        border: 1.5px solid #e5e7eb;
+        border-radius: 0.625rem;
+        font-size: 0.875rem;
+        background: #fff;
+        color: #374151;
+        outline: none;
+        transition: border-color 0.18s, box-shadow 0.18s;
+        box-sizing: border-box;
+    }
+    .dash-search-input:focus {
+        border-color: var(--orange-main);
+        box-shadow: 0 0 0 3px rgba(232,118,10,0.1);
+    }
+
+    /* Paginación */
+    .dash-pagination {
+        display: flex;
+        justify-content: center;
+        align-items: center;
+        gap: 0.6rem;
+        margin-top: 2rem;
+    }
+    .btn-dash-pag {
+        width: 36px; height: 36px;
+        display: flex; align-items: center; justify-content: center;
+        border: 1.5px solid #e5e7eb;
+        background: #fff; color: #374151;
+        border-radius: 0.5rem; font-size: 0.85rem; font-weight: 700;
+        cursor: pointer; transition: all 0.15s;
+    }
+    .btn-dash-pag:hover:not(:disabled) { border-color: var(--orange-main); color: var(--orange-main); }
+    .btn-dash-pag.active { background: var(--orange-main); color: #fff; border-color: var(--orange-main); }
+    .btn-dash-pag:disabled { opacity: 0.4; cursor: not-allowed; }
+
     /* Vacío */
     .dash-empty {
         text-align: center; padding: 5rem 2rem;
@@ -217,6 +268,14 @@ const Productos = () => {
     const [agregando, setAgregando] = useState(null);
     const [cantidades, setCantidades] = useState({});
     const [unidades, setUnidades] = useState({});
+    const [busqueda, setBusqueda] = useState("");
+    const [debouncedSearch, setDebouncedSearch] = useState("");
+
+    // Paginación
+    const [pagina, setPagina] = useState(1);
+    const [totalPaginas, setTotalPaginas] = useState(1);
+    const limite = 6;
+
     const token = storeAuth(state => state.token);
 
     const handleImageError = (e) => {
@@ -224,12 +283,28 @@ const Productos = () => {
         e.currentTarget.src = NO_IMAGE_SRC;
     };
 
+    // Debounce búsqueda
+    useEffect(() => {
+        const timer = setTimeout(() => {
+            setDebouncedSearch(busqueda);
+            setPagina(1);
+        }, 500);
+        return () => clearTimeout(timer);
+    }, [busqueda]);
+
     useEffect(() => {
         const fetchProductos = async () => {
+            setLoading(true);
             try {
-                const res = await fetch(`${import.meta.env.VITE_BACKEND_URL}/productos?limite=12`);
+                const params = new URLSearchParams({
+                    pagina,
+                    limite,
+                    busqueda: debouncedSearch
+                });
+                const res = await fetch(`${import.meta.env.VITE_BACKEND_URL}/productos?${params.toString()}`);
                 const data = await res.json();
-                setProductos(data.productos || data);
+                setProductos(data.productos || []);
+                setTotalPaginas(data.totalPaginas || 1);
             } catch {
                 setProductos([]);
                 toast.error("Error al cargar productos.");
@@ -238,7 +313,7 @@ const Productos = () => {
             }
         };
         fetchProductos();
-    }, []);
+    }, [pagina, debouncedSearch]);
 
     const getUnidadProducto = (producto) => unidades[producto._id] || unidadDefault(producto);
     const getCantidadProducto = (producto) => cantidades[producto._id] ?? (getUnidadProducto(producto) === 'rollo' ? 1 : 1);
@@ -299,7 +374,20 @@ const Productos = () => {
             <div style={{ padding: "1.5rem" }}>
                 <div className="dash-prod-header">
                     <h2 className="dash-prod-title">Productos disponibles</h2>
-                    <span className="dash-prod-count">{productos.length} productos</span>
+
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '1rem', flex: 1, justifyContent: 'flex-end' }}>
+                        <div className="dash-search-wrap">
+                            <span className="dash-search-icon">🔍</span>
+                            <input
+                                type="text"
+                                className="dash-search-input"
+                                placeholder="Buscar productos..."
+                                value={busqueda}
+                                onChange={(e) => setBusqueda(e.target.value)}
+                            />
+                        </div>
+                        <span className="dash-prod-count">{productos.length} productos</span>
+                    </div>
                 </div>
 
                 {loading ? (
@@ -404,6 +492,36 @@ const Productos = () => {
                             </div>
                         ))}
                     </div>
+
+                    {/* Paginación */}
+                    {totalPaginas > 1 && (
+                        <div className="dash-pagination">
+                            <button
+                                className="btn-dash-pag"
+                                onClick={() => setPagina(p => Math.max(1, p - 1))}
+                                disabled={pagina === 1}
+                            >
+                                &lt;
+                            </button>
+                            {[...Array(totalPaginas)].map((_, i) => (
+                                <button
+                                    key={i+1}
+                                    className={`btn-dash-pag${pagina === i + 1 ? ' active' : ''}`}
+                                    onClick={() => setPagina(i + 1)}
+                                >
+                                    {i + 1}
+                                </button>
+                            ))}
+                            <button
+                                className="btn-dash-pag"
+                                onClick={() => setPagina(p => Math.min(totalPaginas, p + 1))}
+                                disabled={pagina === totalPaginas}
+                            >
+                                &gt;
+                            </button>
+                        </div>
+                    )}
+                    </>
                 )}
             </div>
         </>

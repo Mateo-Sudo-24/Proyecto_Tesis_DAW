@@ -321,6 +321,26 @@ const styles = `
     .btn-add-cart:disabled { opacity: 0.55; cursor: not-allowed; }
     .prod-unit-select { width:100%; border:1px solid #e5e7eb; border-radius:0.5rem; padding:0.45rem 0.55rem; font-weight:700; color:#374151; background:#fff; }
 
+    /* ── PAGINACIÓN ── */
+    .prod-pagination {
+        display: flex;
+        justify-content: center;
+        align-items: center;
+        gap: 0.75rem;
+        margin-top: 3rem;
+    }
+    .btn-pag {
+        width: 40px; height: 40px;
+        display: flex; align-items: center; justify-content: center;
+        border: 1.5px solid #e5e7eb;
+        background: #fff; color: #374151;
+        border-radius: 0.5rem; font-weight: 700;
+        cursor: pointer; transition: all 0.15s;
+    }
+    .btn-pag:hover:not(:disabled) { border-color: var(--orange-main); color: var(--orange-main); }
+    .btn-pag.active { background: var(--orange-main); color: #fff; border-color: var(--orange-main); }
+    .btn-pag:disabled { opacity: 0.4; cursor: not-allowed; }
+
     /* ── ESTADO VACÍO ── */
     .prod-empty {
         text-align: center; padding: 5rem 2rem;
@@ -340,16 +360,22 @@ const styles = `
 `;
 
 const Products = () => {
-    const [allProductos, setAllProductos]         = useState([]);
-    const [filteredProductos, setFilteredProductos] = useState([]);
+    const [productos, setProductos]               = useState([]);
     const [loading, setLoading]                   = useState(true);
     const [searchTerm, setSearchTerm]             = useState("");
+    const [debouncedSearch, setDebouncedSearch]   = useState("");
     const [priceRange, setPriceRange]             = useState([0, 10000]);
     const [selectedColor, setSelectedColor]       = useState("");
     const [showFilters, setShowFilters]           = useState(false);
     const [colors, setColors]                     = useState([]);
     const [agregando, setAgregando]               = useState(null);
     const [unidadesCompra, setUnidadesCompra]     = useState({});
+
+    // Paginación
+    const [pagina, setPagina] = useState(1);
+    const [totalPaginas, setTotalPaginas] = useState(1);
+    const limite = 6;
+
     const token = storeAuth(state => state.token);
 
     const handleImageError = (e) => {
@@ -357,39 +383,50 @@ const Products = () => {
         e.currentTarget.src = NO_IMAGE_SRC;
     };
 
+    // Debounce búsqueda
     useEffect(() => {
-        const fetchProductos = async () => {
-            try {
-                const res  = await fetch(`${import.meta.env.VITE_BACKEND_URL}/productos`);
-                const data = await res.json();
-                const productos = data.productos || data;
-                setAllProductos(productos);
-                const uniqueColors = [...new Set(productos.map(p => p.color).filter(Boolean))];
-                setColors(uniqueColors);
-                setFilteredProductos(productos);
-            } catch {
-                setAllProductos([]);
-                setFilteredProductos([]);
-            } finally {
-                setLoading(false);
+        const timer = setTimeout(() => {
+            setDebouncedSearch(searchTerm);
+            setPagina(1);
+        }, 500);
+        return () => clearTimeout(timer);
+    }, [searchTerm]);
+
+    const fetchProductos = async () => {
+        setLoading(true);
+        try {
+            const params = new URLSearchParams({
+                pagina,
+                limite,
+                busqueda: debouncedSearch,
+                precioMax: priceRange[1],
+            });
+            if (selectedColor) params.append('color', selectedColor);
+
+            const res = await fetch(`${import.meta.env.VITE_BACKEND_URL}/productos?${params.toString()}`);
+            const data = await res.json();
+
+            setProductos(data.productos || []);
+            setTotalPaginas(data.totalPaginas || 1);
+
+            // Obtener colores únicos (esto idealmente vendría de otro endpoint o se haría una vez)
+            if (colors.length === 0) {
+                const resAll = await fetch(`${import.meta.env.VITE_BACKEND_URL}/productos?limite=1000`);
+                const dataAll = await resAll.json();
+                const all = dataAll.productos || [];
+                setColors([...new Set(all.map(p => p.color).filter(Boolean))]);
             }
-        };
-        fetchProductos();
-    }, []);
+        } catch {
+            setProductos([]);
+            toast.error("Error al cargar productos");
+        } finally {
+            setLoading(false);
+        }
+    };
 
     useEffect(() => {
-        let result = allProductos;
-        if (searchTerm) {
-            result = result.filter(p =>
-                p.nombre.toLowerCase().includes(searchTerm.toLowerCase()) ||
-                p.descripcion.toLowerCase().includes(searchTerm.toLowerCase())
-            );
-        }
-        result = result.filter(p => p.precio >= priceRange[0] && p.precio <= priceRange[1]);
-        if (selectedColor) result = result.filter(p => p.color === selectedColor);
-        result = result.filter(p => p.estado === 'activo');
-        setFilteredProductos(result);
-    }, [searchTerm, priceRange, selectedColor, allProductos]);
+        fetchProductos();
+    }, [pagina, debouncedSearch, priceRange[1], selectedColor]);
 
     const handlePriceChange = (e) => setPriceRange([priceRange[0], parseInt(e.target.value)]);
 
@@ -519,13 +556,13 @@ const Products = () => {
 
                 {/* Contador */}
                 <p className="prod-count">
-                    {loading ? 'Cargando productos…' : `${filteredProductos.length} producto(s) encontrado(s)`}
+                    {loading ? 'Cargando productos…' : `Mostrando productos ${productos.length > 0 ? (pagina-1)*limite+1 : 0} - ${(pagina-1)*limite + productos.length}`}
                 </p>
 
                 {/* Grid */}
                 {loading ? (
                     <div className="prod-grid">
-                        {[...Array(8)].map((_, i) => (
+                        {[...Array(6)].map((_, i) => (
                             <div key={i} className="prod-skeleton">
                                 <div className="skeleton-img" />
                                 <div className="skeleton-body">
@@ -536,15 +573,16 @@ const Products = () => {
                             </div>
                         ))}
                     </div>
-                ) : filteredProductos.length === 0 ? (
+                ) : productos.length === 0 ? (
                     <div className="prod-empty">
                         <div className="icon">🔍</div>
                         <h3>Productos no encontrados</h3>
                         <p>No encontramos productos que coincidan con tu búsqueda.</p>
                     </div>
                 ) : (
+                    <>
                     <div className="prod-grid">
-                        {filteredProductos.map(producto => (
+                        {productos.map(producto => (
                             <div key={producto._id} className="prod-card">
                                 <div className="prod-card-img">
                                     <img
@@ -619,6 +657,36 @@ const Products = () => {
                             </div>
                         ))}
                     </div>
+
+                    {/* Paginación */}
+                    {totalPaginas > 1 && (
+                        <div className="prod-pagination">
+                            <button
+                                className="btn-pag"
+                                onClick={() => setPagina(p => Math.max(1, p - 1))}
+                                disabled={pagina === 1}
+                            >
+                                &lt;
+                            </button>
+                            {[...Array(totalPaginas)].map((_, i) => (
+                                <button
+                                    key={i+1}
+                                    className={`btn-pag${pagina === i + 1 ? ' active' : ''}`}
+                                    onClick={() => setPagina(i + 1)}
+                                >
+                                    {i + 1}
+                                </button>
+                            ))}
+                            <button
+                                className="btn-pag"
+                                onClick={() => setPagina(p => Math.min(totalPaginas, p + 1))}
+                                disabled={pagina === totalPaginas}
+                            >
+                                &gt;
+                            </button>
+                        </div>
+                    )}
+                    </>
                 )}
             </div>
         </>
