@@ -11,7 +11,18 @@ const handleValidationErrors = (req, res, next) => {
 
 // --- VALIDACIONES COMUNES ---
 // (Estas son "bloques de construcción" que usaremos más abajo)
-const validateEmail = body('email').isEmail().withMessage('Por favor, ingresa un correo electrónico válido.').normalizeEmail();
+const normalizeEmailOptions = {
+    gmail_remove_dots: false,
+    gmail_remove_subaddress: false,
+    outlookdotcom_remove_subaddress: false,
+    yahoo_remove_subaddress: false,
+    icloud_remove_subaddress: false,
+};
+const validateEmail = body('email')
+    .trim()
+    .isEmail()
+    .withMessage('Por favor, ingresa un correo electrónico válido.')
+    .normalizeEmail(normalizeEmailOptions);
 const validatePassword = body('password').isLength({ min: 8 }).withMessage('La contraseña debe tener al menos 8 caracteres.');
 const validateNombre = body('nombre').trim().notEmpty().withMessage('El nombre es obligatorio.').isAlpha('es-ES', { ignore: ' ' }).withMessage('El nombre solo puede contener letras y espacios.');
 const validateApellido = body('apellido').trim().notEmpty().withMessage('El apellido es obligatorio.').isAlpha('es-ES', { ignore: ' ' }).withMessage('El apellido solo puede contener letras y espacios.');
@@ -34,7 +45,7 @@ export const validatePasswordReset = [validatePassword, handleValidationErrors];
 export const validateProfileUpdate = [
     body('nombre').optional().trim().notEmpty().isAlpha('es-ES', { ignore: ' ' }),
     body('apellido').optional().trim().notEmpty().isAlpha('es-ES', { ignore: ' ' }),
-    body('email').optional().isEmail().normalizeEmail(),
+    body('email').optional().trim().isEmail().normalizeEmail(normalizeEmailOptions),
     handleValidationErrors
 ];
 export const validatePasswordChange = [

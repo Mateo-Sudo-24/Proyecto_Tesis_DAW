@@ -262,6 +262,25 @@ const styles = `
         font-weight: 600;
         color: #f9fafb;
     }
+    .dsb-mobile-logout {
+        display: none;
+        align-items: center;
+        justify-content: center;
+        gap: 0.35rem;
+        border: 1px solid rgba(248,113,113,0.35);
+        background: rgba(220,38,38,0.12);
+        color: #fecaca;
+        border-radius: 0.55rem;
+        padding: 0.45rem 0.65rem;
+        font-size: 0.78rem;
+        font-weight: 800;
+        cursor: pointer;
+        white-space: nowrap;
+    }
+    .dsb-mobile-logout:hover {
+        background: rgba(220,38,38,0.22);
+        color: #fff;
+    }
     .dsb-chat-alert {
         display: inline-flex;
         align-items: center;
@@ -334,6 +353,8 @@ const styles = `
         .dsb-topbar { justify-content: space-between; padding: 0.7rem 1rem; }
         .dsb-chat-alert { max-width: 48vw; padding: 0.4rem 0.6rem; }
         .dsb-chat-alert-text { max-width: 30vw; }
+        .dsb-mobile-logout { display: inline-flex; }
+        .dsb-topbar-name { display: none; }
     }
     /* Ã¢â€â‚¬Ã¢â€â‚¬ Hamburger button Ã¢â€â‚¬Ã¢â€â‚¬ */
     .dsb-hamburger {
@@ -392,7 +413,13 @@ const Dashboard = () => {
             setChatUnread(prev => prev + 1)
             setLastChatSender(msg.de?.nombre || 'un contacto')
         }
+        const aplicarResumenNoLeidos = ({ count = 0, lastSender = '' } = {}) => {
+            if (urlActual === '/dashboard/chat') return
+            setChatUnread(Number(count) || 0)
+            setLastChatSender(lastSender || '')
+        }
 
+        sock.on('chat_unread_summary', aplicarResumenNoLeidos)
         sock.on('mensaje_de_staff', registrarMensaje)
         sock.on('mensaje_de_cliente', ({ msg }) => registrarMensaje(msg))
 
@@ -545,6 +572,13 @@ const Dashboard = () => {
                                     </>
                                 )}
                             </svg>
+                        </button>
+                        <button
+                            className="dsb-mobile-logout"
+                            type="button"
+                            onClick={() => { clearToken(); clearUser(); navigate('/login'); }}
+                        >
+                            Cerrar sesión
                         </button>
                         {chatUnread > 0 && (
                             <button

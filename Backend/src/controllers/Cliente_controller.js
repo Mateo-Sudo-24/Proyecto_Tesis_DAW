@@ -6,6 +6,10 @@ import crypto from 'crypto';
 import { crearTokenJWT } from '../middlewares/JWT.js';
 import mongoose from 'mongoose';
 
+const normalizarEmail = (email = '') => String(email).toLowerCase().trim();
+const escapeRegex = (value = '') => String(value).replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+const crearEmailRegex = (email = '') => new RegExp(`^${escapeRegex(normalizarEmail(email))}$`, 'i');
+
 // ============================================================================
 // ==        BLOQUE 1: RUTAS PÚBLICAS (Registro y Autenticación)           ==
 // ============================================================================
@@ -78,10 +82,10 @@ const login = async (req, res) => {
     }
 
     try {
-        const cliente = await Cliente.findOne({ email });
+        const cliente = await Cliente.findOne({ email: crearEmailRegex(email) });
         if (!cliente) return res.status(404).json({ msg: "Usuario no encontrado." });
         if (!cliente.confirmEmail) return res.status(403).json({ msg: "Debes confirmar tu cuenta antes de iniciar sesión." });
-        if (cliente.proveedor !== 'local') return res.status(400).json({ msg: "Esta cuenta fue registrada usando Google. Por favor, inicia sesión con Google." });
+        if (cliente.proveedor && cliente.proveedor !== 'local') return res.status(400).json({ msg: "Esta cuenta fue registrada usando Google. Por favor, inicia sesión con Google." });
         
         if (!await cliente.matchPassword(password)) {
             return res.status(401).json({ msg: "Contraseña incorrecta." });
@@ -105,7 +109,14 @@ const recuperarPassword = async (req, res) => {
     if (!email) return res.status(400).json({ msg: "El correo electrónico es obligatorio." });
 
     try {
-        const cliente = await Cliente.findOne({ email, proveedor: 'local' });
+        const cliente = await Cliente.findOne({
+            email: crearEmailRegex(email),
+            $or: [
+                { proveedor: 'local' },
+                { proveedor: { $exists: false } },
+                { proveedor: null },
+            ],
+        });
         if (!cliente) return res.status(404).json({ msg: "No existe una cuenta local con ese correo." });
 
         const token = cliente.crearToken();
@@ -133,7 +144,7 @@ const comprobarTokenPassword = async (req, res) => {
 const crearNuevoPassword = async (req, res) => {
     const { token } = req.params;
     const { password } = req.body;
-    if (!password || password.length < 6) return res.status(400).json({ msg: "La contraseña es obligatoria y debe tener al menos 6 caracteres." });
+    if (!password || password.length < 8) return res.status(400).json({ msg: "La contraseña es obligatoria y debe tener al menos 8 caracteres." });
     try {
         const cliente = await Cliente.findOne({ token });
         if (!cliente) return res.status(404).json({ msg: "El enlace no es válido o ya ha expirado." });
@@ -197,7 +208,7 @@ const actualizarPerfil = async (req, res) => {
 const actualizarPassword = async (req, res) => {
     const { _id } = req.usuario;
     const { passwordActual, passwordNuevo } = req.body;
-    if (!passwordActual || !passwordNuevo || passwordNuevo.length < 6) return res.status(400).json({ msg: "Todos los campos son obligatorios y la nueva contraseña debe tener al menos 6 caracteres." });
+    if (!passwordActual || !passwordNuevo || passwordNuevo.length < 8) return res.status(400).json({ msg: "Todos los campos son obligatorios y la nueva contraseña debe tener al menos 8 caracteres." });
     
     try {
         const cliente = await Cliente.findById(_id);
@@ -264,8 +275,8 @@ const crearClientePorAdmin = async (req, res) => {
 const configurarCuentaClienteYPassword = async (req, res) => {
     const { token } = req.params;
     const { password } = req.body;
-    if (!password || password.length < 6) {
-        return res.status(400).json({ msg: "La contraseña debe tener al menos 6 caracteres." });
+    if (!password || password.length < 8) {
+        return res.status(400).json({ msg: "La contraseña debe tener al menos 8 caracteres." });
     }
     try {
         const cliente = await Cliente.findOne({ token, confirmEmail: false });

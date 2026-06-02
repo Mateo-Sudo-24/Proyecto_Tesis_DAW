@@ -397,6 +397,11 @@ const ProductDetails = () => {
     const [agregando, setAgregando] = useState(false);
     const token = storeAuth(state => state.token);
 
+    const handleImageError = (e) => {
+        e.currentTarget.onerror = null;
+        e.currentTarget.src = "/images/no-image.png";
+    };
+
     useEffect(() => {
         const nextUnidad = producto?.unidadVenta === 'rollo' ? 'rollo' : 'metro';
         setUnidadSeleccionada(nextUnidad);
@@ -523,6 +528,7 @@ const ProductDetails = () => {
                             <img
                                 src={producto.imagenUrl || "/images/no-image.png"}
                                 alt={producto.nombre}
+                                onError={handleImageError}
                             />
                             {producto.descuento > 0 && (
                                 <span className="pd-discount-badge">

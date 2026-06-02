@@ -30,6 +30,7 @@ const usuariosConectados = new Map();
 // Helper: conversationId canónico entre dos usuarios
 const convId = (a, b) => [String(a), String(b)].sort().join('_');
 const supportConvId = (clienteId) => `${String(clienteId)}_staff`;
+const escapeRegex = (value = '') => String(value).replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
 
 const isClienteId = async (id) => {
     if (!id) return false;
@@ -57,6 +58,43 @@ const isStaffId = async (id) => {
     } catch {
         return false;
     }
+};
+
+const getUnreadChatSummary = async (usuario) => {
+    const userId = String(usuario?.id || '');
+    if (!userId) return { count: 0, lastSender: '' };
+
+    const ownConversation = new RegExp(`(^|_)${escapeRegex(userId)}(_|$)`);
+    const query = {
+        visto: { $ne: true },
+        'de.id': { $ne: userId },
+        ...(usuario.rol === 'administrador'
+            ? { $or: [{ conversationId: /_staff$/, 'de.rol': 'cliente' }, { conversationId: ownConversation }] }
+            : { conversationId: ownConversation }),
+    };
+
+    const [count, lastMsg] = await Promise.all([
+        ChatMessage.countDocuments(query),
+        ChatMessage.findOne(query).sort({ createdAt: -1 }).select('de').lean(),
+    ]);
+
+    return { count, lastSender: lastMsg?.de?.nombre || '' };
+};
+
+const emitirUnreadUsuario = async (userId) => {
+    const conectado = usuariosConectados.get(String(userId));
+    if (!conectado) return;
+    try {
+        const resumen = await getUnreadChatSummary(conectado);
+        io.to(String(userId)).emit('chat_unread_summary', resumen);
+    } catch (e) {
+        console.error('Error emitiendo resumen de chat:', e.message);
+    }
+};
+
+const emitirUnreadStaff = async () => {
+    const staff = [...usuariosConectados.values()].filter(u => u.rol !== 'cliente');
+    await Promise.all(staff.map(u => emitirUnreadUsuario(u.id)));
 };
 
 // Devuelve todos los clientes, vendedores y admins ACTIVOS con su estado online
@@ -134,6 +172,7 @@ io.on('connection', async (socket) => {
 
     // Notificar a todo el staff la lista actualizada (incluyendo al recién conectado)
     await emitirListaStaff();
+    await emitirUnreadUsuario(socket.usuario.id);
 
     // Si el recién conectado es staff, enviarle la lista al instante
     if (socket.usuario.rol !== 'cliente') {
@@ -159,8 +198,10 @@ io.on('connection', async (socket) => {
 
         if (para) {
             io.to(para).emit('mensaje_de_cliente', { clienteId: socket.usuario.id, msg });
+            await emitirUnreadUsuario(para);
         } else {
             io.to('staff_room').emit('mensaje_de_cliente', { clienteId: socket.usuario.id, msg });
+            await emitirUnreadStaff();
         }
     });
 
@@ -182,9 +223,11 @@ io.on('connection', async (socket) => {
 
         if (paraEsStaff) {
             io.to(para).emit('mensaje_de_cliente', { clienteId: socket.usuario.id, msg });
+            await emitirUnreadUsuario(para);
         } else {
             io.to(para).emit('mensaje_de_staff', msg);
             io.to('staff_room').emit('mensaje_de_cliente', { clienteId: para, msg });
+            await emitirUnreadUsuario(para);
         }
     });
 
@@ -221,6 +264,7 @@ io.on('connection', async (socket) => {
         }
         // Notifica al usuario "para" que sus mensajes fueron vistos por quien emitió
         io.to(para).emit('visto_por', { de: socket.usuario.id });
+        await emitirUnreadUsuario(socket.usuario.id);
     });
 
     // ── Desconexión ──

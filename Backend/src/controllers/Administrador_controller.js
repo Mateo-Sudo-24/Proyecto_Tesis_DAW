@@ -4,6 +4,10 @@ import Vendedor from "../models/Vendedor.js";
 import { sendMailToRecoveryPassword } from "../config/nodemailer.js";
 import { crearTokenJWT } from "../middlewares/JWT.js";
 
+const normalizarEmail = (email = '') => String(email).toLowerCase().trim();
+const escapeRegex = (value = '') => String(value).replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+const crearEmailRegex = (email = '') => new RegExp(`^${escapeRegex(normalizarEmail(email))}$`, 'i');
+
 const crearAdministrador = async (req, res) => {
     try {
         const { email, password, nombre, apellido } = req.body;
@@ -40,7 +44,7 @@ const login = async (req, res) => {
     if (!email || !password) {
         return res.status(400).json({ msg: "Todos los campos son obligatorios" });
     }
-    const admin = await Administrador.findOne({ email });
+    const admin = await Administrador.findOne({ email: crearEmailRegex(email) });
     if (!admin) {
         return res.status(404).json({ msg: "Usuario administrador no encontrado." });
     }
@@ -149,7 +153,7 @@ const cambiarPassword = async (req, res) => {
 const recuperarPassword = async (req, res) => {
     const { email } = req.body;
     if (!email) return res.status(400).json({ msg: "El correo electrónico es obligatorio." });
-    const admin = await Administrador.findOne({ email });
+    const admin = await Administrador.findOne({ email: crearEmailRegex(email) });
     if (!admin) return res.status(404).json({ msg: "No existe un administrador con ese correo." });
     const token = admin.crearToken();
     admin.token = token;

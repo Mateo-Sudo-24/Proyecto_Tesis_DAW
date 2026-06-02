@@ -386,6 +386,7 @@ const Login = () => {
                                     className={`login-input${errors.email ? ' input-error' : isValidEmail ? ' input-valid' : ''}`}
                                     {...register("email", {
                                         required: "El correo es obligatorio",
+                                        setValueAs: value => String(value || '').trim().toLowerCase(),
                                         pattern: {
                                             value: /^[^\s@]+@[^\s@]+\.[^\s@]+$/,
                                             message: "Ingresa un correo válido (ej: usuario@dominio.com)"

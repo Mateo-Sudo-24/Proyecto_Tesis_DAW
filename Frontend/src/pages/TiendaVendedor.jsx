@@ -27,6 +27,14 @@ const styles = `
     @media (min-width:700px) { .tv-grid { grid-template-columns:repeat(2,minmax(0,1fr)); } }
     @media (min-width:1120px) { .tv-grid { grid-template-columns:repeat(3,minmax(0,1fr)); } }
     @media (max-width:980px) { .tv-layout { grid-template-columns:1fr; } }
+    @media (max-width:640px) {
+        .tv-page { padding:0.85rem; }
+        .tv-header { align-items:stretch; }
+        .tv-actions { width:100%; }
+        .tv-link, .tv-primary, .tv-secondary { width:100%; justify-content:center; }
+        .tv-mode-options { grid-template-columns:1fr; }
+        .tv-cart { position:static; }
+    }
     .tv-card, .tv-cart, .tv-modal { background:#fff; border:1px solid #e5e7eb; border-radius:0.875rem; box-shadow:0 2px 10px rgba(0,0,0,0.06); }
     .tv-card { overflow:hidden; display:flex; flex-direction:column; }
     .tv-img { height:150px; background:#f3f4f6; }
@@ -50,6 +58,7 @@ const styles = `
     .tv-total { border-top:1px solid #e5e7eb; margin-top:0.75rem; padding-top:0.75rem; display:grid; gap:0.35rem; font-size:0.84rem; color:#4b5563; }
     .tv-total div { display:flex; justify-content:space-between; }
     .tv-total strong { color:#111827; font-size:1rem; }
+    .tv-total .tv-primary { width:100%; justify-content:center; margin-top:0.75rem; }
     .tv-overlay { position:fixed; inset:0; background:rgba(0,0,0,0.5); z-index:60; display:flex; align-items:center; justify-content:center; padding:1rem; }
     .tv-modal { width:min(520px,96vw); padding:1.25rem; }
     .tv-modal h3 { margin:0 0 0.35rem; color:#111827; font-size:1.1rem; font-weight:900; }
@@ -84,6 +93,11 @@ const TiendaVendedor = () => {
     const [modalOpen, setModalOpen] = useState(false);
     const [guardando, setGuardando] = useState(false);
     const [cliente, setCliente] = useState({ nombre: "", apellido: "", email: "", telefono: "", direccion: "", ruc: "" });
+
+    const handleImageError = (e) => {
+        e.currentTarget.onerror = null;
+        e.currentTarget.src = "/images/no-image.png";
+    };
 
     useEffect(() => {
         const cargar = async () => {
@@ -193,14 +207,11 @@ const TiendaVendedor = () => {
                 <div className="tv-header">
                     <div>
                         <h1 className="tv-title">Tienda</h1>
-                        <p className="tv-sub">Registra ventas desde tu perfil de vendedor y crea el pedido como cliente guest.</p>
+                        <p className="tv-sub">Registra ventas desde tu perfil de vendedor y crea el pedido como consumidor final.</p>
                     </div>
                     <div className="tv-actions">
                         <Link to="/dashboard/productos-admin" className="tv-link">Gestionar productos</Link>
                         <Link to="/dashboard/carrito" className="tv-link">Ir al carrito</Link>
-                        <button className="tv-primary" disabled={carrito.length === 0} onClick={() => setModalOpen(true)}>
-                            Registrar pedido en tienda
-                        </button>
                     </div>
                 </div>
 
@@ -213,14 +224,14 @@ const TiendaVendedor = () => {
                             onClick={() => setModoVenta('tienda')}
                         >
                             Pedido en tienda
-                            <span>Registra venta local con cliente guest y pago realizado.</span>
+                            <span>Registra venta local con consumidor final y pago realizado.</span>
                         </button>
                         <button
                             type="button"
                             className={`tv-mode-btn${modoVenta === 'carrito' ? ' active' : ''}`}
                             onClick={() => setModoVenta('carrito')}
                         >
-                            Añadir al carrito
+                            Envío a domicilio
                             <span>Envía productos al carrito para continuar con envío a domicilio.</span>
                         </button>
                     </div>
@@ -238,7 +249,7 @@ const TiendaVendedor = () => {
                             return (
                                 <article className="tv-card" key={producto._id}>
                                     <div className="tv-img">
-                                        <img src={producto.imagenUrl || "/images/no-image.png"} alt={producto.nombre} />
+                                        <img src={producto.imagenUrl || "/images/no-image.png"} alt={producto.nombre} onError={handleImageError} />
                                     </div>
                                     <div className="tv-body">
                                         <p className="tv-name">{producto.nombre}</p>
@@ -260,7 +271,7 @@ const TiendaVendedor = () => {
                                             onChange={e => setCantidades(prev => ({ ...prev, [producto._id]: e.target.value }))}
                                         />
                                         <button className={modoVenta === 'tienda' ? 'tv-primary' : 'tv-secondary'} disabled={metros <= 0} onClick={() => agregar(producto)}>
-                                            {modoVenta === 'tienda' ? 'Añadir a pedido en tienda' : 'Añadir al carrito'}
+                                            {modoVenta === 'tienda' ? 'Añadir a pedido en tienda' : 'Añadir para envío a domicilio'}
                                         </button>
                                     </div>
                                 </article>
@@ -290,6 +301,9 @@ const TiendaVendedor = () => {
                                 {totales.descuentoTotal > 0 && <div><span>Descuento</span><span>-${totales.descuentoTotal.toFixed(2)}</span></div>}
                                 <div><span>IVA</span><span>${totales.iva.toFixed(2)}</span></div>
                                 <div><strong>Total</strong><strong>${totales.totalFinal.toFixed(2)}</strong></div>
+                                <button className="tv-primary" disabled={carrito.length === 0} onClick={() => setModalOpen(true)}>
+                                    Confirmar pedido en tienda
+                                </button>
                             </div>
                         )}
                     </aside>
@@ -299,7 +313,7 @@ const TiendaVendedor = () => {
             {modalOpen && (
                 <div className="tv-overlay" onClick={() => setModalOpen(false)}>
                     <div className="tv-modal" onClick={e => e.stopPropagation()}>
-                        <h3>Datos del cliente guest</h3>
+                        <h3>Datos del consumidor final</h3>
                         <p>Estos datos se guardarán en el pedido y el cliente podrá verificarse después.</p>
                         <div className="tv-form-grid">
                             {[
@@ -323,7 +337,7 @@ const TiendaVendedor = () => {
                         <div className="tv-modal-actions">
                             <button className="tv-secondary" onClick={() => setModalOpen(false)}>Cancelar</button>
                             <button className="tv-primary" disabled={guardando} onClick={registrarVenta}>
-                                {guardando ? "Registrando..." : "Crear pedido con cliente guest"}
+                                {guardando ? "Registrando..." : "Crear pedido con consumidor final"}
                             </button>
                         </div>
                     </div>

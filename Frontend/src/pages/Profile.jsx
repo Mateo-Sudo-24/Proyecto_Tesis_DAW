@@ -48,6 +48,14 @@ const styles = `
         flex-direction:column;
         gap:1.25rem;
     }
+    @media (max-width: 899px) {
+        .prf-admin-grid { display:flex; flex-direction:column; }
+        .prf-admin-grid .prf-stack { display:contents; }
+        .prf-admin-main { order: 1; }
+        .prf-admin-form { order: 2; }
+        .prf-admin-email { order: 3; }
+        .prf-admin-password { order: 4; }
+    }
 `;
 
 const Profile = () => {
@@ -89,14 +97,14 @@ const Profile = () => {
             )}
 
             {isAdmin && (
-                <div className="prf-grid">
+                <div className="prf-grid prf-admin-grid">
                     <div className="prf-stack">
-                        <FormProfile />
-                        <CardEmail />
+                        <div className="prf-admin-form"><FormProfile /></div>
+                        <div className="prf-admin-email"><CardEmail /></div>
                     </div>
                     <div className="prf-stack">
-                        <CardProfile />
-                        <CardPassword />
+                        <div className="prf-admin-main"><CardProfile /></div>
+                        <div className="prf-admin-password"><CardPassword /></div>
                     </div>
                 </div>
             )}

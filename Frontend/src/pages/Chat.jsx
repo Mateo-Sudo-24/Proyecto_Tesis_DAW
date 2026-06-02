@@ -437,6 +437,10 @@ const Chat = () => {
         setClientePage(prev => Math.min(prev, totalPaginas));
     }, [usuarios]);
 
+    useEffect(() => {
+        setClientePage(1);
+    }, [onlineIds]);
+
     // Cargar usuarios verificados via HTTP al montar (staff)
     useEffect(() => {
         if (!token || !isStaff) return;
@@ -626,11 +630,12 @@ const Chat = () => {
                                 <p className="ch-no-contacts">Sin usuarios registrados</p>
                             ) : (
                                 (() => {
-                                    const admins = usuariosConEstado.filter(u => u.rol === 'administrador' && u.id !== miId);
-                                    const vendedoresLista = usuariosConEstado.filter(u => u.rol === 'vendedor' && u.id !== miId);
+                                    const ordenarPorEstado = (a, b) => Number(b.online) - Number(a.online) || a.nombre.localeCompare(b.nombre);
+                                    const admins = usuariosConEstado.filter(u => u.rol === 'administrador' && u.id !== miId).sort(ordenarPorEstado);
+                                    const vendedoresLista = usuariosConEstado.filter(u => u.rol === 'vendedor' && u.id !== miId).sort(ordenarPorEstado);
                                     const clientes = usuariosConEstado
                                         .filter(u => u.rol === 'cliente')
-                                        .sort((a, b) => Number(b.online) - Number(a.online) || a.nombre.localeCompare(b.nombre));
+                                        .sort(ordenarPorEstado);
                                     const totalPaginasClientes = Math.max(1, Math.ceil(clientes.length / CLIENTES_POR_PAGINA));
                                     const paginaClientes = Math.min(clientePage, totalPaginasClientes);
                                     const clientesPagina = clientes.slice(

@@ -96,7 +96,7 @@ function AppContent() {
           />
           <style>{'@keyframes spin { to { transform: rotate(360deg); } }'}</style>
           <p style={{ fontWeight: 800, margin: 0 }}>Optimizando tu experiencia...</p>
-          <p style={{ fontSize: '0.85rem', color: '#6b7280', marginTop: '0.35rem' }}>Preparando tu panel según tu rol.</p>
+          <p style={{ fontSize: '0.85rem', color: '#6b7280', marginTop: '0.35rem' }}>Cargando tu panel.</p>
         </div>
       </div>
     );

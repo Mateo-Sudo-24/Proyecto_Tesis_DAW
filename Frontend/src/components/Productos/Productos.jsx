@@ -174,6 +174,11 @@ const Productos = () => {
     const [cantidades, setCantidades] = useState({});
     const token = storeAuth(state => state.token);
 
+    const handleImageError = (e) => {
+        e.currentTarget.onerror = null;
+        e.currentTarget.src = "/images/no-image.png";
+    };
+
     useEffect(() => {
         const fetchProductos = async () => {
             try {
@@ -277,6 +282,7 @@ const Productos = () => {
                                     <img
                                         src={producto.imagenUrl || "/images/no-image.png"}
                                         alt={producto.nombre}
+                                        onError={handleImageError}
                                     />
                                     {producto.descuento > 0 && (
                                         <span className="dash-badge-off">-{producto.descuento}%</span>

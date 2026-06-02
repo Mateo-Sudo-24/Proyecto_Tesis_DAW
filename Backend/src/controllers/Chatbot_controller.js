@@ -31,6 +31,23 @@ const extraerTerminos = (...texts) => {
     return [...new Set(tokens.filter(term => base.includes(term)))].slice(0, 10);
 };
 
+const scoreProducto = (producto, terminos) => {
+    const nombre = normalizar(producto.nombre);
+    const descripcion = normalizar(producto.descripcion);
+    const categoria = normalizar(producto.categoria);
+    const color = normalizar(producto.color);
+    const etiquetas = normalizar((producto.etiquetas || []).join(' '));
+
+    return terminos.reduce((score, term) => {
+        if (color.includes(term)) return score + 5;
+        if (nombre.includes(term)) return score + 4;
+        if (categoria.includes(term)) return score + 3;
+        if (etiquetas.includes(term)) return score + 2;
+        if (descripcion.includes(term)) return score + 1;
+        return score;
+    }, 0);
+};
+
 const buscarProductosCoincidentes = async (mensaje, respuesta) => {
     const terminos = extraerTerminos(mensaje, respuesta);
     if (terminos.length === 0) return [];
@@ -42,7 +59,7 @@ const buscarProductosCoincidentes = async (mensaje, respuesta) => {
             { descripcion: rx },
             { categoria: rx },
             { color: rx },
-            { etiquetas: { $elemMatch: rx } },
+            { etiquetas: rx },
         ];
     });
 
@@ -51,10 +68,11 @@ const buscarProductosCoincidentes = async (mensaje, respuesta) => {
         $or: or,
     })
         .select('nombre descripcion precio precioPorMetro precioPorRollo unidadVenta metrosDisponibles metrosPorRollo imagenUrl color categoria descuento etiquetas')
-        .limit(6)
+        .limit(12)
         .lean();
 
-    return productos.map(producto => {
+    return productos
+        .map(producto => {
         const textoProducto = normalizar([
             producto.nombre,
             producto.descripcion,
@@ -67,15 +85,42 @@ const buscarProductosCoincidentes = async (mensaje, respuesta) => {
             ...producto,
             verificadoBDD: true,
             coincidencias: terminos.filter(term => textoProducto.includes(term)),
+            scoreCoincidencia: scoreProducto(producto, terminos),
         };
-    });
+    })
+        .filter(producto => producto.scoreCoincidencia > 0)
+        .sort((a, b) => b.scoreCoincidencia - a.scoreCoincidencia)
+        .slice(0, 6);
+};
+
+const buscarProductosRecomendados = async () => {
+    const productos = await Producto.find({
+        estado: { $ne: 'inactivo' },
+        metrosDisponibles: { $gt: 0 },
+    })
+        .select('nombre descripcion precio precioPorMetro precioPorRollo unidadVenta metrosDisponibles metrosPorRollo imagenUrl color categoria descuento etiquetas')
+        .sort({ updatedAt: -1, createdAt: -1 })
+        .limit(4)
+        .lean();
+
+    return productos.map(producto => ({
+        ...producto,
+        verificadoBDD: true,
+        recomendacionGeneral: true,
+        coincidencias: [],
+    }));
 };
 
 const responderConProductos = async (res, mensaje, respuesta) => {
-    const productosCoincidentes = await buscarProductosCoincidentes(mensaje, respuesta);
+    let productosCoincidentes = await buscarProductosCoincidentes(mensaje, respuesta);
+    const tipoRecomendacion = productosCoincidentes.length > 0 ? 'coincidencia' : 'general';
+    if (productosCoincidentes.length === 0) {
+        productosCoincidentes = await buscarProductosRecomendados();
+    }
     res.json({
         respuesta,
         productosCoincidentes,
+        tipoRecomendacion,
         verificacionBDD: {
             consultada: true,
             total: productosCoincidentes.length,

@@ -10,6 +10,28 @@ import './ChatModal.css';
 
 const MAX_IMAGES = 4;
 
+const normalizarTexto = (value = '') => String(value)
+    .toLowerCase()
+    .normalize('NFD')
+    .replace(/[\u0300-\u036f]/g, '');
+
+const tieneIntencionCompra = (texto = '') => {
+    const t = normalizarTexto(texto);
+    return /\b(comprar|compra|cotizar|cotizacion|precio|catalogo|producto|productos|carrito|quiero tela|quiero una tela|necesito tela|busco tela|ver telas|telas|reponer|reposicion|stock)\b/.test(t);
+};
+
+const pideTelaSinReferencia = (texto = '') => {
+    const t = normalizarTexto(texto);
+    const tieneReferenciaVaga = /\b(esta|esa|igual|parecida|similar|como esta|como esa)\b/.test(t);
+    const mencionaTela = /\b(tela|tejido|material|textil)\b/.test(t);
+    return mencionaTela && tieneReferenciaVaga;
+};
+
+const esConsultaTextilReconocible = (texto = '') => {
+    const t = normalizarTexto(texto);
+    return /\b(tela|telas|tejido|textil|algodon|lino|seda|poliester|lana|nylon|viscosa|rayon|terciopelo|denim|jean|jersey|saten|gasa|tul|encaje|polar|fleece|gabardina|tafetan|lycra|spandex|microfibra|loneta|popelina|organza|color|textura|metro|rollo|comprar|precio|catalogo|carrito|reponer|reposicion|stock)\b/.test(t);
+};
+
 // Convierte markdown bÃ¡sico a JSX sin dependencias externas
 const renderMarkdown = (text) => {
     if (!text) return null;
@@ -61,18 +83,28 @@ const ChatModal = ({ onClose }) => {
     const [isLoading, setIsLoading] = useState(false);
     const [showCamera, setShowCamera] = useState(false);
     const [selectedImages, setSelectedImages] = useState([]); // array de dataURLs
+    const [productIntentCount, setProductIntentCount] = useState(0);
     const messagesEndRef = useRef(null);
     const webcamRef = useRef(null);
     const fileInputRef = useRef(null);
 
     const productosPath = token
         ? (rol === 'vendedor' ? '/dashboard/tienda' : '/dashboard/productos')
-        : '/login';
+        : '/products';
 
     const irAProductos = () => {
         onClose();
         navigate(productosPath);
     };
+
+    const crearCtaProgresivo = (id) => ({
+        id,
+        role: 'assistant',
+        type: 'cta',
+        content: token
+            ? 'Ya tengo suficiente contexto. Te dejo un acceso directo para revisar productos relacionados.'
+            : 'Ya tengo suficiente contexto. Puedes revisar productos en /products; si decides comprar, el sistema te llevara a iniciar sesion.',
+    });
 
     useEffect(() => {
         messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
@@ -142,6 +174,60 @@ const ChatModal = ({ onClose }) => {
         setIsLoading(true);
 
         const botMessageId = Date.now();
+        const textoNormalizado = normalizarTexto(userMessage.content);
+        const tieneImagenes = imagenesSnapshot.length > 0;
+        const esIntencionProducto = tieneIntencionCompra(userMessage.content) || pideTelaSinReferencia(userMessage.content);
+        const nextProductIntentCount = esIntencionProducto ? productIntentCount + 1 : productIntentCount;
+        if (esIntencionProducto) setProductIntentCount(nextProductIntentCount);
+        const mostrarCtaProductos = nextProductIntentCount > 4;
+
+        if (!tieneImagenes && pideTelaSinReferencia(userMessage.content)) {
+            setMessages(prev => {
+                const respuestas = [
+                    ...prev,
+                    {
+                        id: botMessageId,
+                        role: 'assistant',
+                        content: 'Soy Intex IA, tu asesor textil. Puedo ayudarte aunque no tengas foto: dime color, textura, uso de la tela, si la necesitas por metro o rollo, y buscare coincidencias o alternativas del catalogo.',
+                    },
+                ];
+                if (mostrarCtaProductos) respuestas.push(crearCtaProgresivo(botMessageId + 1));
+                return respuestas;
+            });
+            setIsLoading(false);
+            return;
+        }
+
+        if (!tieneImagenes && tieneIntencionCompra(userMessage.content) && !/(analiza|identifica|reconoce|compara|que tela|cual tela)/.test(textoNormalizado)) {
+            setMessages(prev => {
+                const respuestas = [
+                    ...prev,
+                    {
+                        id: botMessageId,
+                        role: 'assistant',
+                        content: 'Soy Intex IA. Puedo orientarte por color, material, textura, uso y disponibilidad. Cuentame que tela buscas, por ejemplo: "algodon blanco para camisas", "tela negra elastica" o "rollos de poliester".',
+                    },
+                ];
+                if (mostrarCtaProductos) respuestas.push(crearCtaProgresivo(botMessageId + 1));
+                return respuestas;
+            });
+            setIsLoading(false);
+            return;
+        }
+
+        if (!tieneImagenes && userMessage.content.trim().length > 0 && !esConsultaTextilReconocible(userMessage.content)) {
+            setMessages(prev => [
+                ...prev,
+                {
+                    id: botMessageId,
+                    role: 'assistant',
+                    content: 'No logre relacionar tu mensaje con telas o productos textiles. Puedes preguntarme por tipos de tela, colores, texturas, usos, precios, o subir una foto para analizarla.',
+                },
+            ]);
+            setIsLoading(false);
+            return;
+        }
+
         setMessages(prev => [...prev, { id: botMessageId, role: 'assistant', content: '' }]);
 
         try {
@@ -170,18 +256,15 @@ const ChatModal = ({ onClose }) => {
                     id: Date.now() + 1,
                     role: 'assistant',
                     type: 'products',
-                    content: 'Productos verificados en la base de datos que coinciden con el analisis:',
+                    content: response?.tipoRecomendacion === 'general'
+                        ? 'No encontre una coincidencia exacta en la base de datos. Te recomendamos estas alternativas disponibles:'
+                        : 'Productos verificados en la base de datos que coinciden con el analisis:',
                     productos: productosBDD,
-                    verified: true,
+                    verified: response?.tipoRecomendacion !== 'general',
                 }]);
-                setMessages(prev => [...prev, {
-                    id: Date.now() + 2,
-                    role: 'assistant',
-                    type: 'cta',
-                    content: token
-                        ? 'Puedes revisar el catalogo y continuar la compra desde productos.'
-                        : 'Inicia sesion para revisar productos y agregarlos al carrito.',
-                }]);
+                if (mostrarCtaProductos) {
+                    setMessages(prev => [...prev, crearCtaProgresivo(Date.now() + 2)]);
+                }
                 return;
             }
 
@@ -197,17 +280,12 @@ const ChatModal = ({ onClose }) => {
                                 id: Date.now() + 1,
                                 role: 'assistant',
                                 type: 'products',
-                                content: 'ðŸ›ï¸ Productos disponibles que pueden interesarte:',
+                                content: 'Productos disponibles que pueden interesarte:',
                                 productos,
                             }]);
-                            setMessages(prev => [...prev, {
-                                id: Date.now() + 2,
-                                role: 'assistant',
-                                type: 'cta',
-                                content: token
-                                    ? 'Puedes revisar el catalogo y continuar la compra desde productos.'
-                                    : 'Inicia sesion para revisar productos y agregarlos al carrito.',
-                            }]);
+                            if (mostrarCtaProductos) {
+                                setMessages(prev => [...prev, crearCtaProgresivo(Date.now() + 2)]);
+                            }
                         }
                     }
                 } catch { /* silent */ }
@@ -215,7 +293,7 @@ const ChatModal = ({ onClose }) => {
         } catch (error) {
             setMessages(prev => prev.map(msg =>
                 msg.id === botMessageId
-                    ? { ...msg, content: `âŒ Error: ${error.message}` }
+                    ? { ...msg, content: 'No pude completar el analisis en este momento. Intenta describir la tela con color, textura y uso, o adjunta una foto para revisarla mejor.' }
                     : msg
             ));
         } finally {
@@ -251,16 +329,13 @@ const ChatModal = ({ onClose }) => {
                             <p>Hola, soy tu asesor experto en telas.</p>
                             <p>Puedes subir hasta {MAX_IMAGES} fotos para analizar.</p>
                             <p>Cuéntame qué tela buscas o qué necesitas comparar.</p>
-                            <button type="button" className="chat-cta-btn" onClick={irAProductos}>
-                                {token ? 'Ver productos' : 'Iniciar sesion'}
-                            </button>
                         </div>
                     )}
 
                     {messages.map((msg, idx) => (
                         <div key={idx} className={`chat-message ${msg.role}`}>
                             <div className="chat-message-avatar">
-                                {msg.role === 'user' ? 'ðŸ‘¤' : 'ðŸ¤–'}
+                                {msg.role === 'user' ? 'Tu' : 'IA'}
                             </div>
                             <div className="chat-message-content">
                                 {msg.type === 'products' ? (
@@ -299,7 +374,7 @@ const ChatModal = ({ onClose }) => {
                                     <div className="chat-cta-card">
                                         <p>{msg.content}</p>
                                         <button type="button" className="chat-cta-btn" onClick={irAProductos}>
-                                            {token ? 'Ir a productos' : 'Iniciar sesiÃ³n'}
+                                            Ir a productos
                                         </button>
                                     </div>
                                 ) : (

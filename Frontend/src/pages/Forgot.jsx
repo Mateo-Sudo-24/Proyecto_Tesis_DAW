@@ -268,6 +268,7 @@ export const Forgot = () => {
                                     className={`forgot-input${errors.email ? ' input-error' : ''}`}
                                     {...register("email", {
                                         required: "El correo es obligatorio",
+                                        setValueAs: value => String(value || '').trim().toLowerCase(),
                                         pattern: {
                                             value: /^[^\s@]+@[^\s@]+\.[^\s@]+$/,
                                             message: "Ingresa un correo válido (ej: usuario@dominio.com)"

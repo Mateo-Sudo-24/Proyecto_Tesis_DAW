@@ -120,6 +120,8 @@ const Table = ({ tipo = "clientes" }) => {
             ? `${item.nombre || ""} ${item.apellido || ""}`.trim() || "Sin nombre"
             : `${item.nombre || ""} ${item.apellido || ""}`.trim() || "Sin nombre";
 
+    const getSector = (item) => item.sector || item.barrio || item.zona || item.direccion || "";
+
     const getEstadoBadge = (item) => {
         const s = item.status;
         const tienePedidos = Number(item.pedidosCount || 0) > 0;
@@ -180,7 +182,7 @@ const Table = ({ tipo = "clientes" }) => {
                                 <th>Teléfono</th>
                                 {esClientes ? (
                                     <>
-                                        <th>Ciudad</th>
+                                        <th>Sector</th>
                                         <th>Estado</th>
                                     </>
                                 ) : (
@@ -206,8 +208,7 @@ const Table = ({ tipo = "clientes" }) => {
                                     {esClientes ? (
                                         <>
                                             <td style={{ fontSize: "0.82rem", color: "#6b7280" }}>
-                                                {item.ciudad || "Sin ciudad"}
-                                                {item.direccion && <div style={{ fontSize: "0.72rem" }}>{item.direccion}</div>}
+                                                {getSector(item)}
                                             </td>
                                             <td>{getEstadoBadge(item)}</td>
                                         </>
@@ -254,10 +255,10 @@ const Table = ({ tipo = "clientes" }) => {
                             </div>
                             {esClientes ? (
                                 <>
-                                    {item.ciudad && (
+                                    {getSector(item) && (
                                         <div className="tbl-card-row">
-                                            <span className="tbl-card-label">Ciudad</span>
-                                            <span className="tbl-card-value">{item.ciudad}</span>
+                                            <span className="tbl-card-label">Sector</span>
+                                            <span className="tbl-card-value">{getSector(item)}</span>
                                         </div>
                                     )}
                                     <div className="tbl-card-row">

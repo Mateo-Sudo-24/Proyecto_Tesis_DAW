@@ -236,6 +236,7 @@ const modalStyles = `
         gap: 0.5rem;
         padding: 0.875rem 1.25rem;
     }
+    .op-pay-item { display: grid; gap: 0.5rem; }
     .op-pay-option {
         border: 1.5px solid var(--gray-200);
         border-radius: 0.5rem;
@@ -258,7 +259,7 @@ const modalStyles = `
     .op-pay-title { display: block; font-size: 0.86rem; font-weight: 800; color: var(--gray-900); margin-bottom: 0.25rem; }
     .op-pay-helper { display: block; font-size: 0.72rem; line-height: 1.35; color: var(--gray-600); }
     .op-qr-box {
-        margin: 0 1.25rem 1rem;
+        margin: 0;
         border: 1.5px solid var(--gray-200);
         border-radius: 0.875rem;
         background: #fff;
@@ -612,8 +613,10 @@ const ModalOrdenPago = ({
             ? { direccion: limpiarTexto(direccionDomicilio), ciudad: 'Quito', provincia: 'Pichincha', codigoPostal: '000000', pais: 'Ecuador' }
             : { direccion: limpiarTexto(form.direccion) || 'Retiro en establecimiento', ciudad: 'Quito', provincia: 'Pichincha', codigoPostal: '000000', pais: 'Ecuador' }
 
-        if (tipoEntrega === 'retiro' || tipoEntrega === 'establecimiento') {
-            direccionEnvio.direccion = `Retiro/Establecimiento - ${datosFacturacion.direccion || 'en almacenes'}`
+        if (tipoEntrega === 'retiro') {
+            direccionEnvio.direccion = `Retiro en almacenes - ${datosFacturacion.direccion || 'Almacenes Intex'}`
+        } else if (tipoEntrega === 'establecimiento') {
+            direccionEnvio.direccion = `Entrega en establecimiento - ${datosFacturacion.direccion || 'direccion del cliente'}`
         } else if (tipoEntrega === 'venta_local') {
             direccionEnvio.direccion = 'Venta local - ' + (datosFacturacion.direccion || 'Almacenes Intex')
         }
@@ -672,7 +675,7 @@ const ModalOrdenPago = ({
             if (requiereComprobacion) {
                 localStorage.setItem('intex-chat-prefill', JSON.stringify({
                     vendedorId: vendedorAsignado?.id || vendedorAsignado?._id || null,
-                    texto: `Hola, realicé mi pedido con ${metodoPago}. Por favor ayúdame a comprobar el pago para que el vendedor lo marque como pago realizado.`
+                    texto: `Hola, ya registre mi pedido con ${metodoPago}. Cuando puedas, ayudame a revisar la confirmacion del pago.`
                 }))
                 setTimeout(() => navigate('/dashboard/chat'), 1400)
             }
@@ -738,7 +741,9 @@ const ModalOrdenPago = ({
 
                     {(tipoEntrega === 'retiro' || tipoEntrega === 'establecimiento' || tipoEntrega === 'venta_local') && (
                         <div className="op-section">
-                            <div className="op-section-title">Retiro en almacenes</div>
+                            <div className="op-section-title">
+                                {tipoEntrega === 'establecimiento' ? 'Entrega en establecimiento' : tipoEntrega === 'venta_local' ? 'Venta local' : 'Retiro en almacenes'}
+                            </div>
                             <div style={{ padding: '0.875rem 1.25rem', display: 'grid', gap: '0.45rem', color: '#374151', fontSize: '0.875rem' }}>
                                 <strong style={{ color: '#111827' }}>CAVA CORP - Almacenes Intex</strong>
                                 <span>{
@@ -838,31 +843,32 @@ const ModalOrdenPago = ({
                         </div>
                     </div>
 
-                    {/* MÃ©todo de pago */}
+                    {/* Metodo de pago */}
                     <div className="op-section">
-                        <div className="op-section-title">Método de pago</div>
+                        <div className="op-section-title">Metodo de pago</div>
                         <div className="op-pay-grid">
                             {metodosPago.map((metodo) => (
-                                <button
-                                    type="button"
-                                    key={metodo.value}
-                                    className={`op-pay-option${metodoPago === metodo.value ? ' active' : ''}`}
-                                    onClick={() => setMetodoPago(metodo.value)}
-                                >
-                                    <span className="op-pay-title">{metodo.label}</span>
-                                    <span className="op-pay-helper">{metodo.helper}</span>
-                                </button>
+                                <div key={metodo.value} className="op-pay-item">
+                                    <button
+                                        type="button"
+                                        className={`op-pay-option${metodoPago === metodo.value ? ' active' : ''}`}
+                                        onClick={() => setMetodoPago(metodo.value)}
+                                    >
+                                        <span className="op-pay-title">{metodo.label}</span>
+                                        <span className="op-pay-helper">{metodo.helper}</span>
+                                    </button>
+                                    {metodoPago === 'De Una' && metodo.value === 'De Una' && (
+                                        <div className="op-qr-box">
+                                            <img src={deUnaQr} alt="QR de pago De Una" />
+                                            <div>
+                                                <strong>Pago con De Una</strong>
+                                                <p>Escanea el QR y conserva el comprobante. Tu vendedor revisara la confirmacion antes de marcar el pago como realizado.</p>
+                                            </div>
+                                        </div>
+                                    )}
+                                </div>
                             ))}
                         </div>
-                        {metodoPago === 'De Una' && (
-                            <div className="op-qr-box">
-                                <img src={deUnaQr} alt="QR de pago De Una" />
-                                <div>
-                                    <strong>Pago con De Una</strong>
-                                    <p>Escanea el QR, realiza el pago por el total mostrado y conserva el comprobante para validación.</p>
-                                </div>
-                            </div>
-                        )}
                     </div>
 
                 </div>

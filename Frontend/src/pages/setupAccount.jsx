@@ -320,11 +320,11 @@ const SetupAccount = () => {
                                 <label className="su-label">Nueva contraseña</label>
                                 <div className="su-input-wrap">
                                     <PasswordInput
-                                        placeholder="Mínimo 6 caracteres"
+                                        placeholder="Mínimo 8 caracteres"
                                         className={`su-input${errors.password ? ' su-error' : ''}`}
                                         {...register("password", {
                                             required: "La contraseña es obligatoria",
-                                            minLength: { value: 6, message: "Mínimo 6 caracteres" }
+                                            minLength: { value: 8, message: "Mínimo 8 caracteres" }
                                         })}
                                     />
                                 </div>

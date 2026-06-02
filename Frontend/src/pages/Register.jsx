@@ -372,7 +372,9 @@ export const Register = () => {
                                 className={`reg-input${errors.email ? ' input-error' : ''}`}
                                 {...register("email", {
                                     required: "El correo es obligatorio",
-                                    pattern: { value: /^[^\s@]+@[^\s@]+\.[^\s@]+$/, message: "Ingresa un correo válido (ej: usuario@dominio.com)" }
+                                    setValueAs: value => String(value || '').trim().toLowerCase(),
+                                    validate: value => /^[^\s@]+@[^\s@]+\.[^\s@]{2,}$/.test(String(value || '').trim())
+                                        || "Ingresa un correo valido (ej: usuario@dominio.com)"
                                 })}
                             />
                             {errors.email && <ErrorMsg msg={errors.email.message} />}

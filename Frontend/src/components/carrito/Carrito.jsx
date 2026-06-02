@@ -26,6 +26,10 @@ const getPrecioUnidad = (item) => {
 
 const getMetrosDisponibles = (producto = {}) => Number(producto.metrosDisponibles ?? producto.stock ?? 0) || 0;
 const getRollosDisponibles = (producto = {}) => Math.floor(getMetrosDisponibles(producto) / (producto.metrosPorRollo || 100));
+const handleProductImageError = (e) => {
+    e.currentTarget.onerror = null;
+    e.currentTarget.src = "/images/no-image.png";
+};
 
 const cartStyles = `
     :root {
@@ -99,6 +103,16 @@ const cartStyles = `
     }
     @media (min-width: 1024px) {
         .cart-grid { grid-template-columns: 1fr 340px; }
+    }
+    @media (max-width: 768px) {
+        .cart-wrapper { padding: 1rem 0.75rem; }
+        .cart-title { font-size: 1.25rem; margin-bottom: 1rem; }
+        .cart-grid { gap: 1rem; }
+        .cart-sidebar { order: -1; }
+        .cart-table { min-width: 720px; }
+        .cart-table-footer { flex-direction: column; align-items: stretch; gap: 0.75rem; }
+        .cart-clear-btn, .cart-continue-link { justify-content: center; }
+        .cart-delivery-options { grid-template-columns: 1fr; }
     }
 
     /* Ã¢â€â‚¬Ã¢â€â‚¬ Card base Ã¢â€â‚¬Ã¢â€â‚¬ */
@@ -446,6 +460,13 @@ const Carrito = () => {
         return `${vendedor.nombrePropietario || vendedor.nombre || ""} ${vendedor.apellido || ""}`.trim() || "Asignacion automatica";
     };
 
+    const getEntregaLabel = (tipo) => {
+        if (tipo === 'domicilio') return 'Envio a domicilio';
+        if (tipo === 'establecimiento') return 'Entrega en establecimiento';
+        if (tipo === 'venta_local') return 'Venta local';
+        return 'Retiro en almacenes';
+    };
+
     // Obtener carrito al montar
     useEffect(() => {
         const fetchCarrito = async () => {
@@ -511,6 +532,20 @@ const Carrito = () => {
         setCantidadDrafts(prev => ({ ...prev, [productoId]: value }));
     };
 
+    const getCantidadEfectiva = (item) => {
+        const productoId = item.producto?._id;
+        const raw = productoId ? cantidadDrafts[productoId] : undefined;
+        if (raw == null || String(raw).trim() === '') return Number(item.cantidad) || 0;
+        const parsed = Number(raw);
+        if (!Number.isFinite(parsed) || parsed <= 0) return Number(item.cantidad) || 0;
+        return getUnidadItem(item) === 'rollo' ? Math.ceil(parsed) : parsed;
+    };
+
+    const itemsPreview = (carrito?.items || []).map(item => ({
+        ...item,
+        cantidad: getCantidadEfectiva(item),
+    }));
+
     const confirmarCantidad = async (item, unidad) => {
         const productoId = item.producto?._id;
         if (!productoId) return;
@@ -561,11 +596,11 @@ const Carrito = () => {
         setOrdenCreada(null);
     };
 
-    const subtotalSinDescuento = carrito?.items?.reduce(
+    const subtotalSinDescuento = itemsPreview.reduce(
         (acc, item) => acc + getPrecioUnidad(item) * item.cantidad,
         0
-    ) || 0;
-    const desglosePreview = calcularDesglose(carrito?.items || [], '', 0);
+    );
+    const desglosePreview = calcularDesglose(itemsPreview, '', 0);
 
     if (pedidoExitoso) {
         return (
@@ -607,8 +642,8 @@ const Carrito = () => {
                             Tu orden ha sido creada exitosamente.
                         </div>
                         <div className="cart-success-info">
-                            <strong>Método de pago:</strong> {pedidoExitoso.orden.metodoPago}<br />
-                            <strong>Entrega:</strong> {pedidoExitoso.orden.tipoEntrega === 'domicilio' ? 'Envío a domicilio' : 'Retiro en almacenes'}<br />
+                            <strong>Metodo de pago:</strong> {pedidoExitoso.orden.metodoPago}<br />
+                            <strong>Entrega:</strong> {getEntregaLabel(pedidoExitoso.orden.tipoEntrega)}<br />
                             <strong>Vendedor asignado:</strong> {getNombreVendedor(pedidoExitoso.facturacion.vendedorAsignado)}<br />
                             <strong>A nombre de:</strong> {pedidoExitoso.facturacion.nombre} {pedidoExitoso.facturacion.apellido}<br />
                             <span style={{ color: '#6b7280', fontSize: '0.85rem' }}>Puedes ver y descargar tu factura en <strong>Mis pedidos</strong>.</span>
@@ -676,6 +711,7 @@ const Carrito = () => {
                                     <tbody>
                                         {carrito.items.map((item) => {
                                             const unidad = getUnidadItem(item);
+                                            const cantidadEfectiva = getCantidadEfectiva(item);
                                             const precioUnidad = getPrecioUnidad(item);
                                             const descuento = Number(item.producto?.descuento ?? 0) || 0;
                                             const precioConDescuento = precioUnidad * (1 - descuento / 100);
@@ -689,6 +725,7 @@ const Carrito = () => {
                                                             src={item.producto?.imagenUrl || "/images/no-image.png"}
                                                             alt={item.producto?.nombre}
                                                             className="cart-product-img"
+                                                            onError={handleProductImageError}
                                                         />
                                                         <span className="cart-product-name">{item.producto?.nombre}</span>
                                                     </div>
@@ -732,7 +769,7 @@ const Carrito = () => {
                                                     />
                                                 </td>
                                                 <td className="cart-subtotal">
-                                                    ${(precioConDescuento * item.cantidad).toFixed(2)}
+                                                    ${(precioConDescuento * cantidadEfectiva).toFixed(2)}
                                                 </td>
                                                 <td style={{textAlign:'center'}}>
                                                     <button
@@ -827,7 +864,7 @@ const Carrito = () => {
                                     </div>
                                     {isVendedor && (
                                         <p style={{ margin:'0.85rem 0 0', color:'#92400e', background:'#fef3c7', border:'1px solid #fde68a', borderRadius:'0.6rem', padding:'0.7rem 0.85rem', fontSize:'0.82rem', fontWeight:700 }}>
-                                            Como vendedor, el carrito registra pedidos con envío a domicilio. Para ventas presenciales usa la pantalla Tienda y marca el pedido como pedido en tienda.
+                                            Tu rol actual te permite registrar en carrito solo pedidos con envío a domicilio. Para ventas presenciales usa la pantalla Tienda y marca el pedido como pedido en tienda.
                                         </p>
                                     )}
                                 </div>
@@ -844,7 +881,7 @@ const Carrito = () => {
             {showModalOP && (
                 <ModalOrdenPago
                     tipoEntrega={tipoEntrega}
-                    cartItems={carrito?.items || []}
+                    cartItems={itemsPreview}
                     subtotalCart={desglosePreview.subtotal}
                     subtotalSinDescuento={subtotalSinDescuento}
                     descuentoTotal={desglosePreview.descuentoTotal}

@@ -5,6 +5,10 @@ import { sendMailToRecoveryPassword, sendMailToInviteUser } from "../config/node
 import { crearTokenJWT } from '../middlewares/JWT.js';
 import mongoose from 'mongoose';
 
+const normalizarEmail = (email = '') => String(email).toLowerCase().trim();
+const escapeRegex = (value = '') => String(value).replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+const crearEmailRegex = (email = '') => new RegExp(`^${escapeRegex(normalizarEmail(email))}$`, 'i');
+
 // ============================================================================
 // ==          SECCIÓN DE AUTENTICACIÓN Y PERFIL (PARA VENDEDORES)         ==
 // ============================================================================
@@ -12,7 +16,7 @@ import mongoose from 'mongoose';
 const login = async (req, res) => {
     const { email, password } = req.body;
     if (!email || !password) return res.status(400).json({ msg: "Todos los campos son obligatorios." });
-    const vendedor = await Vendedor.findOne({ email });
+    const vendedor = await Vendedor.findOne({ email: crearEmailRegex(email) });
     if (!vendedor) return res.status(404).json({ msg: "Vendedor no encontrado." });
     if (vendedor.status !== 'activo') return res.status(403).json({ msg: "Tu cuenta no está activa. Por favor, revisa tu correo de invitación." });
     if (!await vendedor.matchPassword(password)) return res.status(401).json({ msg: "Contraseña incorrecta." });
@@ -66,8 +70,8 @@ const actualizarPerfil = async (req, res) => {
 const actualizarPassword = async (req, res) => {
     const { _id } = req.usuario;
     const { passwordActual, passwordNuevo } = req.body;
-    if (!passwordActual || !passwordNuevo || passwordNuevo.length < 6) {
-        return res.status(400).json({ msg: "Todos los campos son obligatorios y la nueva contraseña debe tener al menos 6 caracteres." });
+    if (!passwordActual || !passwordNuevo || passwordNuevo.length < 8) {
+        return res.status(400).json({ msg: "Todos los campos son obligatorios y la nueva contraseña debe tener al menos 8 caracteres." });
     }
 
     try {
@@ -88,7 +92,7 @@ const recuperarPassword = async (req, res) => {
     const { email } = req.body;
     if (!email) return res.status(400).json({ msg: "El correo electrónico es obligatorio." });
     try {
-        const vendedor = await Vendedor.findOne({ email });
+        const vendedor = await Vendedor.findOne({ email: crearEmailRegex(email) });
         if (!vendedor) return res.status(404).json({ msg: "No existe un vendedor con ese correo." });
         const token = vendedor.crearToken();
         await sendMailToRecoveryPassword(email, token);
@@ -113,8 +117,8 @@ const comprobarTokenPassword = async (req, res) => {
 const crearNuevoPassword = async (req, res) => {
     const { token } = req.params;
     const { password } = req.body;
-    if (!password || password.length < 6) {
-        return res.status(400).json({ msg: "La contraseña debe tener al menos 6 caracteres." });
+    if (!password || password.length < 8) {
+        return res.status(400).json({ msg: "La contraseña debe tener al menos 8 caracteres." });
     }
     try {
         const vendedor = await Vendedor.findOne({ token });
@@ -192,8 +196,8 @@ const crearVendedor = async (req, res) => {
 const configurarCuentaYPassword = async (req, res) => {
     const { token } = req.params;
     const { password } = req.body;
-    if (!password || password.length < 6) {
-        return res.status(400).json({ msg: "La contraseña debe tener al menos 6 caracteres." });
+    if (!password || password.length < 8) {
+        return res.status(400).json({ msg: "La contraseña debe tener al menos 8 caracteres." });
     }
     try {
         const vendedor = await Vendedor.findOne({ token, status: 'pendiente' });

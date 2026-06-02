@@ -436,6 +436,11 @@ const ProductosAdmin = () => {
 
     const token = JSON.parse(localStorage.getItem('auth-token'))?.state?.token;
 
+    const handleImageError = (e) => {
+        e.currentTarget.onerror = null;
+        e.currentTarget.src = "/images/no-image.png";
+    };
+
     useEffect(() => {
         const fetchProductos = async () => {
             try {
@@ -562,7 +567,7 @@ const ProductosAdmin = () => {
                             <div key={producto._id} className="pa-card">
                                 <div className="pa-card-img">
                                     {producto.imagenUrl
-                                        ? <img src={producto.imagenUrl} alt={producto.nombre} />
+                                        ? <img src={producto.imagenUrl} alt={producto.nombre} onError={handleImageError} />
                                         : <div className="pa-card-no-img">📷</div>
                                     }
                                     {producto.descuento > 0 && (
