@@ -7,6 +7,8 @@ import Administrador from './models/Administrador.js';
 import Cliente from './models/Cliente.js';
 import Vendedor from './models/Vendedor.js';
 import ChatMessage from './models/ChatMessage.js';
+import Notificacion from './models/Notificacion.js';
+import { usuariosConectados } from './utils/onlineUsers.js';
 
 // 1. Crear un servidor HTTP a partir de nuestra aplicación de Express
 const server = http.createServer(app);
@@ -24,8 +26,6 @@ const io = new Server(server, {
 // ==                LÓGICA DEL CHAT EN TIEMPO REAL                     ==
 // =======================================================================
 
-// Mapa de usuarios conectados: userId → { id, rol, nombre, socketId }
-const usuariosConectados = new Map();
 
 // Helper: conversationId canónico entre dos usuarios
 const convId = (a, b) => [String(a), String(b)].sort().join('_');
@@ -57,6 +57,70 @@ const isStaffId = async (id) => {
         return !!admin || !!vendedor;
     } catch {
         return false;
+    }
+};
+
+const getRolPorId = async (id) => {
+    if (!id) return null;
+    try {
+        const [admin, vendedor, cliente] = await Promise.all([
+            Administrador.exists({ _id: id }),
+            Vendedor.exists({ _id: id }),
+            Cliente.exists({ _id: id }),
+        ]);
+        if (admin) return 'administrador';
+        if (vendedor) return 'vendedor';
+        if (cliente) return 'cliente';
+        return null;
+    } catch {
+        return null;
+    }
+};
+
+const crearNotificacionChat = async ({ para, rolPara, deNombre, texto }) => {
+    if (!para || !rolPara) return;
+    const payload = {
+        tipo: 'mensaje_chat',
+        mensaje: `Tienes un mensaje de ${deNombre || 'un contacto'}: ${String(texto || '').slice(0, 120)}`,
+        leida: false,
+        estadoGestion: 'completado',
+        metadatos: { timestamp: new Date() },
+    };
+    if (rolPara === 'administrador') payload.administrador = para;
+    if (rolPara === 'vendedor') payload.vendedor = para;
+    if (rolPara === 'cliente') payload.cliente = para;
+    try {
+        await Notificacion.crearConCifrado(payload);
+    } catch (error) {
+        console.warn('No se pudo crear notificacion de chat:', error.message);
+    }
+};
+
+const crearNotificacionesChatStaff = async ({ deNombre, texto }) => {
+    try {
+        const [admins, vendedores] = await Promise.all([
+            Administrador.find().select('_id').lean(),
+            Vendedor.find({ status: 'activo' }).select('_id').lean(),
+        ]);
+        await Promise.all([
+            ...admins.map(a => crearNotificacionChat({ para: a._id, rolPara: 'administrador', deNombre, texto })),
+            ...vendedores.map(v => crearNotificacionChat({ para: v._id, rolPara: 'vendedor', deNombre, texto })),
+        ]);
+    } catch (error) {
+        console.warn('No se pudieron crear notificaciones de chat para staff:', error.message);
+    }
+};
+
+const limpiarNotificacionesChatUsuario = async (usuarioId, rol) => {
+    const filtro = { tipo: 'mensaje_chat', leida: false };
+    if (rol === 'administrador') filtro.administrador = usuarioId;
+    else if (rol === 'vendedor') filtro.vendedor = usuarioId;
+    else if (rol === 'cliente') filtro.cliente = usuarioId;
+    else return;
+    try {
+        await Notificacion.updateMany(filtro, { $set: { leida: true } });
+    } catch (error) {
+        console.warn('No se pudieron limpiar notificaciones de chat:', error.message);
     }
 };
 
@@ -120,6 +184,30 @@ const emitirListaStaff = async () => {
     } catch (e) { console.error('Error emitiendo lista usuarios:', e); }
 };
 
+const getVendedoresPublicosOnline = async () => {
+    const vendedores = await Vendedor.find({ status: 'activo' }).select('_id nombre apellido nombrePropietario').lean();
+    return vendedores.map(v => ({
+        id: String(v._id),
+        _id: String(v._id),
+        nombre: v.nombre,
+        apellido: v.apellido,
+        nombrePropietario: v.nombrePropietario,
+        rol: 'vendedor',
+        online: usuariosConectados.has(String(v._id)),
+    }));
+};
+
+const emitirVendedoresClientes = async () => {
+    try {
+        const vendedores = await getVendedoresPublicosOnline();
+        usuariosConectados.forEach((u) => {
+            if (u.rol === 'cliente') io.to(String(u.id)).emit('vendedores_online', vendedores);
+        });
+    } catch (e) {
+        console.error('Error emitiendo vendedores online:', e.message);
+    }
+};
+
 // 3. Middleware de autenticación para cada nueva conexión de socket
 io.use((socket, next) => {
     const token = socket.handshake.auth.token;
@@ -172,6 +260,7 @@ io.on('connection', async (socket) => {
 
     // Notificar a todo el staff la lista actualizada (incluyendo al recién conectado)
     await emitirListaStaff();
+    await emitirVendedoresClientes();
     await emitirUnreadUsuario(socket.usuario.id);
 
     // Si el recién conectado es staff, enviarle la lista al instante
@@ -198,9 +287,11 @@ io.on('connection', async (socket) => {
 
         if (para) {
             io.to(para).emit('mensaje_de_cliente', { clienteId: socket.usuario.id, msg });
+            await crearNotificacionChat({ para, rolPara: await getRolPorId(para), deNombre: socket.usuario.nombre, texto: msg.texto });
             await emitirUnreadUsuario(para);
         } else {
             io.to('staff_room').emit('mensaje_de_cliente', { clienteId: socket.usuario.id, msg });
+            await crearNotificacionesChatStaff({ deNombre: socket.usuario.nombre, texto: msg.texto });
             await emitirUnreadStaff();
         }
     });
@@ -223,10 +314,12 @@ io.on('connection', async (socket) => {
 
         if (paraEsStaff) {
             io.to(para).emit('mensaje_de_cliente', { clienteId: socket.usuario.id, msg });
+            await crearNotificacionChat({ para, rolPara: await getRolPorId(para), deNombre: socket.usuario.nombre, texto: msg.texto });
             await emitirUnreadUsuario(para);
         } else {
             io.to(para).emit('mensaje_de_staff', msg);
             io.to('staff_room').emit('mensaje_de_cliente', { clienteId: para, msg });
+            await crearNotificacionChat({ para, rolPara: 'cliente', deNombre: socket.usuario.nombre, texto: msg.texto });
             await emitirUnreadUsuario(para);
         }
     });
@@ -264,6 +357,7 @@ io.on('connection', async (socket) => {
         }
         // Notifica al usuario "para" que sus mensajes fueron vistos por quien emitió
         io.to(para).emit('visto_por', { de: socket.usuario.id });
+        await limpiarNotificacionesChatUsuario(socket.usuario.id, socket.usuario.rol);
         await emitirUnreadUsuario(socket.usuario.id);
     });
 
@@ -274,6 +368,7 @@ io.on('connection', async (socket) => {
         usuariosConectados.delete(id);
         // Actualizar lista para todo el staff
         emitirListaStaff();
+        emitirVendedoresClientes();
     });
 });
 

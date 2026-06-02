@@ -135,11 +135,18 @@ const CardEmail = () => {
     const { user, updateProfile } = storeProfile();
     const [open, setOpen] = useState(false);
     const [loading, setLoading] = useState(false);
-    const { register, handleSubmit, watch, reset, formState: { errors } } = useForm();
+    const [step, setStep] = useState(1);
+    const { register, handleSubmit, watch, reset, trigger, formState: { errors } } = useForm();
 
     const closeModal = () => {
         reset();
+        setStep(1);
         setOpen(false);
+    };
+
+    const nextStep = async () => {
+        const ok = await trigger("passwordActual");
+        if (ok) setStep(2);
     };
 
     const onSubmit = async (data) => {
@@ -183,51 +190,67 @@ const CardEmail = () => {
                             <div className="email-current">
                                 Correo actual: <strong>{user?.email || "No disponible"}</strong>
                             </div>
+                            <div className="email-current">Paso {step} de 2</div>
 
-                            <div className="email-field">
-                                <label className="email-label">Contraseña actual</label>
-                                <PasswordInput
-                                    className="email-input"
-                                    placeholder="Confirma tu contraseña"
-                                    {...register("passwordActual", { required: "La contraseña actual es obligatoria." })}
-                                />
-                                {errors.passwordActual && <p className="email-error">{errors.passwordActual.message}</p>}
-                            </div>
+                            {step === 1 ? (
+                                <div className="email-field">
+                                    <label className="email-label">Contrase?a actual</label>
+                                    <PasswordInput
+                                        className="email-input"
+                                        placeholder="Confirma tu contrase?a"
+                                        {...register("passwordActual", { required: "La contrase?a actual es obligatoria." })}
+                                    />
+                                    {errors.passwordActual && <p className="email-error">{errors.passwordActual.message}</p>}
+                                </div>
+                            ) : (
+                                <>
+                                    <div className="email-field">
+                                        <label className="email-label">Nuevo correo</label>
+                                        <input
+                                            type="email"
+                                            className="email-input"
+                                            placeholder="nuevo@ejemplo.com"
+                                            {...register("emailNuevo", {
+                                                required: "El correo es obligatorio.",
+                                                setValueAs: value => String(value || '').trim().toLowerCase(),
+                                                validate: validarEmailRealista,
+                                            })}
+                                        />
+                                        {errors.emailNuevo && <p className="email-error">{errors.emailNuevo.message}</p>}
+                                    </div>
 
-                            <div className="email-field">
-                                <label className="email-label">Nuevo correo</label>
-                                <input
-                                    type="email"
-                                    className="email-input"
-                                    placeholder="nuevo@ejemplo.com"
-                                    {...register("emailNuevo", {
-                                        required: "El correo es obligatorio.",
-                                        setValueAs: value => String(value || '').trim().toLowerCase(),
-                                        validate: validarEmailRealista,
-                                    })}
-                                />
-                                {errors.emailNuevo && <p className="email-error">{errors.emailNuevo.message}</p>}
-                            </div>
-
-                            <div className="email-field">
-                                <label className="email-label">Confirmar correo</label>
-                                <input
-                                    type="email"
-                                    className="email-input"
-                                    placeholder="Repite el nuevo correo"
-                                    {...register("emailConfirmar", {
-                                        required: "Confirma el correo.",
-                                        setValueAs: value => String(value || '').trim().toLowerCase(),
-                                        validate: (value) => value === watch("emailNuevo") || "Los correos no coinciden.",
-                                    })}
-                                />
-                                {errors.emailConfirmar && <p className="email-error">{errors.emailConfirmar.message}</p>}
-                            </div>
+                                    <div className="email-field">
+                                        <label className="email-label">Confirmar correo</label>
+                                        <input
+                                            type="email"
+                                            className="email-input"
+                                            placeholder="Repite el nuevo correo"
+                                            {...register("emailConfirmar", {
+                                                required: "Confirma el correo.",
+                                                setValueAs: value => String(value || '').trim().toLowerCase(),
+                                                validate: (value) => value === watch("emailNuevo") || "Los correos no coinciden.",
+                                            })}
+                                        />
+                                        {errors.emailConfirmar && <p className="email-error">{errors.emailConfirmar.message}</p>}
+                                    </div>
+                                </>
+                            )}
 
                             <div className="email-actions">
-                                <button type="submit" className="email-modal-btn primary" disabled={loading}>
-                                    {loading ? "Guardando..." : "Actualizar correo"}
-                                </button>
+                                {step === 1 ? (
+                                    <button type="button" className="email-modal-btn primary" onClick={nextStep}>
+                                        Continuar
+                                    </button>
+                                ) : (
+                                    <>
+                                        <button type="button" className="email-modal-btn secondary" onClick={() => setStep(1)}>
+                                            Volver
+                                        </button>
+                                        <button type="submit" className="email-modal-btn primary" disabled={loading}>
+                                            {loading ? "Guardando..." : "Actualizar correo"}
+                                        </button>
+                                    </>
+                                )}
                                 <button type="button" className="email-modal-btn secondary" onClick={closeModal}>
                                     Cancelar
                                 </button>

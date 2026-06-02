@@ -604,7 +604,11 @@ const ProductDetails = () => {
                                                 <button
                                                     key={u}
                                                     type="button"
-                                                    onClick={() => { setUnidadSeleccionada(u); setCantidad(u === 'rollo' ? '1' : '0.5'); }}
+                                                    onClick={() => {
+                                                        setUnidadSeleccionada(u);
+                                                        setCantidad('');
+                                                        setTimeout(() => setCantidad(u === 'rollo' ? '1' : '0.5'), 0);
+                                                    }}
                                                     className={`pd-unit-btn${unidadSeleccionada === u ? ' active' : ''}`}
                                                 >
                                                     {u.charAt(0).toUpperCase() + u.slice(1)}
@@ -641,8 +645,11 @@ const ProductDetails = () => {
                                         >
                                             <FaShoppingCart /> {agregando ? 'Agregando...' : 'Agregar al carrito'}
                                         </button>
+                                        </div>
+                                        <p style={{ margin: '0.65rem 0 0', color: '#92400e', fontSize: '0.82rem', fontWeight: 800 }}>
+                                            Este articulo se puede comprar en rollos y tambien por metros.
+                                        </p>
                                     </div>
-                                </div>
                             )}
                         </div>
                     </div>

@@ -70,23 +70,35 @@ const tableStyles = `
     @media (max-width:640px) { .tbl-scroll{display:none} .tbl-cards{display:block} }
 `;
 
-const ConfirmModal = ({ nombre, esCliente, onConfirm, onCancel }) => (
-    <div className="confirm-overlay" onClick={onCancel}>
-        <div className="confirm-box" onClick={e => e.stopPropagation()}>
-            <div className="confirm-icon">!</div>
-            <p className="confirm-title">¿Estás seguro?</p>
-            <p className="confirm-text">
-                Vas a eliminar {esCliente ? "al cliente" : "al vendedor"}{" "}
-                <span className="confirm-name">{nombre}</span>{" "}
-                de forma permanente. Esta acción no se puede deshacer.
-            </p>
-            <div className="confirm-actions">
-                <button className="confirm-btn cancel" onClick={onCancel}>Cancelar</button>
-                <button className="confirm-btn danger" onClick={onConfirm}>Sí, eliminar</button>
+const ConfirmModal = ({ nombre, esCliente, pedidosCount = 0, onConfirm, onCancel }) => {
+    const bloqueado = Number(pedidosCount || 0) > 0;
+    return (
+        <div className="confirm-overlay" onClick={onCancel}>
+            <div className="confirm-box" onClick={e => e.stopPropagation()}>
+                <div className="confirm-icon">!</div>
+                <p className="confirm-title">{bloqueado ? "No se puede eliminar" : "?Estas seguro?"}</p>
+                <p className="confirm-text">
+                    {bloqueado ? (
+                        <>
+                            Este usuario tiene pedidos registrados y no puede ser eliminado.
+                            Primero revisa su historial de pedidos.
+                        </>
+                    ) : (
+                        <>
+                            Vas a eliminar {esCliente ? "al cliente" : "al vendedor"}{" "}
+                            <span className="confirm-name">{nombre}</span>{" "}
+                            de forma permanente. Esta accion no se puede deshacer.
+                        </>
+                    )}
+                </p>
+                <div className="confirm-actions">
+                    <button className="confirm-btn cancel" onClick={onCancel}>Cancelar</button>
+                    {!bloqueado && <button className="confirm-btn danger" onClick={onConfirm}>Si, eliminar</button>}
+                </div>
             </div>
         </div>
-    </div>
-);
+    );
+};
 
 const Table = ({ tipo = "clientes" }) => {
     const { fetchDataBackend } = useFetch();
@@ -134,7 +146,7 @@ const Table = ({ tipo = "clientes" }) => {
         return <span className={`tbl-badge ${cls}`}>{label}</span>;
     };
 
-    const pedirConfirmacion = (item) => setConfirmTarget({ id: item._id, nombre: getNombre(item) });
+    const pedirConfirmacion = (item) => setConfirmTarget({ id: item._id, nombre: getNombre(item), pedidosCount: Number(item.pedidosCount || 0) });
 
     const confirmarEliminacion = async () => {
         if (!confirmTarget) return;
@@ -166,6 +178,7 @@ const Table = ({ tipo = "clientes" }) => {
                 <ConfirmModal
                     nombre={confirmTarget.nombre}
                     esCliente={esClientes}
+                    pedidosCount={confirmTarget.pedidosCount}
                     onConfirm={confirmarEliminacion}
                     onCancel={() => setConfirmTarget(null)}
                 />

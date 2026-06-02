@@ -112,23 +112,7 @@ const registerStyles = `
         font-weight: 600;
         pointer-events: none;
         white-space: nowrap;
-    }
-    .reg-toggle-btn {
-        position: absolute;
-        top: 50%;
-        right: 1rem;
-        transform: translateY(-50%);
-        background: none;
-        border: none;
-        padding: 0.25rem;
-        cursor: pointer;
-        color: #9ca3af;
-        display: flex;
-        align-items: center;
-        transition: color 0.18s;
-        border-radius: 0.375rem;
-    }
-    .reg-toggle-btn:hover { color: #b45309; }
+    }
     .reg-error-msg {
         display: flex;
         align-items: center;

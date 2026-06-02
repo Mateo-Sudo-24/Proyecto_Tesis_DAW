@@ -490,6 +490,13 @@ const Chat = () => {
             setOnlineIds(new Set(lista.filter(u => u.online).map(u => u.id)));
         });
 
+        sock.on('vendedores_online', (lista = []) => {
+            if (!isStaff) {
+                setVendedores(lista);
+                setOnlineIds(new Set(lista.filter(u => u.online).map(u => u.id || u._id)));
+            }
+        });
+
         // Staff: recibir mensaje de un cliente o vendedor
         sock.on('mensaje_de_cliente', ({ clienteId, msg }) => {
             setConversaciones(prev => ({

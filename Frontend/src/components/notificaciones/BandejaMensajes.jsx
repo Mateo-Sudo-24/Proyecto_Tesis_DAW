@@ -320,7 +320,9 @@ export default function BandejaMensajes() {
             const rol = getRol();
             const endpoint = rol === 'vendedor'
                 ? `${import.meta.env.VITE_BACKEND_URL}/notificaciones/vendedor`
-                : `${import.meta.env.VITE_BACKEND_URL}/notificaciones`;
+                : rol === 'cliente'
+                    ? `${import.meta.env.VITE_BACKEND_URL}/notificaciones/cliente`
+                    : `${import.meta.env.VITE_BACKEND_URL}/notificaciones`;
             const res = await fetch(endpoint, {
                 headers: { Authorization: `Bearer ${token}` }
             });
@@ -339,7 +341,7 @@ export default function BandejaMensajes() {
         fetchNotifs();
         const id = setInterval(() => {
             if (pollingActivo) fetchNotifs();
-        }, 30000);
+        }, 10000);
         return () => clearInterval(id);
     }, [pollingActivo]);
 
@@ -361,7 +363,9 @@ export default function BandejaMensajes() {
             const rol = getRol();
             const endpoint = rol === 'vendedor'
                 ? `${import.meta.env.VITE_BACKEND_URL}/notificaciones/vendedor/${id}/leida`
-                : `${import.meta.env.VITE_BACKEND_URL}/notificaciones/${id}/leida`;
+                : rol === 'cliente'
+                    ? `${import.meta.env.VITE_BACKEND_URL}/notificaciones/cliente/${id}/leida`
+                    : `${import.meta.env.VITE_BACKEND_URL}/notificaciones/${id}/leida`;
             const res = await fetch(endpoint, {
                 method: 'PATCH',
                 headers: { Authorization: `Bearer ${token}` }

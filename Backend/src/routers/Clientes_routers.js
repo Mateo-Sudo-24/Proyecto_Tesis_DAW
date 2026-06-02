@@ -20,6 +20,7 @@ import {
     perfil,
     actualizarPerfil,
     actualizarPassword,
+    verificarPasswordActual,
     crearClientePorAdmin,
     configurarCuentaClienteYPassword,
     obtenerClientes,
@@ -52,6 +53,7 @@ router.post('/setup-account/:token', validateAccountSetup, configurarCuentaClien
 router.get('/perfil', verificarTokenJWT, perfil);
 router.put('/perfil', verificarTokenJWT, validateProfileUpdate, actualizarPerfil);
 router.put('/password', verificarTokenJWT, validatePasswordChange, actualizarPassword);
+router.post('/verificar-password', verificarTokenJWT, verificarPasswordActual);
 
 
 // =======================================================================

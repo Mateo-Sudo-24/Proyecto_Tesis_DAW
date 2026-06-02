@@ -7,25 +7,12 @@ const buscarDocumentoPorEmail = async (Model, email, extraQuery = {}) => {
 
     for (const emailIntento of intentos) {
         const documento = await Model.findOne({ ...extraQuery, email: emailIntento });
-        if (documento) return normalizarDocumentoEncontrado(Model, documento, emailNorm);
+        if (documento) return documento;
     }
 
     const documento = await Model.findOne({ ...extraQuery, email: emailNorm })
         .collation({ locale: 'en', strength: 2 });
 
-    if (!documento) return null;
-    return normalizarDocumentoEncontrado(Model, documento, emailNorm);
-};
-
-const normalizarDocumentoEncontrado = async (Model, documento, emailNorm) => {
-    if (documento.email && documento.email !== emailNorm) {
-        try {
-            await Model.updateOne({ _id: documento._id, email: documento.email }, { $set: { email: emailNorm } });
-            documento.email = emailNorm;
-        } catch (error) {
-            console.warn(`No se pudo normalizar email de ${Model.modelName}:`, error.message);
-        }
-    }
     return documento;
 };
 

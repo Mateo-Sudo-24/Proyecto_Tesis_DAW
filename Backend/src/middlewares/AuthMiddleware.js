@@ -13,3 +13,10 @@ export const esVendedor = (req, res, next) => {
     }
     return res.status(403).json({ msg: "Acceso denegado. Se requiere rol de Vendedor." });
 };
+
+export const esCliente = (req, res, next) => {
+    if (req.usuario && req.usuario.rol === 'cliente') {
+        return next();
+    }
+    return res.status(403).json({ msg: "Acceso denegado. Se requiere rol de Cliente." });
+};

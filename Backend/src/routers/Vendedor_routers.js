@@ -18,6 +18,7 @@ import {
     perfil,
     actualizarPerfil,
     actualizarPassword,
+    verificarPasswordActual,
     crearVendedor,
     obtenerVendedores,
     obtenerVendedorPorId,
@@ -41,6 +42,7 @@ router.post('/setup-account/:token', validateAccountSetup, configurarCuentaYPass
 router.get('/perfil', verificarTokenJWT, perfil);
 router.put('/perfil', verificarTokenJWT, validateProfileUpdate, actualizarPerfil);
 router.put('/perfil/password', verificarTokenJWT, validatePasswordChange, actualizarPassword);
+router.post('/perfil/verificar-password', verificarTokenJWT, verificarPasswordActual);
 
 // --- RUTA PÚBLICA PARA CLIENTES (lista de vendedores activos para el chat) ---
 router.get('/publicos', verificarTokenJWT, obtenerVendedoresPublicos);

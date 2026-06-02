@@ -5,6 +5,7 @@ import { sendMailToRecoveryPassword, sendMailToInviteUser } from "../config/node
 import { crearTokenJWT } from '../middlewares/JWT.js';
 import mongoose from 'mongoose';
 import { normalizarEmail, buscarDocumentoPorEmail } from "../utils/emailLookup.js";
+import { isUserOnline } from "../utils/onlineUsers.js";
 
 // ============================================================================
 // ==          SECCIÓN DE AUTENTICACIÓN Y PERFIL (PARA VENDEDORES)         ==
@@ -68,20 +69,35 @@ const actualizarPassword = async (req, res) => {
     const { _id } = req.usuario;
     const { passwordActual, passwordNuevo } = req.body;
     if (!passwordActual || !passwordNuevo || passwordNuevo.length < 8) {
-        return res.status(400).json({ msg: "Todos los campos son obligatorios y la nueva contraseña debe tener al menos 8 caracteres." });
+        return res.status(400).json({ msg: "Todos los campos son obligatorios y la nueva contrasena debe tener al menos 8 caracteres." });
     }
 
     try {
         const vendedor = await Vendedor.findById(_id);
         if (!vendedor) return res.status(404).json({ msg: "Vendedor no encontrado." });
-        if (!await vendedor.matchPassword(passwordActual)) return res.status(401).json({ msg: "La contraseña actual es incorrecta." });
+        if (!await vendedor.matchPassword(passwordActual)) return res.status(401).json({ msg: "La contrasena actual es incorrecta." });
+        if (await vendedor.matchPassword(passwordNuevo)) return res.status(400).json({ msg: "No puedes poner la misma contrasena." });
 
         vendedor.password = passwordNuevo;
         await vendedor.save();
 
-        res.status(200).json({ msg: "Contraseña actualizada correctamente." });
+        res.status(200).json({ msg: "Contrasena actualizada correctamente." });
     } catch (error) {
-        res.status(500).json({ msg: "Error en el servidor al actualizar la contraseña." });
+        res.status(500).json({ msg: "Error en el servidor al actualizar la contrasena." });
+    }
+};
+
+const verificarPasswordActual = async (req, res) => {
+    const { _id } = req.usuario;
+    const { passwordActual } = req.body;
+    if (!passwordActual) return res.status(400).json({ msg: "La contrasena actual es obligatoria." });
+    try {
+        const vendedor = await Vendedor.findById(_id);
+        if (!vendedor) return res.status(404).json({ msg: "Vendedor no encontrado." });
+        if (!await vendedor.matchPassword(passwordActual)) return res.status(401).json({ msg: "La contrasena actual es incorrecta." });
+        return res.status(200).json({ ok: true, msg: "Contrasena verificada." });
+    } catch (error) {
+        return res.status(500).json({ msg: "Error al verificar la contrasena." });
     }
 };
 
@@ -137,8 +153,16 @@ const crearNuevoPassword = async (req, res) => {
 
 const obtenerVendedoresPublicos = async (req, res) => {
     try {
-        const vendedores = await Vendedor.find({ status: 'activo' }).select('_id nombre').lean();
-        res.status(200).json(vendedores.map(v => ({ id: String(v._id), nombre: v.nombre, rol: 'vendedor' })));
+        const vendedores = await Vendedor.find({ status: 'activo' }).select('_id nombre apellido nombrePropietario').lean();
+        res.status(200).json(vendedores.map(v => ({
+            id: String(v._id),
+            _id: String(v._id),
+            nombre: v.nombre,
+            apellido: v.apellido,
+            nombrePropietario: v.nombrePropietario,
+            rol: 'vendedor',
+            online: isUserOnline(v._id),
+        })).sort((a, b) => Number(b.online) - Number(a.online)));
     } catch (error) {
         res.status(500).json({ msg: "Error al obtener vendedores." });
     }
@@ -287,6 +311,7 @@ export {
     perfil,
     actualizarPerfil,
     actualizarPassword,
+    verificarPasswordActual,
     recuperarPassword,
     comprobarTokenPassword,
     crearNuevoPassword,

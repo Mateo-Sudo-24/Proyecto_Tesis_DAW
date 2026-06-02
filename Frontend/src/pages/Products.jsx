@@ -314,6 +314,7 @@ const Products = () => {
     const [showFilters, setShowFilters]           = useState(false);
     const [colors, setColors]                     = useState([]);
     const [agregando, setAgregando]               = useState(null);
+    const [unidadesCompra, setUnidadesCompra]     = useState({});
     const token = storeAuth(state => state.token);
 
     const handleImageError = (e) => {
@@ -364,7 +365,7 @@ const Products = () => {
         }
         const productoId = producto?._id;
         if (!productoId) return;
-        const unidadSeleccionada = producto?.unidadVenta === 'rollo' ? 'rollo' : 'metro';
+        const unidadSeleccionada = unidadesCompra[productoId] || (producto?.unidadVenta === 'rollo' ? 'rollo' : 'metro');
         setAgregando(productoId);
         try {
             const res = await fetch(`${import.meta.env.VITE_BACKEND_URL}/carrito/items`, {
@@ -542,6 +543,21 @@ const Products = () => {
                                     <p style={{ margin: '0 0 0.75rem', color: '#6b7280', fontSize: '0.78rem', fontWeight: 700 }}>
                                         Unidad: {producto.unidadVenta || 'metro'}
                                     </p>
+                                    {(producto.unidadVenta === 'ambos' || producto.unidadVenta === 'rollo') && (
+                                        <div style={{ display: 'grid', gap: '0.35rem', marginBottom: '0.75rem' }}>
+                                            <p style={{ margin: 0, color: '#92400e', fontSize: '0.76rem', fontWeight: 800 }}>
+                                                Este articulo se puede comprar por rollos o por metros.
+                                            </p>
+                                            <select
+                                                value={unidadesCompra[producto._id] || (producto.unidadVenta === 'rollo' ? 'rollo' : 'metro')}
+                                                onChange={(e) => setUnidadesCompra(prev => ({ ...prev, [producto._id]: e.target.value }))}
+                                                style={{ border: '1px solid #e5e7eb', borderRadius: '0.5rem', padding: '0.45rem 0.55rem', fontWeight: 700 }}
+                                            >
+                                                {producto.unidadVenta !== 'rollo' && <option value="metro">Comprar por metros</option>}
+                                                <option value="rollo">Comprar por rollos</option>
+                                            </select>
+                                        </div>
+                                    )}
                                     <Link to={`/products/${producto._id}`} className="btn-ver-detalles">
                                         Ver Detalles
                                     </Link>

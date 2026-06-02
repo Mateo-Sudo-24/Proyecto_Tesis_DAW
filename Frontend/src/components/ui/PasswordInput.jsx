@@ -9,6 +9,15 @@ const styles = `
     .pw-input-wrap > input {
         padding-right: 2.75rem !important;
     }
+    .pw-input-wrap > input::-ms-reveal,
+    .pw-input-wrap > input::-ms-clear {
+        display: none;
+    }
+    .pw-input-wrap > input::-webkit-credentials-auto-fill-button,
+    .pw-input-wrap > input::-webkit-textfield-decoration-container {
+        visibility: hidden;
+        pointer-events: none;
+    }
     .pw-toggle {
         position: absolute;
         right: 0.75rem;

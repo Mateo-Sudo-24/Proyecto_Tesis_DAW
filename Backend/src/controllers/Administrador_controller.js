@@ -128,7 +128,10 @@ const cambiarPassword = async (req, res) => {
         if (!admin) return res.status(404).json({ msg: "Administrador no encontrado." });
 
         if (!await admin.matchPassword(passwordActual)) {
-            return res.status(401).json({ msg: "La contraseña actual es incorrecta." });
+            return res.status(401).json({ msg: "La contrasena actual es incorrecta." });
+        }
+        if (await admin.matchPassword(passwordNuevo)) {
+            return res.status(400).json({ msg: "No puedes poner la misma contrasena." });
         }
         
         // --- ¡CORRECCIÓN! ---
@@ -138,11 +141,27 @@ const cambiarPassword = async (req, res) => {
         // Al guardar, el hook pre('save') se encargará de hashearla automáticamente.
         await admin.save();
         
-        res.status(200).json({ msg: "Contraseña actualizada correctamente." });
+        res.status(200).json({ msg: "Contrasena actualizada correctamente." });
 
     } catch (error) {
-        console.error("Error al cambiar la contraseña:", error);
-        res.status(500).json({ msg: "Error en el servidor al cambiar la contraseña." });
+        console.error("Error al cambiar la contrasena:", error);
+        res.status(500).json({ msg: "Error en el servidor al cambiar la contrasena." });
+    }
+};
+
+const verificarPasswordActual = async (req, res) => {
+    const { _id } = req.usuario;
+    const { passwordActual } = req.body;
+    if (!passwordActual) return res.status(400).json({ msg: "La contrasena actual es obligatoria." });
+    try {
+        const admin = await Administrador.findById(_id);
+        if (!admin) return res.status(404).json({ msg: "Administrador no encontrado." });
+        if (!await admin.matchPassword(passwordActual)) {
+            return res.status(401).json({ msg: "La contrasena actual es incorrecta." });
+        }
+        return res.status(200).json({ ok: true, msg: "Contrasena verificada." });
+    } catch (error) {
+        return res.status(500).json({ msg: "Error al verificar la contrasena." });
     }
 };
 
@@ -231,6 +250,7 @@ export {
     obtenerAdministradores,
     actualizar,
     cambiarPassword,
+    verificarPasswordActual,
     recuperarPassword,
     comprobarTokenPassword,
     crearNuevoPassword,

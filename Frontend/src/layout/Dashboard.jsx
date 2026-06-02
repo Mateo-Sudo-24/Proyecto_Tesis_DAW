@@ -1,6 +1,5 @@
 import { Link, Outlet, useLocation, useNavigate } from 'react-router'
 import { useEffect, useState } from 'react'
-import { io } from 'socket.io-client'
 import storeAuth from '../context/storeAuth'
 import storeProfile from '../context/storeProfile'
 import BandejaMensajes from '../components/notificaciones/BandejaMensajes'
@@ -381,8 +380,6 @@ const Dashboard = () => {
     const { token, clearToken } = storeAuth()
     const { user, clearUser } = storeProfile()
     const [sidebarOpen, setSidebarOpen] = useState(false)
-    const [chatUnread, setChatUnread] = useState(0)
-    const [lastChatSender, setLastChatSender] = useState('')
 
     const closeSidebar = () => setSidebarOpen(false)
 
@@ -391,40 +388,15 @@ const Dashboard = () => {
     const isVendedor = user?.rol === "vendedor"
     const isCliente = user?.rol === "cliente"
     const isAdmin = user?.rol === "administrador"
-    const miId = user?._id || user?.id
-
     const lc = (path) => `dsb-nav-link${urlActual === path ? ' active' : ''}`
 
     useEffect(() => {
-        if (urlActual === '/dashboard/chat') {
-            setChatUnread(0)
-            setLastChatSender('')
-        }
-    }, [urlActual])
-
-    useEffect(() => {
-        if (!token || !user) return undefined
-        const backendUrl = import.meta.env.VITE_BACKEND_URL?.replace('/api', '')
-        if (!backendUrl) return undefined
-
-        const sock = io(backendUrl, { auth: { token } })
-        const registrarMensaje = (msg) => {
-            if (!msg || msg.de?.id === miId || urlActual === '/dashboard/chat') return
-            setChatUnread(prev => prev + 1)
-            setLastChatSender(msg.de?.nombre || 'un contacto')
-        }
-        const aplicarResumenNoLeidos = ({ count = 0, lastSender = '' } = {}) => {
-            if (urlActual === '/dashboard/chat') return
-            setChatUnread(Number(count) || 0)
-            setLastChatSender(lastSender || '')
-        }
-
-        sock.on('chat_unread_summary', aplicarResumenNoLeidos)
-        sock.on('mensaje_de_staff', registrarMensaje)
-        sock.on('mensaje_de_cliente', ({ msg }) => registrarMensaje(msg))
-
-        return () => sock.disconnect()
-    }, [token, user, miId, urlActual])
+        if (urlActual !== '/dashboard/chat' || !token) return
+        fetch(`${import.meta.env.VITE_BACKEND_URL}/notificaciones/chat/limpiar`, {
+            method: 'PATCH',
+            headers: { Authorization: `Bearer ${token}` }
+        }).catch(() => {})
+    }, [token, urlActual])
 
     return (
         <>
@@ -469,10 +441,9 @@ const Dashboard = () => {
                         <Link
                             to="/dashboard/chat"
                             className={`${lc('/dashboard/chat')} dsb-chat-link`}
-                            onClick={() => { closeSidebar(); setChatUnread(0); setLastChatSender(''); }}
+                            onClick={closeSidebar}
                         >
                             <span className="dsb-icon">💬</span> Chat
-                            {chatUnread > 0 && <span className="dsb-chat-badge">{chatUnread > 9 ? '9+' : chatUnread}</span>}
                         </Link>
 
                         {/* GestiÃƒÂ³n (admin + vendedor) */}
@@ -508,9 +479,6 @@ const Dashboard = () => {
                                 </Link>
                                 <Link to="/dashboard/tienda" className={lc('/dashboard/tienda')} onClick={closeSidebar}>
                                     <span className="dsb-icon">🏪</span> Tienda
-                                </Link>
-                                <Link to="/dashboard/carrito" className={lc('/dashboard/carrito')} onClick={closeSidebar}>
-                                    <span className="dsb-icon">🛒</span> Carrito
                                 </Link>
                                 <Link to="/dashboard/mis-pedidos" className={lc('/dashboard/mis-pedidos')} onClick={closeSidebar}>
                                     <span className="dsb-icon">📦</span> Gestión de pedidos
@@ -580,18 +548,6 @@ const Dashboard = () => {
                         >
                             Cerrar sesión
                         </button>
-                        {chatUnread > 0 && (
-                            <button
-                                className="dsb-chat-alert"
-                                type="button"
-                                onClick={() => { setChatUnread(0); setLastChatSender(''); navigate('/dashboard/chat'); }}
-                                title="Ir al chat"
-                            >
-                                <span>💬</span>
-                                <span className="dsb-chat-alert-text">Tienes un mensaje de {lastChatSender || 'un contacto'}</span>
-                                <span className="dsb-chat-alert-count">{chatUnread > 9 ? '9+' : chatUnread}</span>
-                            </button>
-                        )}
                         <div className="dsb-topbar-user">
                             <span className="dsb-topbar-name">{displayName}</span>
                             <div

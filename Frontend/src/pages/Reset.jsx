@@ -122,23 +122,7 @@ const resetStyles = `
     }
     .reset-input.input-error:focus {
         box-shadow: 0 0 0 3.5px rgba(248,113,113,0.18);
-    }
-    .reset-toggle-btn {
-        position: absolute;
-        top: 50%;
-        right: 1rem;
-        transform: translateY(-50%);
-        background: none;
-        border: none;
-        padding: 0.25rem;
-        cursor: pointer;
-        color: #9ca3af;
-        display: flex;
-        align-items: center;
-        transition: color 0.18s;
-        border-radius: 0.375rem;
-    }
-    .reset-toggle-btn:hover { color: #b45309; }
+    }
     .reset-error-msg {
         display: flex;
         align-items: center;

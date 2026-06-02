@@ -7,6 +7,7 @@ import Administrador from '../models/Administrador.js';
 import Vendedor from '../models/Vendedor.js';
 import mongoose from "mongoose";
 import stripe from '../config/stripe.js';
+import { isUserOnline } from "../utils/onlineUsers.js";
 
 const limpiarTexto = (valor) => String(valor ?? '').trim();
 const soloDigitos = (valor) => String(valor ?? '').replace(/\D/g, '');
@@ -95,16 +96,18 @@ const normalizarDatosFacturacion = (datos = {}) => {
 
 const seleccionarVendedorRotativo = async () => {
     const vendedoresActivos = await Vendedor.find({ status: 'activo' }).select('_id').sort({ createdAt: 1 }).lean();
-    if (vendedoresActivos.length === 0) return undefined;
-    if (vendedoresActivos.length === 1) return vendedoresActivos[0]._id;
+    const vendedoresOnline = vendedoresActivos.filter(v => isUserOnline(v._id));
+    const candidatos = vendedoresOnline.length > 0 ? vendedoresOnline : vendedoresActivos;
+    if (candidatos.length === 0) return undefined;
+    if (candidatos.length === 1) return candidatos[0]._id;
 
     const ultimaOrdenConVendedor = await Orden.findOne({ vendedor: { $exists: true, $ne: null } })
         .select('vendedor')
         .sort({ createdAt: -1 })
         .lean();
-    const ultimoIndex = vendedoresActivos.findIndex(v => String(v._id) === String(ultimaOrdenConVendedor?.vendedor));
-    const siguienteIndex = ultimoIndex === -1 ? 0 : (ultimoIndex + 1) % vendedoresActivos.length;
-    return vendedoresActivos[siguienteIndex]._id;
+    const ultimoIndex = candidatos.findIndex(v => String(v._id) === String(ultimaOrdenConVendedor?.vendedor));
+    const siguienteIndex = ultimoIndex === -1 ? 0 : (ultimoIndex + 1) % candidatos.length;
+    return candidatos[siguienteIndex]._id;
 };
 
 // ─── Helper: crear notificación de pago para todos los admins ───────────────

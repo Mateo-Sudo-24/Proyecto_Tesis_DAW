@@ -105,12 +105,13 @@ const styles = `
 `;
 
 const CardPassword = () => {
-    const { register, handleSubmit, formState: { errors }, watch, trigger, reset, getValues } = useForm();
-    const { user, updatePasswordProfile } = storeProfile();
+    const { register, handleSubmit, formState: { errors }, watch, trigger, reset, getValues, setError, clearErrors } = useForm();
+    const { user, updatePasswordProfile, verifyCurrentPassword } = storeProfile();
     const { clearToken } = storeAuth();
     const [modalOpen, setModalOpen] = useState(false);
     const [step, setStep] = useState(1);
     const [pendingData, setPendingData] = useState(null);
+    const [checkingPassword, setCheckingPassword] = useState(false);
 
     const closeModal = () => {
         setModalOpen(false);
@@ -121,7 +122,16 @@ const CardPassword = () => {
 
     const nextFromPassword = async () => {
         const ok = await trigger('passwordActual');
-        if (ok) setStep(2);
+        if (!ok) return;
+        setCheckingPassword(true);
+        const response = await verifyCurrentPassword(getValues('passwordActual'));
+        setCheckingPassword(false);
+        if (response?.error) {
+            setError('passwordActual', { type: 'server', message: response.error });
+            return;
+        }
+        clearErrors('passwordActual');
+        setStep(2);
     };
 
     const nextFromNewPassword = async () => {
@@ -203,7 +213,8 @@ const CardPassword = () => {
                                                 className="pwd-input"
                                                 {...register("passwordNuevo", {
                                                     required: "La nueva contraseña es obligatoria",
-                                                    minLength: { value: 8, message: "Mínimo 8 caracteres" }
+                                                    minLength: { value: 8, message: "Minimo 8 caracteres" },
+                                                    validate: value => value !== watch("passwordActual") || "No puedes poner la misma contrasena"
                                                 })}
                                             />
                                             {errors.passwordNuevo && <p className="pwd-error">{errors.passwordNuevo.message}</p>}
@@ -227,8 +238,8 @@ const CardPassword = () => {
                                 <button type="button" className="pwd-btn-light" onClick={step === 1 ? closeModal : () => setStep(1)}>
                                     {step === 1 ? 'Cancelar' : 'Atrás'}
                                 </button>
-                                <button type="button" className="pwd-btn-main" onClick={step === 1 ? nextFromPassword : nextFromNewPassword}>
-                                    Continuar
+                                <button type="button" className="pwd-btn-main" onClick={step === 1 ? nextFromPassword : nextFromNewPassword} disabled={checkingPassword}>
+                                    {checkingPassword ? 'Verificando...' : 'Continuar'}
                                 </button>
                             </div>
                         </form>

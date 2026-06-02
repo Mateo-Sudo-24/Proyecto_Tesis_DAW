@@ -155,23 +155,7 @@ const loginStyles = `
         color: #9ca3af;
         pointer-events: none;
     }
-    .login-input-icon.icon-valid { color: #34d399; }
-    .login-toggle-btn {
-        position: absolute;
-        top: 50%;
-        right: 1rem;
-        transform: translateY(-50%);
-        background: none;
-        border: none;
-        padding: 0.25rem;
-        cursor: pointer;
-        color: #9ca3af;
-        display: flex;
-        align-items: center;
-        transition: color 0.18s;
-        border-radius: 0.375rem;
-    }
-    .login-toggle-btn:hover { color: #b45309; }
+    .login-input-icon.icon-valid { color: #34d399; }
     .login-error-msg {
         display: flex;
         align-items: center;

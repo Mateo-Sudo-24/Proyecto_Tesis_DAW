@@ -24,13 +24,25 @@ const getApiUrlByRole = (rol, action) => {
     let path;
     switch (rol) {
         case 'administrador':
-            path = action === 'password' ? '/admin/perfil/password' : '/admin/perfil';
+            path = action === 'password'
+                ? '/admin/perfil/password'
+                : action === 'verify-password'
+                    ? '/admin/perfil/verificar-password'
+                    : '/admin/perfil';
             break;
         case 'vendedor':
-            path = action === 'password' ? '/vendedores/perfil/password' : '/vendedores/perfil';
+            path = action === 'password'
+                ? '/vendedores/perfil/password'
+                : action === 'verify-password'
+                    ? '/vendedores/perfil/verificar-password'
+                    : '/vendedores/perfil';
             break;
         case 'cliente':
-            path = action === 'password' ? '/clientes/password' : '/clientes/perfil';
+            path = action === 'password'
+                ? '/clientes/password'
+                : action === 'verify-password'
+                    ? '/clientes/verificar-password'
+                    : '/clientes/perfil';
             break;
         default:
             return null;
@@ -142,6 +154,28 @@ const useProfileStore = create((set, get) => ({
             console.error("Error al actualizar la contraseña:", error);
             toast.error(error.message || "No se pudo actualizar la contraseña.");
             return { error: error.message || "Error desconocido" };
+        }
+    },
+
+    verifyCurrentPassword: async (passwordActual) => {
+        const { rol } = getAuthData();
+        const url = getApiUrlByRole(rol, 'verify-password');
+        if (!url) return { error: "No se pudo determinar la ruta de verificacion." };
+
+        try {
+            const headers = getAuthHeaders();
+            const response = await fetch(url, {
+                method: 'POST',
+                headers: headers.headers,
+                body: JSON.stringify({ passwordActual }),
+            });
+            const data = await response.json().catch(() => ({}));
+            if (!response.ok) {
+                throw new Error(data.msg || `HTTP ${response.status}`);
+            }
+            return data;
+        } catch (error) {
+            return { error: error.message || "No se pudo verificar la contrasena." };
         }
     }
 }));

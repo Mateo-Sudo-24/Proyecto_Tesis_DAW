@@ -208,19 +208,36 @@ const actualizarPerfil = async (req, res) => {
 const actualizarPassword = async (req, res) => {
     const { _id } = req.usuario;
     const { passwordActual, passwordNuevo } = req.body;
-    if (!passwordActual || !passwordNuevo || passwordNuevo.length < 8) return res.status(400).json({ msg: "Todos los campos son obligatorios y la nueva contraseÃ±a debe tener al menos 8 caracteres." });
-    
+    if (!passwordActual || !passwordNuevo || passwordNuevo.length < 8) {
+        return res.status(400).json({ msg: "Todos los campos son obligatorios y la nueva contrasena debe tener al menos 8 caracteres." });
+    }
+
     try {
         const cliente = await Cliente.findById(_id);
         if (!cliente) return res.status(404).json({ msg: "Cliente no encontrado." });
-        if (!await cliente.matchPassword(passwordActual)) return res.status(401).json({ msg: "La contraseÃ±a actual es incorrecta." });
-        
+        if (!await cliente.matchPassword(passwordActual)) return res.status(401).json({ msg: "La contrasena actual es incorrecta." });
+        if (await cliente.matchPassword(passwordNuevo)) return res.status(400).json({ msg: "No puedes poner la misma contrasena." });
+
         cliente.password = passwordNuevo;
         await cliente.save();
-        
-        res.status(200).json({ msg: "ContraseÃ±a actualizada correctamente." });
+
+        res.status(200).json({ msg: "Contrasena actualizada correctamente." });
     } catch (error) {
-        res.status(500).json({ msg: "Error al actualizar la contraseÃ±a." });
+        res.status(500).json({ msg: "Error al actualizar la contrasena." });
+    }
+};
+
+const verificarPasswordActual = async (req, res) => {
+    const { _id } = req.usuario;
+    const { passwordActual } = req.body;
+    if (!passwordActual) return res.status(400).json({ msg: "La contrasena actual es obligatoria." });
+    try {
+        const cliente = await Cliente.findById(_id);
+        if (!cliente) return res.status(404).json({ msg: "Cliente no encontrado." });
+        if (!await cliente.matchPassword(passwordActual)) return res.status(401).json({ msg: "La contrasena actual es incorrecta." });
+        return res.status(200).json({ ok: true, msg: "Contrasena verificada." });
+    } catch (error) {
+        return res.status(500).json({ msg: "Error al verificar la contrasena." });
     }
 };
 
@@ -390,6 +407,7 @@ export {
     perfil,
     actualizarPerfil,
     actualizarPassword,
+    verificarPasswordActual,
     crearClientePorAdmin,
     configurarCuentaClienteYPassword,
     obtenerClientes,

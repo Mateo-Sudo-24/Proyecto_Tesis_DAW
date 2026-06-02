@@ -14,6 +14,7 @@ import {
     obtenerAdministradores,
     actualizar,
     cambiarPassword,
+    verificarPasswordActual,
     recuperarPassword,
     comprobarTokenPassword,
     crearNuevoPassword,
@@ -50,6 +51,7 @@ router.put('/perfil', verificarTokenJWT, esAdmin, validateProfileUpdate, actuali
 
 // PUT /api/admin/perfil/password -> Cambiar la contraseña del admin autenticado
 router.put('/perfil/password', verificarTokenJWT, esAdmin, validatePasswordChange, cambiarPassword);
+router.post('/perfil/verificar-password', verificarTokenJWT, esAdmin, verificarPasswordActual);
 
 // GET /api/admin/usuarios-chat -> Todos los usuarios verificados para el chat
 router.get('/usuarios-chat', verificarTokenJWT, esVendedor, obtenerUsuariosChat);

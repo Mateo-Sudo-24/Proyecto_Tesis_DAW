@@ -453,6 +453,7 @@ const Carrito = () => {
     const [ordenCreada, setOrdenCreada] = useState(null);
     const [pedidoExitoso, setPedidoExitoso] = useState(null); // { orden, facturacion }
     const [cantidadDrafts, setCantidadDrafts] = useState({});
+    const [updatingItems, setUpdatingItems] = useState({});
     const { fetchDataBackend } = useFetch();
 
     const getNombreVendedor = (vendedor) => {
@@ -492,9 +493,10 @@ const Carrito = () => {
 
             const vendedores = await fetchDataBackend(`${import.meta.env.VITE_BACKEND_URL}/vendedores/publicos`);
             if (Array.isArray(vendedores) && vendedores.length > 0) {
+                const candidatos = [...vendedores].sort((a, b) => Number(b.online) - Number(a.online));
                 const currentIndex = Number(localStorage.getItem('intex-vendedor-rotacion') || 0);
-                const vendedor = vendedores[currentIndex % vendedores.length];
-                localStorage.setItem('intex-vendedor-rotacion', String((currentIndex + 1) % vendedores.length));
+                const vendedor = candidatos[currentIndex % candidatos.length];
+                localStorage.setItem('intex-vendedor-rotacion', String((currentIndex + 1) % candidatos.length));
                 setVendedorAsignado(vendedor);
             }
         };
@@ -506,6 +508,7 @@ const Carrito = () => {
     const cambiarCantidad = async (productoId, cantidad, unidadSeleccionada) => {
         const cant = Number(cantidad);
         if (!Number.isFinite(cant) || cant <= 0) return null;
+        setUpdatingItems(prev => ({ ...prev, [productoId]: true }));
         const response = await fetchDataBackend(
             `${import.meta.env.VITE_BACKEND_URL}/carrito/items`,
             { productoId, cantidad: cant, unidadSeleccionada },
@@ -519,6 +522,7 @@ const Carrito = () => {
                 return next;
             });
         }
+        setUpdatingItems(prev => ({ ...prev, [productoId]: false }));
         return response;
     };
 
@@ -571,12 +575,14 @@ const Carrito = () => {
 
     // Eliminar item
     const eliminarItem = async (productoId) => {
+        setUpdatingItems(prev => ({ ...prev, [productoId]: true }));
         const response = await fetchDataBackend(
             `${import.meta.env.VITE_BACKEND_URL}/carrito/items/${productoId}`,
             null,
             "DELETE"
         );
         if (response) setCarrito(response);
+        setUpdatingItems(prev => ({ ...prev, [productoId]: false }));
     };
 
     // Vaciar carrito
@@ -717,8 +723,9 @@ const Carrito = () => {
                                             const precioConDescuento = precioUnidad * (1 - descuento / 100);
                                             const permiteAmbos = item.producto?.unidadVenta === 'ambos';
                                             const stepCantidad = unidad === 'rollo' ? 1 : 0.01;
+                                            const updating = !!updatingItems[item.producto?._id];
                                             return (
-                                            <tr key={item.producto?._id}>
+                                            <tr key={item.producto?._id} style={{ opacity: updating ? 0.62 : 1, pointerEvents: updating ? 'none' : 'auto' }}>
                                                 <td>
                                                     <div className="cart-product-cell">
                                                         <img
@@ -736,9 +743,10 @@ const Carrito = () => {
                                                         <select
                                                             className="cart-select"
                                                             value={unidad}
+                                                            disabled={updating}
                                                             onChange={e => {
                                                                 const nextCantidad = e.target.value === 'rollo' ? 1 : 0.5;
-                                                                setCantidadDraft(item.producto?._id, String(nextCantidad));
+                                                                setCantidadDraft(item.producto?._id, '');
                                                                 cambiarCantidad(item.producto?._id, nextCantidad, e.target.value);
                                                             }}
                                                         >
@@ -760,6 +768,7 @@ const Carrito = () => {
                                                         min={unidad === 'rollo' ? 1 : 0.01}
                                                         step={stepCantidad}
                                                         value={getCantidadDraft(item)}
+                                                        disabled={updating}
                                                         onChange={e => setCantidadDraft(item.producto?._id, e.target.value)}
                                                         onBlur={() => confirmarCantidad(item, unidad)}
                                                         onKeyDown={e => {
@@ -774,9 +783,10 @@ const Carrito = () => {
                                                 <td style={{textAlign:'center'}}>
                                                     <button
                                                         className="cart-delete-btn"
+                                                        disabled={updating}
                                                         onClick={() => eliminarItem(item.producto?._id)}
                                                     >
-                                                        Eliminar
+                                                        {updating ? 'Actualizando...' : 'Eliminar'}
                                                     </button>
                                                 </td>
                                             </tr>

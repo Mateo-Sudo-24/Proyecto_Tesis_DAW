@@ -13,10 +13,13 @@ import {
   rechazarPedido,
   verificarEstadoNotificacionWebhook,
   obtenerNotificacionesVendedor,
-  marcarLeidaVendedor
+  marcarLeidaVendedor,
+  obtenerNotificacionesCliente,
+  marcarLeidaCliente,
+  limpiarNotificacionesChat
 } from '../controllers/Notificacion_controller.js';
 import { verificarTokenJWT } from '../middlewares/JWT.js';
-import { esAdmin, esVendedor } from '../middlewares/AuthMiddleware.js';
+import { esAdmin, esVendedor, esCliente } from '../middlewares/AuthMiddleware.js';
 
 const router = Router();
 
@@ -44,6 +47,8 @@ router.get('/webhook/:id', verificarEstadoNotificacionWebhook);
 // GET /api/notificaciones -> Obtener todas las notificaciones del admin
 router.get('/', verificarTokenJWT, esAdmin, obtenerNotificaciones);
 
+router.patch('/chat/limpiar', verificarTokenJWT, limpiarNotificacionesChat);
+
 // GET /api/notificaciones/no-leidas -> Obtener notificaciones sin leer (optimizado para dashboard)
 router.get('/no-leidas', verificarTokenJWT, esAdmin, obtenerNotificacionesNoLeidas);
 
@@ -69,5 +74,8 @@ router.get('/vendedor', verificarTokenJWT, esVendedor, obtenerNotificacionesVend
 
 // PATCH /api/notificaciones/vendedor/:id/leida -> Marcar notificación como leída
 router.patch('/vendedor/:id/leida', verificarTokenJWT, esVendedor, marcarLeidaVendedor);
+
+router.get('/cliente', verificarTokenJWT, esCliente, obtenerNotificacionesCliente);
+router.patch('/cliente/:id/leida', verificarTokenJWT, esCliente, marcarLeidaCliente);
 
 export default router;

@@ -132,6 +132,11 @@ const styles = `
 `;
 
 const stripePromise = loadStripe(import.meta.env.VITE_STRIPE_PUBLIC_KEY);
+const DEMO_PAYMENT_METHODS = Object.freeze({
+    visa4242: 'demo_card_4242',
+    stripeVisa: 'pm_card_visa',
+    stripeMastercard: 'pm_card_mastercard',
+});
 
 const getTotalOrden = (orden) => {
     const totalFinal = Number(orden?.totalFinal);
@@ -173,17 +178,6 @@ const CheckoutForm = ({ orden, closeModal }) => {
             closeModal();
             navigate('/dashboard/mis-pedidos');
         } catch (error) {
-            if (!esDemo) {
-                try {
-                    await pagarOrden('demo_card_4242');
-                    toast.info("Pago demo aceptado. Pedido marcado como pagado.");
-                    closeModal();
-                    navigate('/dashboard/mis-pedidos');
-                    return;
-                } catch {
-                    // Si el backend no permite demo/test, se muestra el error original.
-                }
-            }
             toast.error(error.message || "No se pudo completar el pago con tarjeta.");
         } finally {
             setIsLoading(false);
@@ -228,7 +222,7 @@ const CheckoutForm = ({ orden, closeModal }) => {
                 type="button"
                 className="modal-demo-btn"
                 disabled={isLoading}
-                onClick={() => completarPago('demo_card_4242', true)}
+                onClick={() => completarPago(DEMO_PAYMENT_METHODS.visa4242, true)}
             >
                 Usar tarjeta demo 4242
             </button>

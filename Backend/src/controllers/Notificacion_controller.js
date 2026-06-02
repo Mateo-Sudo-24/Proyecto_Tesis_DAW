@@ -1,6 +1,7 @@
 import Notificacion from '../models/Notificacion.js';
 import Administrador from '../models/Administrador.js';
 import Vendedor from '../models/Vendedor.js';
+import Cliente from '../models/Cliente.js';
 import axios from 'axios';
 
 // ✅ WEBHOOK SIN AUTENTICACIÓN - N8N puede enviar directamente
@@ -103,7 +104,7 @@ export const obtenerNotificaciones = async (req, res) => {
     // Admin solo ve sus propias notificaciones
     const notifs = await Notificacion.find({ administrador: _id })
       .sort({ createdAt: -1 })
-      .limit(50);
+      .limit(200);
     
     // Descifrar datos sensibles antes de enviar
     const notifsDescifradas = notifs.map(n => {
@@ -207,7 +208,7 @@ export const marcarLeidaWebhook = async (req, res) => {
     
     const notifActualizada = await Notificacion.findByIdAndUpdate(
       id, 
-      { leida: true, estadoGestion: 'completado' }, 
+      { leida: true, bandejaEnviada: true }, 
       { new: true }
     );
 
@@ -216,6 +217,61 @@ export const marcarLeidaWebhook = async (req, res) => {
   } catch (error) {
     console.error('Error al marcar notificación como leída (webhook):', error);
     res.status(500).json({ ok: false, error: 'Error al actualizar notificación' });
+  }
+};
+
+const descifrarLista = (notifs = []) => notifs.map(n => {
+  const decrypted = n.descifrarDatos();
+  return { ...n.toObject(), mensaje: decrypted.mensaje, productos: decrypted.productos };
+});
+
+export const obtenerNotificacionesCliente = async (req, res) => {
+  const { _id, rol } = req.usuario;
+  if (rol !== 'cliente') {
+    return res.status(403).json({ msg: 'Acceso denegado. Solo clientes.' });
+  }
+  try {
+    const notifs = await Notificacion.find({ cliente: _id })
+      .sort({ createdAt: -1 })
+      .limit(200);
+    res.json({ ok: true, notificaciones: descifrarLista(notifs) });
+  } catch (error) {
+    res.status(500).json({ msg: 'Error al obtener notificaciones', ok: false });
+  }
+};
+
+export const marcarLeidaCliente = async (req, res) => {
+  const { id } = req.params;
+  const { _id, rol } = req.usuario;
+  if (rol !== 'cliente') {
+    return res.status(403).json({ msg: 'Acceso denegado. Solo clientes.' });
+  }
+  try {
+    const notif = await Notificacion.findById(id);
+    if (!notif) return res.status(404).json({ msg: 'Notificacion no encontrada' });
+    if (!notif.cliente || notif.cliente.toString() !== _id.toString()) {
+      return res.status(403).json({ msg: 'No tienes permiso para modificar esta notificacion' });
+    }
+    await Notificacion.findByIdAndUpdate(id, { leida: true });
+    res.json({ ok: true });
+  } catch (error) {
+    res.status(500).json({ msg: 'Error al actualizar notificacion', ok: false });
+  }
+};
+
+export const limpiarNotificacionesChat = async (req, res) => {
+  const { _id, rol } = req.usuario;
+  try {
+    const filtro = { tipo: 'mensaje_chat', leida: false };
+    if (rol === 'administrador') filtro.administrador = _id;
+    else if (rol === 'vendedor') filtro.vendedor = _id;
+    else if (rol === 'cliente') filtro.cliente = _id;
+    else return res.status(403).json({ msg: 'Rol no permitido.' });
+
+    const result = await Notificacion.updateMany(filtro, { $set: { leida: true } });
+    res.json({ ok: true, modificadas: result.modifiedCount || 0 });
+  } catch (error) {
+    res.status(500).json({ msg: 'Error al limpiar notificaciones de chat', ok: false });
   }
 };
 
@@ -323,7 +379,7 @@ export const obtenerAprobadasPendientesWebhook = async (req, res) => {
   try {
     const notifs = await Notificacion.find({ estadoGestion: 'aprobado' })
       .sort({ createdAt: -1 })
-      .limit(50);
+      .limit(200);
 
     const notifsDescifradas = notifs.map(n => {
       const decrypted = n.descifrarDatos();
@@ -478,7 +534,7 @@ export const obtenerNotificacionesVendedor = async (req, res) => {
   try {
     const notifs = await Notificacion.find({ vendedor: _id })
       .sort({ createdAt: -1 })
-      .limit(50);
+      .limit(200);
     const notifsDescifradas = notifs.map(n => {
       const decrypted = n.descifrarDatos();
       return { ...n.toObject(), mensaje: decrypted.mensaje, productos: decrypted.productos };

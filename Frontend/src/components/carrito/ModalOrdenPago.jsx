@@ -22,7 +22,7 @@ const numeroSeguro = (value) => {
 }
 
 const metodosCliente = [
-    { value: 'Pago por tarjeta en linea', label: 'Tarjeta en línea', helper: 'Pago con Stripe para tarjeta de crédito o débito.' },
+    { value: 'Pago por tarjeta en linea', label: 'Pago en linea con tarjeta de credito', helper: 'Pago con Stripe para tarjeta de credito o debito.' },
     { value: 'De Una', label: 'De Una', helper: 'Pago por QR. Conserva el comprobante para validación del vendedor.' },
     { value: 'Transferencia Bancaria', label: 'Transferencia bancaria', helper: 'El vendedor comprobará el pago antes de marcarlo como realizado.' },
     { value: 'Pago efectivo / tarjeta debito', label: 'Efectivo / tarjeta débito', helper: 'Pago presencial comprobado por el vendedor.' },
@@ -527,6 +527,24 @@ const ModalOrdenPago = ({
         setErrors(er => ({ ...er, [name]: '' }))
     }
 
+    const llenarConMisDatos = () => {
+        setForm(f => ({
+            ...f,
+            nombre: user?.nombre || '',
+            apellido: user?.apellido || '',
+            email: user?.email || '',
+            telefono: soloDigitos(user?.telefono || ''),
+            direccion: user?.direccion || '',
+            ruc: '',
+        }))
+        setErrors({})
+    }
+
+    const llenarConOtrosDatos = () => {
+        setForm({ nombre: '', apellido: '', ruc: '', email: '', telefono: '', direccion: '' })
+        setErrors({})
+    }
+
     useEffect(() => {
         if (!mapaVisible || !mapContainerRef.current) return
 
@@ -665,7 +683,6 @@ const ModalOrdenPago = ({
 
         if (metodoPago === 'Pago por tarjeta en linea') {
             setIsCreating(false)
-            toast.success('Orden creada. Completa el pago con tarjeta.')
             onNeedCardPayment(ordenRecien)
             return
         }
@@ -780,7 +797,15 @@ const ModalOrdenPago = ({
 
                     {/* Datos de facturaciÃ³n */}
                     <div className="op-section">
-                        <div className="op-section-title">Datos de facturación</div>
+                        <div className="op-section-title">Datos de facturaci?n</div>
+                        <div style={{ display:'flex', gap:'0.5rem', flexWrap:'wrap', padding:'0.8rem 1.25rem 0' }}>
+                            <button type="button" className="mop-mapa-toggle" style={{ width:'auto', borderRadius:'0.55rem' }} onClick={llenarConMisDatos}>
+                                Llenar con mis datos
+                            </button>
+                            <button type="button" className="mop-mapa-toggle" style={{ width:'auto', borderRadius:'0.55rem', background:'#f9fafb' }} onClick={llenarConOtrosDatos}>
+                                Llenar con otros datos
+                            </button>
+                        </div>
                         <div className="op-grid">
                             <div className="op-field">
                                 <label className="op-label">Nombre</label>
