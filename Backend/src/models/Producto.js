@@ -9,19 +9,13 @@ const productoSchema = new Schema({
     descripcion: {
         type: String,
         required: true,
-        trim: true
+        trim: true,
+        maxlength: [300, "La descripcion no puede superar 300 caracteres."]
     },
     categoria: {
         type: String,
         required: true,
         trim: true
-    },
-    // Precio base (compatibilidad legacy — igual a precioPorMetro si unidadVenta=metro)
-    precio: {
-        type: Number,
-        required: true,
-        min: [0, 'El precio no puede ser negativo.'],
-        default: 0
     },
     // --- STOCK TEXTIL ---
     unidadVenta: {
@@ -34,7 +28,7 @@ const productoSchema = new Schema({
         default: 100,
         min: [1, 'metrosPorRollo debe ser mayor que 0.']
     },
-    // Metros disponibles como fuente real de stock
+    // Metros del rollo reservado para venta por metro.
     metrosDisponibles: {
         type: Number,
         default: 0,
@@ -42,19 +36,21 @@ const productoSchema = new Schema({
     },
     precioPorMetro: {
         type: Number,
+        required: false,
         default: 0,
         min: [0, 'El precio por metro no puede ser negativo.']
     },
     precioPorRollo: {
         type: Number,
+        required: false,
         default: 0,
         min: [0, 'El precio por rollo no puede ser negativo.']
     },
-    // Legacy stock (enteros) — se mantiene para compatibilidad
+    // Rollos completos disponibles para venta por rollo.
     stock: {
         type: Number,
         default: 0,
-        min: [0, 'El stock no puede ser negativo.']
+        min: [0, 'El stock de rollos no puede ser negativo.']
     },
     // --- CAMPOS DE IMAGEN ---
     imagenUrl: {
@@ -64,13 +60,6 @@ const productoSchema = new Schema({
     imagenID: {
         type: String,
         default: null
-    },
-    descuento: {
-        type: Number,
-        required: true,
-        min: [0, 'El descuento no puede ser negativo.'],
-        max: [100, 'El descuento no puede superar 100.'],
-        default: 0
     },
     color: {
         type: String,
@@ -107,9 +96,9 @@ productoSchema.index({ estado: 1, createdAt: -1 });
 productoSchema.index({ estado: 1, color: 1, createdAt: -1 });
 productoSchema.index({ nombre: "text", descripcion: "text" });
 
-// Virtual: rollos disponibles calculados desde metros
+// Virtual: rollos completos disponibles para venta por rollo.
 productoSchema.virtual('stockRollosDisponibles').get(function () {
-    return Math.floor((this.metrosDisponibles || 0) / (this.metrosPorRollo || 100));
+    return this.stock || 0;
 });
 
 export default model("Producto", productoSchema);

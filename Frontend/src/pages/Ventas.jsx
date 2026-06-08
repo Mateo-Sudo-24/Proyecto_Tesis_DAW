@@ -183,6 +183,7 @@ const Ventas = () => {
                                     <th>#</th>
                                     <th>ID Pedido</th>
                                     <th>Cliente</th>
+                                    <th>Dirección</th>
                                     <th>Fecha</th>
                                     <th>Tipo entrega</th>
                                     <th>Estado</th>
@@ -198,11 +199,13 @@ const Ventas = () => {
                                     const clienteNombre = orden.cliente
                                         ? `${orden.cliente.nombre ?? ''} ${orden.cliente.apellido ?? ''}`.trim()
                                         : 'Sin cliente';
+                                    const direccionCliente = orden.datosFacturacion?.direccion || orden.direccionEnvio?.direccion || 'Sin dirección';
                                     return (
                                         <tr key={orden._id}>
                                             <td style={{ color:'#9ca3af', fontWeight:600 }}>{(page - 1) * ITEMS_PER_PAGE + i + 1}</td>
                                             <td style={{ fontFamily:'monospace', fontSize:'0.78rem', color:'#6b7280' }}>{orden._id?.slice(-8).toUpperCase()}</td>
                                             <td style={{ fontWeight:600 }}>{clienteNombre || 'Sin cliente'}</td>
+                                            <td style={{ maxWidth:220, color:'#6b7280', fontSize:'0.8rem' }}>{direccionCliente}</td>
                                             <td>{fecha}</td>
                                             <td><span style={{ fontSize:'0.75rem', color:'#6b7280', fontWeight:600 }}>{orden.tipoEntrega || 'N/D'}</span></td>
                                             <td><span className={`vt-badge ${orden.estadoOrden}`}>{orden.estadoOrden}</span></td>

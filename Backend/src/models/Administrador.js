@@ -6,12 +6,14 @@ const administradorSchema = new Schema({
   nombre: {
     type: String,
     required: true,
-    trim: true
+    trim: true,
+    maxlength: 12
   },
   apellido: {
     type: String,
     required: true,
-    trim: true
+    trim: true,
+    maxlength: 12
   },
   email: {
     type: String,

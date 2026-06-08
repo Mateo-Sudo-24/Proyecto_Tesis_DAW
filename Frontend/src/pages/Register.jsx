@@ -300,6 +300,7 @@ export const Register = () => {
                                     type="text"
                                     placeholder="Juan"
                                     className={`reg-input${errors.nombre ? ' input-error' : ''}`}
+                                    maxLength={12}
                                     {...register("nombre", {
                                         required: "El nombre es obligatorio",
                                         validate: value => validarNombreReal(value, 2)
@@ -314,6 +315,7 @@ export const Register = () => {
                                     type="text"
                                     placeholder="Pérez"
                                     className={`reg-input${errors.apellido ? ' input-error' : ''}`}
+                                    maxLength={12}
                                     {...register("apellido", {
                                         required: "El apellido es obligatorio",
                                         validate: value => validarNombreReal(value, 2)

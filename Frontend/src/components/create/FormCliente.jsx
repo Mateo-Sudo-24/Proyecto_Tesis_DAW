@@ -246,6 +246,7 @@ const FormCliente = ({ clienteToUpdate, onSuccess, tipoInicial }) => {
                                 type="text"
                                 placeholder="Ej: Juan"
                                 className="ux-input"
+                                maxLength={12}
                                 {...register("nombre", {
                                     required: "El nombre es obligatorio",
                                     validate: value => validarNombreReal(value, 2)
@@ -262,6 +263,7 @@ const FormCliente = ({ clienteToUpdate, onSuccess, tipoInicial }) => {
                                     type="text"
                                     placeholder="Ej: García"
                                     className="ux-input"
+                                    maxLength={12}
                                     {...register("apellido", tipoUsuario === "vendedor"
                                         ? { required: "El apellido es obligatorio para vendedores", validate: value => validarNombreReal(value, 2) }
                                         : { validate: value => !value || validarNombreReal(value, 2) }

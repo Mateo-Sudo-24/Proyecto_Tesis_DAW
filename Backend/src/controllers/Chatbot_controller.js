@@ -25,9 +25,19 @@ const TEXTURAS = [
     'ligero', 'pesado', 'liso', 'estampado', 'grueso', 'delgado',
 ];
 
+const STOPWORDS = new Set([
+    'para', 'con', 'una', 'uno', 'unos', 'unas', 'que', 'del', 'las', 'los', 'por',
+    'como', 'este', 'esta', 'estos', 'estas', 'tela', 'telas', 'producto', 'productos',
+    'quiero', 'busco', 'necesito', 'similar', 'parecido', 'color', 'metro', 'rollo',
+]);
+
 const extraerTerminos = (...texts) => {
     const base = normalizar(texts.filter(Boolean).join(' '));
-    const tokens = [...DICCIONARIO_TEXTIL, ...COLORES, ...TEXTURAS];
+    const palabrasMensaje = base
+        .split(/[^a-z0-9]+/i)
+        .map(token => token.trim())
+        .filter(token => token.length >= 3 && !STOPWORDS.has(token));
+    const tokens = [...DICCIONARIO_TEXTIL, ...COLORES, ...TEXTURAS, ...palabrasMensaje];
     return [...new Set(tokens.filter(term => base.includes(term)))].slice(0, 10);
 };
 
@@ -39,8 +49,8 @@ const scoreProducto = (producto, terminos) => {
     const etiquetas = normalizar((producto.etiquetas || []).join(' '));
 
     return terminos.reduce((score, term) => {
+        if (nombre.includes(term)) return score + 7;
         if (color.includes(term)) return score + 5;
-        if (nombre.includes(term)) return score + 4;
         if (categoria.includes(term)) return score + 3;
         if (etiquetas.includes(term)) return score + 2;
         if (descripcion.includes(term)) return score + 1;
@@ -48,10 +58,7 @@ const scoreProducto = (producto, terminos) => {
     }, 0);
 };
 
-const buscarProductosCoincidentes = async (mensaje, respuesta) => {
-    const terminos = extraerTerminos(mensaje, respuesta);
-    if (terminos.length === 0) return [];
-
+const construirOrProductos = (terminos, mensaje = '') => {
     const or = terminos.flatMap(term => {
         const rx = new RegExp(escapeRegex(term), 'i');
         return [
@@ -63,11 +70,23 @@ const buscarProductosCoincidentes = async (mensaje, respuesta) => {
         ];
     });
 
+    const mensajeLimpio = String(mensaje || '').trim();
+    if (mensajeLimpio.length >= 3) {
+        or.push({ nombre: new RegExp(escapeRegex(mensajeLimpio), 'i') });
+    }
+
+    return or;
+};
+
+const buscarProductosCoincidentes = async (mensaje, respuesta) => {
+    const terminos = extraerTerminos(mensaje, respuesta);
+    if (terminos.length === 0) return [];
+
     const productos = await Producto.find({
         estado: { $ne: 'inactivo' },
-        $or: or,
+        $or: construirOrProductos(terminos, mensaje),
     })
-        .select('nombre descripcion precio precioPorMetro precioPorRollo unidadVenta metrosDisponibles metrosPorRollo imagenUrl color categoria descuento etiquetas')
+        .select('nombre descripcion precioPorMetro precioPorRollo unidadVenta stock metrosDisponibles metrosPorRollo imagenUrl color categoria etiquetas')
         .limit(12)
         .lean();
 
@@ -93,12 +112,37 @@ const buscarProductosCoincidentes = async (mensaje, respuesta) => {
         .slice(0, 6);
 };
 
+const buscarProductosPorImagenSimilar = async (mensaje, respuesta) => {
+    const terminos = extraerTerminos(mensaje, respuesta);
+    if (terminos.length === 0) return [];
+
+    const productos = await Producto.find({
+        estado: { $ne: 'inactivo' },
+        imagenUrl: { $exists: true, $nin: ['', null] },
+        $or: construirOrProductos(terminos, mensaje),
+    })
+        .select('nombre descripcion precioPorMetro precioPorRollo unidadVenta stock metrosDisponibles metrosPorRollo imagenUrl color categoria etiquetas')
+        .limit(12)
+        .lean();
+
+    return productos
+        .map(producto => ({
+            ...producto,
+            verificadoProductos: true,
+            imagenSimilar: true,
+            scoreCoincidencia: scoreProducto(producto, terminos),
+        }))
+        .filter(producto => producto.scoreCoincidencia > 0)
+        .sort((a, b) => b.scoreCoincidencia - a.scoreCoincidencia)
+        .slice(0, 6);
+};
+
 const buscarProductosRecomendados = async () => {
     const productos = await Producto.find({
         estado: { $ne: 'inactivo' },
         metrosDisponibles: { $gt: 0 },
     })
-        .select('nombre descripcion precio precioPorMetro precioPorRollo unidadVenta metrosDisponibles metrosPorRollo imagenUrl color categoria descuento etiquetas')
+        .select('nombre descripcion precioPorMetro precioPorRollo unidadVenta stock metrosDisponibles metrosPorRollo imagenUrl color categoria etiquetas')
         .sort({ updatedAt: -1, createdAt: -1 })
         .limit(4)
         .lean();
@@ -111,9 +155,17 @@ const buscarProductosRecomendados = async () => {
     }));
 };
 
-const responderConProductos = async (res, mensaje, respuesta) => {
-    let productosCoincidentes = await buscarProductosCoincidentes(mensaje, respuesta);
-    const tipoRecomendacion = productosCoincidentes.length > 0 ? 'coincidencia' : 'general';
+const responderConProductos = async (res, mensaje, respuesta, tieneImagenes = false) => {
+    let productosCoincidentes = tieneImagenes
+        ? await buscarProductosPorImagenSimilar(mensaje, respuesta)
+        : [];
+    let tipoRecomendacion = productosCoincidentes.length > 0 ? 'imagen_similar' : null;
+
+    if (productosCoincidentes.length === 0) {
+        productosCoincidentes = await buscarProductosCoincidentes(mensaje, respuesta);
+        tipoRecomendacion = productosCoincidentes.length > 0 ? 'coincidencia' : 'general';
+    }
+
     if (productosCoincidentes.length === 0) {
         productosCoincidentes = await buscarProductosRecomendados();
     }
@@ -137,7 +189,7 @@ export const consultarGroqPublic = async (req, res) => {
         }
 
         const respuesta = await consultarGroq(mensaje, imagenBase64, historial, imagenesBase64);
-        await responderConProductos(res, mensaje, respuesta);
+        await responderConProductos(res, mensaje, respuesta, Boolean(imagenBase64 || imagenesBase64.length));
     } catch (error) {
         console.error('Error en consultarGroqPublic:', error);
         res.status(500).json({ error: error.message });
@@ -153,7 +205,7 @@ export const consultarGroqAuth = async (req, res) => {
         }
 
         const respuesta = await consultarGroq(mensaje, imagenBase64, historial, imagenesBase64);
-        await responderConProductos(res, mensaje, respuesta);
+        await responderConProductos(res, mensaje, respuesta, Boolean(imagenBase64 || imagenesBase64.length));
     } catch (error) {
         console.error('Error en consultarGroqAuth:', error);
         res.status(500).json({ error: error.message });

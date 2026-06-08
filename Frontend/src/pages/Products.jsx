@@ -3,6 +3,7 @@ import { Link } from "react-router-dom";
 import { FaSearch, FaFilter, FaTimes } from "react-icons/fa";
 import { toast } from "react-toastify";
 import storeAuth from "../context/storeAuth";
+import { formatPrecioCard } from '../utils/precioProducto.js';
 
 const NO_IMAGE_SRC = "data:image/svg+xml;utf8," + encodeURIComponent(`
 <svg xmlns="http://www.w3.org/2000/svg" width="640" height="420" viewBox="0 0 640 420">
@@ -14,9 +15,9 @@ const NO_IMAGE_SRC = "data:image/svg+xml;utf8," + encodeURIComponent(`
 </svg>`);
 
 const getProductImageSrc = (producto = {}) => producto.imagenUrl || NO_IMAGE_SRC;
-const metrosDisponibles = (producto = {}) => Number(producto.metrosDisponibles ?? producto.stock ?? 0) || 0;
+const metrosDisponibles = (producto = {}) => Number(producto.metrosDisponibles ?? 0) || 0;
 const metrosPorRollo = (producto = {}) => Number(producto.metrosPorRollo || 100) || 100;
-const rollosDisponibles = (producto = {}) => Math.floor(metrosDisponibles(producto) / metrosPorRollo(producto));
+const rollosDisponibles = (producto = {}) => Number(producto.stock ?? 0) || 0;
 const permiteMetro = (producto = {}) => producto.unidadVenta !== 'rollo';
 const permiteRollo = (producto = {}) =>
     producto.unidadVenta === 'rollo' ||
@@ -33,8 +34,8 @@ const unidadDefault = (producto = {}) => {
 };
 const precioUnidad = (producto = {}, unidad = 'metro') =>
     unidad === 'rollo'
-        ? Number(producto.precioPorRollo ?? producto.precio ?? 0)
-        : Number(producto.precioPorMetro ?? producto.precio ?? 0);
+        ? Number(producto.precioPorRollo ?? 0)
+        : Number(producto.precioPorMetro ?? 0);
 
 /* ── CSS interno (mismo sistema que Home, Nosotros y Contact) ── */
 const styles = `
@@ -263,12 +264,6 @@ const styles = `
     }
     .prod-card:hover .prod-card-img img { transform: scale(1.06); }
 
-    .badge-descuento {
-        position: absolute; top: 0.75rem; left: 0.75rem;
-        background: #ef4444; color: #fff;
-        font-size: 0.7rem; font-weight: 800;
-        padding: 0.2rem 0.55rem; border-radius: 0.4rem;
-    }
     .badge-stock {
         position: absolute; top: 0.75rem; right: 0.75rem;
         background: #fbbf24; color: #78350f;
@@ -595,10 +590,7 @@ const Products = () => {
                                         alt={producto.nombre}
                                         onError={handleImageError}
                                     />
-                                    {producto.descuento > 0 && (
-                                        <span className="badge-descuento">-{producto.descuento}%</span>
-                                    )}
-                                    {(producto.metrosDisponibles ?? 0) > 0 && (producto.metrosDisponibles ?? 0) < 50 && (
+                                    {((producto.stock ?? 0) > 0 || (producto.metrosDisponibles ?? 0) > 0) && (producto.stock ?? 0) < 4 && (
                                         <span className="badge-stock">¡Últimas unidades!</span>
                                     )}
                                 </div>
@@ -609,12 +601,38 @@ const Products = () => {
                                         <p className="prod-card-color">Color: <span>{producto.color}</span></p>
                                     )}
                                     <div className="prod-card-footer">
-                                        <span className="prod-price">${precioUnidad(producto, unidadesCompra[producto._id] || unidadDefault(producto)).toLocaleString()}</span>
-                                        <span className={`prod-stock-badge ${(producto.metrosDisponibles ?? 0) > 0 ? 'in' : 'out'}`}>
+                                        {(() => {
+                                            const precios = formatPrecioCard(producto);
+
+                                            return precios.mostrarAmbos ? (
+                                                <div style={{ display:'flex', flexDirection:'column', gap:'0.15rem' }}>
+                                                    <span className="prod-price" style={{ fontSize:'0.95rem' }}>
+                                                        Metro: ${precios.metro.toFixed(2)}
+                                                    </span>
+                                                    <span className="prod-price" style={{ fontSize:'0.95rem' }}>
+                                                        Rollo: ${precios.rollo.toFixed(2)}
+                                                    </span>
+                                                </div>
+                                            ) : precios.rollo ? (
+                                                <span className="prod-price">
+                                                    Rollo: ${precios.rollo.toFixed(2)}
+                                                </span>
+                                            ) : (
+                                                <span className="prod-price">
+                                                    Metro: ${precios.metro.toFixed(2)}
+                                                </span>
+                                            );
+                                        })()}
+                                        <span className={`prod-stock-badge ${((producto.stock ?? 0) > 0 || (producto.metrosDisponibles ?? 0) > 0) ? 'in' : 'out'}`}>
                                             {(() => {
-                                                const metros = metrosDisponibles(producto);
-                                                const rollos = rollosDisponibles(producto);
-                                                return metros > 0 ? `${metros} m / ${rollos} rollos` : 'Agotado';
+                                                const rollos = producto.stock ?? 0;
+                                                const metros = producto.metrosDisponibles ?? 0;
+
+                                                if (rollos === 0 && metros === 0) {
+                                                    return 'Agotado';
+                                                }
+
+                                                return `${rollos} rollos / ${metros}m sueltos`;
                                             })()}
                                         </span>
                                     </div>
@@ -649,10 +667,10 @@ const Products = () => {
                                     <button
                                         type="button"
                                         className="btn-add-cart"
-                                        disabled={agregando === producto._id || (producto.metrosDisponibles ?? 0) <= 0}
+                                        disabled={agregando === producto._id || ((producto.stock ?? 0) === 0 && (producto.metrosDisponibles ?? 0) === 0)}
                                         onClick={() => agregarAlCarrito(producto)}
                                     >
-                                        {(producto.metrosDisponibles ?? 0) <= 0
+                                        {((producto.stock ?? 0) === 0 && (producto.metrosDisponibles ?? 0) === 0)
                                             ? 'Sin stock'
                                             : agregando === producto._id
                                                 ? 'Agregando...'

@@ -10,9 +10,8 @@ const itemPedidoSchema = new Schema({
     },
     unidadSeleccionada: { type: String, enum: ['metro', 'rollo'], default: 'metro' },
     imagen: { type: String, required: false, trim: true },
-    precio: { type: Number, required: true, min: [0, 'El precio no puede ser negativo.'] },
-    precioUnitario: { type: Number, default: 0 },
-    descuento: { type: Number, default: 0 },
+    precioPorUnidad: { type: Number, required: true, min: [0, 'El precio no puede ser negativo.'] },
+    unidadPrecio: { type: String, enum: ['metro', 'rollo'], default: 'metro' },
     subtotal: { type: Number, default: 0 },
     producto: { type: mongoose.Schema.Types.ObjectId, ref: 'Producto', required: true }
 }, { _id: false });
@@ -26,8 +25,8 @@ const direccionEnvioSchema = new Schema({
 }, { _id: false });
 
 const datosFacturacionSchema = new Schema({
-    nombre: { type: String, trim: true, maxlength: 80 },
-    apellido: { type: String, trim: true, maxlength: 80 },
+    nombre: { type: String, trim: true, maxlength: 12 },
+    apellido: { type: String, trim: true, maxlength: 12 },
     correo: {
         type: String,
         trim: true,
@@ -63,7 +62,6 @@ const ordenSchema = new Schema({
     pagoStripeId: { type: String },
     // --- Desglose financiero ---
     subtotal: { type: Number, default: 0 },
-    descuentoTotal: { type: Number, default: 0 },
     iva: { type: Number, default: 0 },
     envio: { type: Number, default: 0 },
     comisionPago: { type: Number, default: 0 },
@@ -80,7 +78,7 @@ const ordenSchema = new Schema({
     },
     tipoEntrega: {
         type: String,
-        enum: ['domicilio', 'retiro', 'establecimiento', 'venta_local'],
+        enum: ['domicilio', 'retiro', 'venta_local'],
         default: 'domicilio'
     },
     origenPedido: {

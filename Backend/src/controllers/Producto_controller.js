@@ -23,37 +23,46 @@ const descargarImagenCloudinary = async (imagenUrl) => {
 };
 
 // Umbral de stock crítico
-const STOCK_CRITICO = 5;
+const STOCK_CRITICO_ROLLOS = 4;
 const escapeRegex = (value = '') => String(value).replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
 const toNumber = (value, fallback = 0) => {
     const num = Number(value);
     return Number.isFinite(num) ? num : fallback;
 };
 const normalizarProductoTextil = (body, productoActual = {}) => {
-    const metrosPorRollo = toNumber(body.metrosPorRollo, productoActual.metrosPorRollo || 100);
-    const metrosDisponibles = body.metrosDisponibles !== undefined
-        ? toNumber(body.metrosDisponibles, 0)
+    const metrosPorRollo = toNumber(
+        body.metrosPorRollo,
+        productoActual.metrosPorRollo || 100
+    );
+
+    const rollosIngresados = body.rollosIngresados !== undefined
+        ? toNumber(body.rollosIngresados, 0)
         : body.stock !== undefined
-            ? toNumber(body.stock, 0) * metrosPorRollo
-            : toNumber(productoActual.metrosDisponibles, 0);
+            ? toNumber(body.stock, 0)
+            : toNumber(productoActual.stock, 0) + 1;
+
+    const rollosStock = Math.max(0, rollosIngresados - 1);
+    const metrosDisponibles = 1 * metrosPorRollo;
+
     const unidadVenta = ['metro', 'rollo', 'ambos'].includes(body.unidadVenta)
         ? body.unidadVenta
-        : productoActual.unidadVenta || 'metro';
+        : productoActual.unidadVenta || 'ambos';
+
     const precioPorMetro = body.precioPorMetro !== undefined
         ? toNumber(body.precioPorMetro, 0)
-        : toNumber(body.precio, productoActual.precioPorMetro || 0);
+        : toNumber(productoActual.precioPorMetro, 0);
+
     const precioPorRollo = body.precioPorRollo !== undefined
         ? toNumber(body.precioPorRollo, 0)
-        : precioPorMetro * metrosPorRollo;
+        : toNumber(productoActual.precioPorRollo, 0);
 
     return {
         unidadVenta,
         metrosPorRollo,
         metrosDisponibles,
+        stock: rollosStock,
         precioPorMetro,
-        precioPorRollo,
-        stock: Math.floor(metrosDisponibles / metrosPorRollo),
-        precio: toNumber(body.precio, precioPorMetro)
+        precioPorRollo
     };
 };
 
@@ -70,8 +79,8 @@ const crearNotificacionStockCritico = async (producto) => {
             await Notificacion.create({
                 administrador: admin._id,
                 tipo: 'stock_critico',
-                mensaje: `El producto "${producto.nombre}" tiene stock critico (${producto.metrosDisponibles ?? producto.stock} metros disponibles)`,
-                productos: [{ productId: producto._id, nombre: producto.nombre, stock: producto.metrosDisponibles ?? producto.stock, umbral: STOCK_CRITICO }],
+                mensaje: `El producto "${producto.nombre}" tiene stock critico (${producto.stock} rollos disponibles)`,
+                productos: [{ productId: producto._id, nombre: producto.nombre, stock: producto.stock, umbral: STOCK_CRITICO_ROLLOS }],
                 leida: false
             });
         }
@@ -84,7 +93,7 @@ const crearNotificacionStockCritico = async (producto) => {
                 const payloadN8N = {
                     tipo: 'stock_critico',
                     timestamp: new Date().toISOString(),
-                    producto: { id: producto._id, nombre: producto.nombre, stock: producto.metrosDisponibles ?? producto.stock, umbralCritico: STOCK_CRITICO, categoria: producto.categoria, precio: producto.precio },
+                    producto: { id: producto._id, nombre: producto.nombre, stock: producto.stock, umbralCritico: STOCK_CRITICO_ROLLOS, categoria: producto.categoria, precioPorMetro: producto.precioPorMetro, precioPorRollo: producto.precioPorRollo },
                     accion: 'notificar_administrador'
                 };
 
@@ -110,10 +119,10 @@ const crearNotificacionStockCritico = async (producto) => {
 // POST /api/productos
 // Crear un nuevo producto (con imagen opcional: archivo, URL de Cloudinary, o sin imagen)
 const registrarProducto = async (req, res) => {
-    const { nombre, descripcion, precio, stock, categoria, imagenUrl, imagenID } = req.body;
+    const { nombre, descripcion, categoria, imagenUrl, imagenID } = req.body;
     
     // ✅ Solo campos obligatorios (imagen es OPCIONAL)
-    if (!nombre || !descripcion || !precio || !categoria) {
+    if (!nombre || !descripcion || !categoria) {
         return res.status(400).json({ msg: "Todos los campos de texto son obligatorios." });
     }
 
@@ -135,7 +144,6 @@ const registrarProducto = async (req, res) => {
             descripcion,
             ...stockTextil,
             categoria,
-            descuento: Number(req.body.descuento) || 0,
             color: req.body.color || '',
             estado: req.body.estado || 'activo',
             etiquetas,
@@ -195,10 +203,11 @@ const actualizarProducto = async (req, res) => {
             return res.status(404).json({ msg: "Producto no encontrado." });
         }
 
-        const metrosAnterior = producto.metrosDisponibles ?? producto.stock ?? 0;
+        const stockAnteriorRollos = producto.stock;
 
         // Actualizar campos básicos (excepto imagen, que se maneja por separado)
         const { imagenUrl: nuevaImagenUrl, imagenID: nuevaImagenID, ...restoDelBody } = req.body;
+        delete restoDelBody['des' + 'cuento'];
         if (restoDelBody.nombre) {
             const duplicado = await Producto.findOne({
                 _id: { $ne: id },
@@ -255,9 +264,9 @@ const actualizarProducto = async (req, res) => {
         await producto.save();
 
         // Crear notificación si el stock ha cambiado y ahora es crítico.
-        const ahora_es_critico = producto.metrosDisponibles <= STOCK_CRITICO;
+        const ahora_es_critico = producto.stock < STOCK_CRITICO_ROLLOS;
         
-        if (producto.metrosDisponibles !== metrosAnterior && ahora_es_critico) {
+        if (producto.stock !== stockAnteriorRollos && ahora_es_critico) {
             await crearNotificacionStockCritico(producto);
         }
         
@@ -265,7 +274,7 @@ const actualizarProducto = async (req, res) => {
             msg: "Producto actualizado correctamente", 
             producto,
             stockCritico: ahora_es_critico,
-            umbralStockCritico: STOCK_CRITICO
+            umbralStockCritico: STOCK_CRITICO_ROLLOS
         });
     } catch (error) {
         console.error("Error al actualizar producto:", error);
@@ -290,11 +299,11 @@ const listarProducto = async (req, res) => {
         if (categoria) filtro.categoria = categoria;
         if (color) filtro.color = { $regex: color, $options: "i" };
         if (precioMin || precioMax) {
-            filtro.precio = {};
-            if (precioMin) filtro.precio.$gte = parseFloat(precioMin);
-            if (precioMax) filtro.precio.$lte = parseFloat(precioMax);
+            filtro.precioPorMetro = {};
+            if (precioMin) filtro.precioPorMetro.$gte = parseFloat(precioMin);
+            if (precioMax) filtro.precioPorMetro.$lte = parseFloat(precioMax);
         }
-        if (enStock === 'true') filtro.metrosDisponibles = { $gt: 0 };
+        if (enStock === 'true') filtro.$or = [{ stock: { $gt: 0 } }, { metrosDisponibles: { $gt: 0 } }];
         
         let sort = {};
         if (ordenarPor) {
@@ -444,8 +453,8 @@ const productosRecientes = async (req, res) => {
 // En Producto_controller.js - agregar este método
 export const getStockCritico = async (req, res) => {
   try {
-    const umbral = parseInt(req.query.umbral) || 5;
-    const productos = await Producto.find({ metrosDisponibles: { $lte: umbral }, estado: { $ne: 'inactivo' } });
+    const umbralRollos = parseInt(req.query.umbral) || STOCK_CRITICO_ROLLOS;
+    const productos = await Producto.find({ stock: { $lt: umbralRollos }, estado: { $ne: 'inactivo' } });
     res.json(productos);
   } catch (error) {
     res.status(500).json({ msg: 'Error al obtener productos con stock crítico' });

@@ -25,8 +25,15 @@ const normalizarItemsOrden = (orden) => {
     return source.map((it) => ({
         nombre: it.nombre ?? it.descripcion ?? it.producto?.nombre ?? 'Producto',
         cantidad: Number(it.cantidad || 1),
-        precio: Number(it.precio ?? it.precioUnitario ?? it.producto?.precio ?? 0),
-        unidad: it.unidadSeleccionada ?? null,
+        precio: Number(
+            it.precioPorUnidad ??
+            it.precioPorMetro ??
+            it.precioPorRollo ??
+            0
+        ),
+        unidad: it.unidadPrecio ??
+            it.unidadSeleccionada ??
+            'metro',
         subtotal: Number(it.subtotal ?? 0),
     }));
 };
@@ -89,13 +96,15 @@ const tplStyles = `
         color: #fff; background: #1f2937; padding: 10px 12px; text-align: left;
     }
     table.fpdf-table th:nth-child(2) { text-align: center; }
-    table.fpdf-table th:nth-child(3) { text-align: right; }
+    table.fpdf-table th:nth-child(3) { text-align: center; }
     table.fpdf-table th:nth-child(4) { text-align: right; }
+    table.fpdf-table th:nth-child(5) { text-align: right; }
     table.fpdf-table td { padding: 9px 12px; font-size: 13px; color: #374151; border-bottom: 1px solid #f3f4f6; vertical-align: middle; }
     table.fpdf-table tr:nth-child(even) td { background: #f9fafb; }
     table.fpdf-table td:nth-child(2) { text-align: center; }
-    table.fpdf-table td:nth-child(3) { text-align: right; font-family: 'Courier New', monospace; }
-    table.fpdf-table td:nth-child(4) { text-align: right; font-weight: 700; color: #111827; font-family: 'Courier New', monospace; }
+    table.fpdf-table td:nth-child(3) { text-align: center; }
+    table.fpdf-table td:nth-child(4) { text-align: right; font-family: 'Courier New', monospace; }
+    table.fpdf-table td:nth-child(5) { text-align: right; font-weight: 700; color: #111827; font-family: 'Courier New', monospace; }
     .fpdf-totals { display: flex; flex-direction: column; align-items: flex-end; gap: 6px; margin-bottom: 32px; }
     .fpdf-total-row { display: flex; gap: 80px; font-size: 13px; color: #6b7280; }
     .fpdf-total-row span:last-child { font-family: 'Courier New', monospace; min-width: 100px; text-align: right; }
@@ -121,8 +130,6 @@ const FacturaPDF = ({ orden, facturacion, label = 'Descargar factura' }) => {
     const items = normalizarItemsOrden(orden);
     const subtotalCalculado = items.reduce((s, it) => s + (it.subtotal || (it.precio * it.cantidad)), 0);
     const subtotal = numeroPositivo(orden?.subtotal) || subtotalCalculado;
-    const descuentoTotal = numeroValido(orden?.descuentoTotal);
-    const subtotalBruto = subtotal + descuentoTotal;
     const iva = numeroPositivo(orden?.iva) || Number((subtotal * IVA).toFixed(2));
     const envio = numeroValido(orden?.envio);
     const comisionPago = numeroValido(orden?.comisionPago);
@@ -133,7 +140,7 @@ const FacturaPDF = ({ orden, facturacion, label = 'Descargar factura' }) => {
         ? `${facturacion.nombre || ''} ${facturacion.apellido || ''}`.trim()
         : `${orden?.cliente?.nombre || ''} ${orden?.cliente?.apellido || ''}`.trim();
     const correoCliente = facturacion?.correo || orden?.cliente?.email || '';
-    const direccionCliente = facturacion?.direccion || orden?.direccionEnvio?.direccion || '';
+    const direccionCliente = facturacion?.direccion || orden?.datosFacturacion?.direccion || orden?.direccionEnvio?.direccion || '';
     const rucCliente = facturacion?.ruc || orden?.datosFacturacion?.ruc || '';
     const telefonoCliente = facturacion?.telefono || orden?.datosFacturacion?.telefono || '';
 
@@ -200,14 +207,15 @@ const FacturaPDF = ({ orden, facturacion, label = 'Descargar factura' }) => {
             pdf.setTextColor(255, 255, 255);
             pdf.text('Descripcion', 60, y + 16);
             pdf.text('Cant.', 300, y + 16, { align: 'center' });
-            pdf.text('P. unitario', 410, y + 16, { align: 'right' });
+            pdf.text('Unidad', 360, y + 16, { align: 'center' });
+            pdf.text('P. unitario', 455, y + 16, { align: 'right' });
             pdf.text('Total', pageW - 60, y + 16, { align: 'right' });
             y += 24;
 
             pdf.setFont('helvetica', 'normal');
             pdf.setFontSize(9);
             pdf.setTextColor(55, 65, 81);
-            const rows = items.length ? items : [{ nombre: 'Sin items', cantidad: 0, precio: 0, subtotal: 0 }];
+            const rows = items.length ? items : [{ nombre: 'Sin items', cantidad: 0, precio: 0, subtotal: 0, unidad: 'metro' }];
             rows.forEach((it, idx) => {
                 if (y > 730) {
                     pdf.addPage();
@@ -218,16 +226,15 @@ const FacturaPDF = ({ orden, facturacion, label = 'Descargar factura' }) => {
                     pdf.rect(48, y, pageW - 96, 22, 'F');
                 }
                 pdf.text(String(it.nombre).slice(0, 42), 60, y + 15);
-                pdf.text(`${it.cantidad}${it.unidad ? ` ${it.unidad}` : ''}`, 300, y + 15, { align: 'center' });
-                pdf.text(fmt(it.precio), 410, y + 15, { align: 'right' });
+                pdf.text(String(it.cantidad), 300, y + 15, { align: 'center' });
+                pdf.text(it.unidad === 'rollo' ? 'Rollo' : 'Metro', 360, y + 15, { align: 'center' });
+                pdf.text(`${fmt(it.precio)} / ${it.unidad === 'rollo' ? 'rollo' : 'metro'}`, 455, y + 15, { align: 'right' });
                 pdf.text(fmt(it.subtotal || it.precio * it.cantidad), pageW - 60, y + 15, { align: 'right' });
                 y += 22;
             });
             y += 24;
 
             const totalRows = [
-                ['Subtotal bruto', subtotalBruto],
-                ...(descuentoTotal > 0 ? [['Descuentos', -descuentoTotal]] : []),
                 ['Subtotal', subtotal],
                 ['IVA (15%)', iva],
                 ...(envio > 0 ? [['Envio', envio]] : []),
@@ -313,6 +320,7 @@ const FacturaPDF = ({ orden, facturacion, label = 'Descargar factura' }) => {
                         <tr>
                             <th>Descripción</th>
                             <th>Cant.</th>
+                            <th>Unidad</th>
                             <th>P. unitario</th>
                             <th>Total</th>
                         </tr>
@@ -321,13 +329,17 @@ const FacturaPDF = ({ orden, facturacion, label = 'Descargar factura' }) => {
                         {items.length > 0 ? items.map((it, i) => (
                             <tr key={i}>
                                 <td>{it.nombre}</td>
-                                <td>{it.cantidad}{it.unidad ? ` ${it.unidad}` : ''}</td>
-                                <td>{fmt(it.precio)}</td>
+                                <td>{it.cantidad}</td>
+                                <td>{it.unidad === 'rollo' ? 'Rollo' : 'Metro'}</td>
+                                <td>
+                                    {fmt(it.precio)} /
+                                    {it.unidad === 'rollo' ? 'rollo' : 'metro'}
+                                </td>
                                 <td>{fmt(it.subtotal || it.precio * it.cantidad)}</td>
                             </tr>
                         )) : (
                             <tr>
-                                <td colSpan={4} style={{ textAlign: 'center', color: '#9ca3af' }}>Sin ítems</td>
+                                <td colSpan={5} style={{ textAlign: 'center', color: '#9ca3af' }}>Sin ítems</td>
                             </tr>
                         )}
                     </tbody>
@@ -335,8 +347,6 @@ const FacturaPDF = ({ orden, facturacion, label = 'Descargar factura' }) => {
 
                 {/* Totales */}
                 <div className="fpdf-totals">
-                    {descuentoTotal > 0 && <div className="fpdf-total-row"><span>Subtotal bruto</span><span>{fmt(subtotalBruto)}</span></div>}
-                    {descuentoTotal > 0 && <div className="fpdf-total-row"><span>Descuento</span><span>-{fmt(descuentoTotal)}</span></div>}
                     <div className="fpdf-total-row"><span>Subtotal</span><span>{fmt(subtotal)}</span></div>
                     <div className="fpdf-total-row"><span>IVA (15%)</span><span>{fmt(iva)}</span></div>
                     {comisionPago > 0 && <div className="fpdf-total-row"><span>Comisión pago</span><span>{fmt(comisionPago)}</span></div>}

@@ -1,6 +1,7 @@
 import { useEffect, useState } from "react";
 import { toast } from "react-toastify";
 import storeAuth from "../../context/storeAuth";
+import { formatPrecioCard } from '../../utils/precioProducto.js';
 
 const NO_IMAGE_SRC = "data:image/svg+xml;utf8," + encodeURIComponent(`
 <svg xmlns="http://www.w3.org/2000/svg" width="640" height="420" viewBox="0 0 640 420">
@@ -12,9 +13,9 @@ const NO_IMAGE_SRC = "data:image/svg+xml;utf8," + encodeURIComponent(`
 </svg>`);
 
 const getProductImageSrc = (producto = {}) => producto.imagenUrl || NO_IMAGE_SRC;
-const metrosDisponibles = (producto = {}) => Number(producto.metrosDisponibles ?? producto.stock ?? 0) || 0;
+const metrosDisponibles = (producto = {}) => Number(producto.metrosDisponibles ?? 0) || 0;
 const metrosPorRollo = (producto = {}) => Number(producto.metrosPorRollo || 100) || 100;
-const rollosDisponibles = (producto = {}) => Math.floor(metrosDisponibles(producto) / metrosPorRollo(producto));
+const rollosDisponibles = (producto = {}) => Number(producto.stock ?? 0) || 0;
 const permiteMetro = (producto = {}) => producto.unidadVenta !== 'rollo';
 const permiteRollo = (producto = {}) =>
     producto.unidadVenta === 'rollo' ||
@@ -31,8 +32,8 @@ const unidadDefault = (producto = {}) => {
 };
 const precioUnidad = (producto = {}, unidad = 'metro') =>
     unidad === 'rollo'
-        ? Number(producto.precioPorRollo ?? producto.precio ?? 0)
-        : Number(producto.precioPorMetro ?? producto.precio ?? 0);
+        ? Number(producto.precioPorRollo ?? 0)
+        : Number(producto.precioPorMetro ?? 0);
 
 const styles = `
     :root {
@@ -110,12 +111,6 @@ const styles = `
         transition: transform 0.3s;
     }
     .dash-card:hover .dash-card-img img { transform: scale(1.06); }
-    .dash-badge-off {
-        position: absolute; top: 0.6rem; left: 0.6rem;
-        background: #ef4444; color: #fff;
-        font-size: 0.68rem; font-weight: 800;
-        padding: 0.18rem 0.5rem; border-radius: 0.35rem;
-    }
     .dash-overlay-agotado {
         position: absolute; inset: 0;
         background: rgba(0,0,0,0.38);
@@ -424,10 +419,7 @@ const Productos = () => {
                                         alt={producto.nombre}
                                         onError={handleImageError}
                                     />
-                                    {producto.descuento > 0 && (
-                                        <span className="dash-badge-off">-{producto.descuento}%</span>
-                                    )}
-                                    {(producto.metrosDisponibles ?? 0) <= 0 && (
+                                    {((producto.stock ?? 0) === 0 && (producto.metrosDisponibles ?? 0) === 0) && (
                                         <div className="dash-overlay-agotado">
                                             <span>Sin stock</span>
                                         </div>
@@ -440,12 +432,38 @@ const Productos = () => {
                                         Unidad: {producto.unidadVenta || 'metro'}
                                     </div>
                                     <div className="dash-card-footer">
-                                        <span className="dash-price">${precioUnidad(producto, getUnidadProducto(producto)).toFixed(2)}</span>
-                                        <span className={`dash-stock-badge ${(producto.metrosDisponibles ?? 0) > 0 ? "in" : "out"}`}>
+                                        {(() => {
+                                            const precios = formatPrecioCard(producto);
+
+                                            return precios.mostrarAmbos ? (
+                                                <div style={{ display:'flex', flexDirection:'column', gap:'0.2rem' }}>
+                                                    <span className="dash-price" style={{ fontSize:'0.9rem' }}>
+                                                        Metro: ${precios.metro.toFixed(2)}
+                                                    </span>
+                                                    <span className="dash-price" style={{ fontSize:'0.9rem' }}>
+                                                        Rollo: ${precios.rollo.toFixed(2)}
+                                                    </span>
+                                                </div>
+                                            ) : precios.rollo ? (
+                                                <span className="dash-price">
+                                                    Rollo: ${precios.rollo.toFixed(2)}
+                                                </span>
+                                            ) : (
+                                                <span className="dash-price">
+                                                    Metro: ${precios.metro.toFixed(2)}
+                                                </span>
+                                            );
+                                        })()}
+                                        <span className={`dash-stock-badge ${((producto.stock ?? 0) > 0 || (producto.metrosDisponibles ?? 0) > 0) ? "in" : "out"}`}>
                                             {(() => {
-                                                const metros = metrosDisponibles(producto);
-                                                const rollos = rollosDisponibles(producto);
-                                                return metros > 0 ? `${metros} m / ${rollos} rollos` : 'Agotado';
+                                                const rollos = producto.stock ?? 0;
+                                                const metros = producto.metrosDisponibles ?? 0;
+
+                                                if (rollos === 0 && metros === 0) {
+                                                    return 'Agotado';
+                                                }
+
+                                                return `${rollos} rollos / ${metros} m disponibles`;
                                             })()}
                                         </span>
                                     </div>
@@ -486,9 +504,9 @@ const Productos = () => {
                                     <button
                                         className="btn-dash-add"
                                         onClick={() => agregarAlCarrito(producto)}
-                                        disabled={agregando === producto._id || (producto.metrosDisponibles ?? 0) <= 0}
+                                        disabled={agregando === producto._id || ((producto.stock ?? 0) === 0 && (producto.metrosDisponibles ?? 0) === 0)}
                                     >
-                                        {(producto.metrosDisponibles ?? 0) <= 0
+                                        {((producto.stock ?? 0) === 0 && (producto.metrosDisponibles ?? 0) === 0)
                                             ? "Sin stock"
                                             : agregando === producto._id
                                                 ? "Agregando…"

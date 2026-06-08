@@ -14,9 +14,9 @@ const NO_IMAGE_SRC = "data:image/svg+xml;utf8," + encodeURIComponent(`
 </svg>`);
 
 const getProductImageSrc = (producto = {}) => producto.imagenUrl || NO_IMAGE_SRC;
-const metrosDisponiblesProducto = (producto = {}) => Number(producto.metrosDisponibles ?? producto.stock ?? 0) || 0;
+const metrosDisponiblesProducto = (producto = {}) => Number(producto.metrosDisponibles ?? 0) || 0;
 const metrosPorRolloProducto = (producto = {}) => Number(producto.metrosPorRollo || 100) || 100;
-const rollosDisponiblesProducto = (producto = {}) => Math.floor(metrosDisponiblesProducto(producto) / metrosPorRolloProducto(producto));
+const rollosDisponiblesProducto = (producto = {}) => Number(producto.stock ?? 0) || 0;
 const permiteMetroProducto = (producto = {}) => producto.unidadVenta !== 'rollo';
 const permiteRolloProducto = (producto = {}) =>
     producto.unidadVenta === 'rollo' ||
@@ -33,8 +33,8 @@ const unidadDefaultProducto = (producto = {}) => {
 };
 const precioUnidadProducto = (producto = {}, unidad = 'metro') =>
     unidad === 'rollo'
-        ? Number(producto.precioPorRollo ?? producto.precio ?? 0)
-        : Number(producto.precioPorMetro ?? producto.precio ?? 0);
+        ? Number(producto.precioPorRollo ?? 0)
+        : Number(producto.precioPorMetro ?? 0);
 
 const detailStyles = `
     :root {
@@ -175,18 +175,6 @@ const detailStyles = `
         object-fit: cover;
         display: block;
     }
-    .pd-discount-badge {
-        position: absolute;
-        top: 1rem;
-        left: 1rem;
-        background: #ef4444;
-        color: #fff;
-        font-size: 0.78rem;
-        font-weight: 900;
-        padding: 0.35rem 0.75rem;
-        border-radius: 0.6rem;
-        box-shadow: 0 4px 14px rgba(0,0,0,0.18);
-    }
     .pd-info {
         padding: 2.5rem;
         display: flex;
@@ -233,12 +221,6 @@ const detailStyles = `
         gap: 0.85rem;
         flex-wrap: wrap;
         margin-bottom: 1.5rem;
-    }
-    .pd-price-old {
-        color: #9ca3af;
-        text-decoration: line-through;
-        font-size: 1.1rem;
-        font-weight: 700;
     }
     .pd-price {
         color: var(--orange-dark);
@@ -483,12 +465,13 @@ const ProductDetails = () => {
             toast.error('Ingresa una cantidad válida.');
             return;
         }
-        const metrosDisponibles = metrosDisponiblesProducto(producto);
-        const metrosPorRollo = metrosPorRolloProducto(producto);
-        const metrosSolicitados = unidadSeleccionada === 'rollo'
-            ? Math.ceil(cantidadNum) * metrosPorRollo
+        const disponible = unidadSeleccionada === 'rollo'
+            ? rollosDisponiblesProducto(producto)
+            : metrosDisponiblesProducto(producto);
+        const requerido = unidadSeleccionada === 'rollo'
+            ? Math.ceil(cantidadNum)
             : cantidadNum;
-        if (metrosSolicitados > metrosDisponibles) {
+        if (requerido > disponible) {
             toast.error('No hay suficiente stock disponible');
             return;
         }
@@ -554,11 +537,6 @@ const ProductDetails = () => {
         );
     }
 
-    const precioBaseSeleccionado = precioUnidadProducto(producto, unidadSeleccionada);
-    const precioFinal = producto.descuento > 0
-        ? precioBaseSeleccionado * (1 - producto.descuento / 100)
-        : precioBaseSeleccionado;
-
     return (
         <div className="pd-page">
             <style>{detailStyles}</style>
@@ -578,11 +556,6 @@ const ProductDetails = () => {
                                 alt={producto.nombre}
                                 onError={handleImageError}
                             />
-                            {producto.descuento > 0 && (
-                                <span className="pd-discount-badge">
-                                    -{producto.descuento}% DESCUENTO
-                                </span>
-                            )}
                         </div>
 
                         {/* Info */}
@@ -603,13 +576,26 @@ const ProductDetails = () => {
 
                             {/* Price */}
                             <div className="pd-price-row">
-                                {producto.descuento > 0 ? (
-                                    <>
-                                        <span className="pd-price-old">${precioBaseSeleccionado.toLocaleString()}</span>
-                                        <span className="pd-price">${precioFinal.toLocaleString('es-ES', { minimumFractionDigits: 2 })}</span>
-                                    </>
-                                ) : (
-                                    <span className="pd-price">${precioBaseSeleccionado.toLocaleString('es-ES', { minimumFractionDigits: 2 })}</span>
+                                {producto.precioPorMetro > 0 && (
+                                    <div style={{ display:'flex', flexDirection:'column' }}>
+                                        <span style={{ fontSize:'0.75rem', color:'#6b7280', fontWeight:700 }}>
+                                            Por metro
+                                        </span>
+                                        <span className="pd-price">
+                                            ${producto.precioPorMetro.toFixed(2)}
+                                        </span>
+                                    </div>
+                                )}
+
+                                {producto.precioPorRollo > 0 && (
+                                    <div style={{ display:'flex', flexDirection:'column' }}>
+                                        <span style={{ fontSize:'0.75rem', color:'#6b7280', fontWeight:700 }}>
+                                            Por rollo
+                                        </span>
+                                        <span className="pd-price">
+                                            ${producto.precioPorRollo.toFixed(2)}
+                                        </span>
+                                    </div>
                                 )}
                             </div>
                             {opcionesUnidadProducto(producto).length > 1 && (
@@ -624,14 +610,23 @@ const ProductDetails = () => {
                                 <div className="pd-meta-card">
                                     <p className="pd-meta-label">Disponibilidad</p>
                                     {(() => {
-                                        const metros = metrosDisponiblesProducto(producto);
-                                        const rollos = rollosDisponiblesProducto(producto);
-                                        return metros > 0 ? (
+                                        const rollos = producto.stock ?? 0;
+                                        const metros = producto.metrosDisponibles ?? 0;
+
+                                        if (rollos === 0 && metros === 0) {
+                                            return (
+                                                <p className="pd-meta-value out">
+                                                    Agotado
+                                                </p>
+                                            );
+                                        }
+
+                                        return (
                                             <p className="pd-meta-value in">
-                                                {metros} m ({rollos} rollos)
+                                                {rollos} rollos en stock
+                                                <br />
+                                                {metros} metros sueltos disponibles
                                             </p>
-                                        ) : (
-                                            <p className="pd-meta-value out">Agotado</p>
                                         );
                                     })()}
                                 </div>
@@ -648,7 +643,7 @@ const ProductDetails = () => {
                             </div>
 
                             {/* Cantidad & unidad */}
-                            {(producto.metrosDisponibles ?? producto.stock ?? 0) > 0 && (
+                            {((producto.stock ?? 0) > 0 || (producto.metrosDisponibles ?? 0) > 0) && (
                                 <div>
                                     {/* Selector de unidad si tiene ambos */}
                                     {opcionesUnidadProducto(producto).length > 1 && (

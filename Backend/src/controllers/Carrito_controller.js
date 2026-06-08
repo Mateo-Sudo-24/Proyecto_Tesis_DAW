@@ -7,7 +7,7 @@ import mongoose from 'mongoose';
 const obtenerMiCarrito = async (req, res) => {
     try {
         const carrito = await Carrito.findOne({ cliente: req.usuario._id })
-                                     .populate('items.producto', 'nombre precio imagenUrl stock metrosDisponibles metrosPorRollo precioPorMetro precioPorRollo unidadVenta');
+                                     .populate('items.producto', 'nombre imagenUrl stock metrosDisponibles metrosPorRollo precioPorMetro precioPorRollo unidadVenta');
 
         if (!carrito) {
             // Si el usuario no tiene carrito, devolvemos una estructura de carrito válida y vacía.
@@ -43,20 +43,20 @@ const agregarItem = async (req, res) => {
         const producto = await Producto.findById(productoId);
         if (!producto) return res.status(404).json({ msg: 'Producto no encontrado.' });
 
-        const metrosDisponibles = producto.metrosDisponibles ?? (producto.stock ?? 0);
-
         let cantidadFinal;
         if (unidadSeleccionada === 'rollo') {
             cantidadFinal = Math.ceil(cantidadNum);
-            const metrosPorRollo = producto.metrosPorRollo || 100;
-            const metrosReq = cantidadFinal * metrosPorRollo;
-            if (metrosReq > metrosDisponibles) {
-                return res.status(400).json({ msg: `Stock insuficiente. Disponibles: ${Math.floor(metrosDisponibles / metrosPorRollo)} rollos.` });
+            if (cantidadFinal > (producto.stock ?? 0)) {
+                return res.status(400).json({
+                    msg: `Stock insuficiente. Disponibles: ${producto.stock ?? 0} rollos.`
+                });
             }
         } else {
             cantidadFinal = cantidadNum;
-            if (cantidadFinal > metrosDisponibles) {
-                return res.status(400).json({ msg: `Stock insuficiente. Disponibles: ${metrosDisponibles} metros.` });
+            if (cantidadFinal > (producto.metrosDisponibles ?? 0)) {
+                return res.status(400).json({
+                    msg: `Stock insuficiente. Disponibles: ${producto.metrosDisponibles ?? 0} metros.`
+                });
             }
         }
 
@@ -78,7 +78,7 @@ const agregarItem = async (req, res) => {
         }
 
         await carrito.save();
-        const carritoActualizado = await carrito.populate('items.producto', 'nombre precio imagenUrl stock metrosDisponibles metrosPorRollo precioPorMetro precioPorRollo unidadVenta');
+        const carritoActualizado = await carrito.populate('items.producto', 'nombre imagenUrl stock metrosDisponibles metrosPorRollo precioPorMetro precioPorRollo unidadVenta');
         res.status(200).json(carritoActualizado);
 
     } catch (error) {
@@ -101,7 +101,7 @@ const eliminarItem = async (req, res) => {
             { cliente: clienteId },
             { $pull: { items: { producto: productoId } } },
             { new: true }
-        ).populate('items.producto', 'nombre precio imagenUrl stock metrosDisponibles metrosPorRollo precioPorMetro precioPorRollo unidadVenta');
+        ).populate('items.producto', 'nombre imagenUrl stock metrosDisponibles metrosPorRollo precioPorMetro precioPorRollo unidadVenta');
 
         if (!carrito) return res.status(404).json({ msg: "Carrito no encontrado." });
         res.status(200).json(carrito);

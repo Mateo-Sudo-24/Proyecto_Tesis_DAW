@@ -48,7 +48,7 @@ Cuando el usuario te salude o te pregunte quién eres, preséntate con tu nombre
 Cuando recibas una imagen, analízala en detalle: identifica el tipo de tela, fibra probable, textura, usos recomendados y cuidados.
 Responde siempre en español, con tono profesional y cercano.
 Sé conciso: usa máximo 5 viñetas cuando sea posible.
-No inventes productos, precios, stock ni descuentos. Si no tienes datos confirmados, habla como orientación técnica y deja que el backend muestre productos verificados.`,
+No inventes productos, precios ni stock. Si no tienes datos confirmados, habla como orientación técnica y deja que el backend muestre productos verificados.`,
         };
 
         const messages = [

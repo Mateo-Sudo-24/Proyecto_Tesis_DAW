@@ -3,6 +3,7 @@ import { useNavigate } from 'react-router-dom';
 import { useForm } from 'react-hook-form';
 import { toast } from 'react-toastify';
 import { editCloudinaryImage, getPreviewUrl, revokePreviewUrl, checkDuplicateProductName } from '../../services/cloudinary';
+import { validarDescripcionProducto } from '../../utils/textValidators.js';
 
 const fpStyles = `
     :root {
@@ -138,6 +139,10 @@ export const FormProducto = ({ productoToUpdate, onSuccess, onCancel }) => {
     const [selectedCategoria, setSelectedCategoria] = useState('');
     const fileInputRef = useRef(null);
     const previewBlobRef = useRef(null);
+    const descripcionActual = watch('descripcion') || '';
+    const descripcionPalabras = String(descripcionActual).trim()
+        ? String(descripcionActual).trim().split(/\s+/).length
+        : 0;
 
     const token = JSON.parse(localStorage.getItem('auth-token'))?.state?.token;
 
@@ -168,14 +173,11 @@ export const FormProducto = ({ productoToUpdate, onSuccess, onCancel }) => {
             reset({
                 nombre: productoToUpdate.nombre || '',
                 descripcion: productoToUpdate.descripcion || '',
-                precio: productoToUpdate.precio || '',
-                stock: productoToUpdate.stock || '',
-                metrosDisponibles: productoToUpdate.metrosDisponibles ?? '',
+                rollosIngresados: Number(productoToUpdate.stock ?? 0) + 1,
                 metrosPorRollo: productoToUpdate.metrosPorRollo ?? 100,
                 precioPorMetro: productoToUpdate.precioPorMetro ?? '',
                 precioPorRollo: productoToUpdate.precioPorRollo ?? '',
                 unidadVenta: productoToUpdate.unidadVenta || 'metro',
-                descuento: productoToUpdate.descuento || 0,
                 color: productoToUpdate.color || '',
                 estado: productoToUpdate.estado || 'activo',
                 etiquetas: productoToUpdate.etiquetas?.join(', ') || ''
@@ -186,31 +188,6 @@ export const FormProducto = ({ productoToUpdate, onSuccess, onCancel }) => {
             }
         }
     }, [productoToUpdate, reset]);
-
-    const metrosPorRolloActual = Number(watch('metrosPorRollo') || 100) || 100;
-
-    const syncStockToMetros = (value) => {
-        const rollos = Number(value);
-        if (!Number.isFinite(rollos) || rollos < 0) return;
-        setValue('metrosDisponibles', Number((rollos * metrosPorRolloActual).toFixed(2)), { shouldDirty: true, shouldValidate: true });
-    };
-
-    const syncMetrosToStock = (value) => {
-        const metros = Number(value);
-        if (!Number.isFinite(metros) || metros < 0 || metrosPorRolloActual <= 0) return;
-        setValue('stock', Number((metros / metrosPorRolloActual).toFixed(2)), { shouldDirty: true, shouldValidate: true });
-    };
-
-    const syncMetrosPorRollo = (value) => {
-        const metrosPorRollo = Number(value) || 100;
-        const stock = Number(watch('stock'));
-        const metros = Number(watch('metrosDisponibles'));
-        if (Number.isFinite(stock) && stock >= 0) {
-            setValue('metrosDisponibles', Number((stock * metrosPorRollo).toFixed(2)), { shouldDirty: true, shouldValidate: true });
-        } else if (Number.isFinite(metros) && metros >= 0) {
-            setValue('stock', Number((metros / metrosPorRollo).toFixed(2)), { shouldDirty: true, shouldValidate: true });
-        }
-    };
 
     const onSubmit = async (data) => {
         setIsSubmitting(true);
@@ -250,15 +227,12 @@ export const FormProducto = ({ productoToUpdate, onSuccess, onCancel }) => {
             const formData = new FormData();
             formData.append('nombre', data.nombre);
             formData.append('descripcion', data.descripcion);
-            formData.append('precio', data.precio);
-            formData.append('stock', data.stock);
-            if (data.metrosDisponibles !== '') formData.append('metrosDisponibles', data.metrosDisponibles);
+            formData.append('rollosIngresados', data.rollosIngresados);
             if (data.metrosPorRollo)           formData.append('metrosPorRollo', data.metrosPorRollo);
             if (data.precioPorMetro !== '')     formData.append('precioPorMetro', data.precioPorMetro);
             if (data.precioPorRollo !== '')     formData.append('precioPorRollo', data.precioPorRollo);
             formData.append('unidadVenta', data.unidadVenta || 'metro');
             formData.append('categoria', selectedCategoria);
-            formData.append('descuento', data.descuento || 0);
             formData.append('color', data.color || '');
             formData.append('estado', data.estado);
             const etiquetas = data.etiquetas ? data.etiquetas.split(',').map(e => e.trim()).filter(Boolean) : [];
@@ -324,6 +298,7 @@ export const FormProducto = ({ productoToUpdate, onSuccess, onCancel }) => {
                         type="text"
                         placeholder="Ej: Tela Oxford Premium"
                         className="fp-input"
+                        maxLength={120}
                         {...register('nombre', { required: 'El nombre es obligatorio' })}
                     />
                     {errors.nombre && <p className="fp-error">⚠ {errors.nombre.message}</p>}
@@ -336,8 +311,13 @@ export const FormProducto = ({ productoToUpdate, onSuccess, onCancel }) => {
                         placeholder="Descripción del producto..."
                         rows={3}
                         className="fp-textarea"
-                        {...register('descripcion', { required: 'La descripción es obligatoria' })}
+                        maxLength={300}
+                        {...register('descripcion', {
+                            required: 'La descripción es obligatoria',
+                            validate: validarDescripcionProducto
+                        })}
                     />
+                    <span className="fp-img-hint">{descripcionPalabras}/50 palabras · {String(descripcionActual).length}/300 caracteres</span>
                     {errors.descripcion && <p className="fp-error">⚠ {errors.descripcion.message}</p>}
                 </div>
 
@@ -358,48 +338,38 @@ export const FormProducto = ({ productoToUpdate, onSuccess, onCancel }) => {
 
                 <div className="fp-divider" />
 
-                {/* Precio y Stock */}
+                {/* Stock por rollos */}
                 <div className="fp-grid-2">
                     <div className="fp-field" style={{ marginBottom: 0 }}>
-                        <label className="fp-label">Precio referencial *</label>
+                        <label className="fp-label">Rollos fisicos totales *</label>
                         <input
                             type="number"
-                            placeholder="0.00"
-                            step="0.01"
+                            placeholder="Ej: 10"
+                            min="1"
+                            step="1"
                             className="fp-input"
-                            {...register('precio', { required: 'El precio es obligatorio' })}
-                        />
-                        {errors.precio && <p className="fp-error">⚠ {errors.precio.message}</p>}
-                    </div>
-                    <div className="fp-field" style={{ marginBottom: 0 }}>
-                        <label className="fp-label">Stock (rollos/unidades)</label>
-                        <input
-                            type="number"
-                            placeholder="0"
-                            className="fp-input"
-                            {...register('stock', {
-                                onChange: (e) => syncStockToMetros(e.target.value)
-                            })}
-                        />
-                    </div>
-                </div>
+                            {...register('rollosIngresados', {
+                                required: 'Ingresa la cantidad de rollos',
+                                min: 1,
+                                onChange: (e) => {
+                                    const n = Math.max(1, parseInt(e.target.value, 10) || 1);
+                                    const metrosPorRollo = Number(watch('metrosPorRollo') || 100);
 
-                {/* Stock en metros */}
-                <div className="fp-grid-2" style={{ marginTop: '1rem' }}>
-                    <div className="fp-field" style={{ marginBottom: 0 }}>
-                        <label className="fp-label">Metros disponibles</label>
-                        <input
-                            type="number"
-                            placeholder="0"
-                            step="0.01"
-                            min="0"
-                            className="fp-input"
-                            {...register('metrosDisponibles', {
-                                min: 0,
-                                onChange: (e) => syncMetrosToStock(e.target.value)
+                                    setValue('stock', Math.max(0, n - 1));
+                                    setValue('metrosDisponibles', metrosPorRollo);
+                                }
                             })}
                         />
-                        {errors.metrosDisponibles && <p className="fp-error">⚠ {errors.metrosDisponibles.message}</p>}
+                        {errors.rollosIngresados && <p className="fp-error">⚠ {errors.rollosIngresados.message}</p>}
+                        <p
+                            style={{
+                                fontSize:'0.72rem',
+                                color:'#92400e',
+                                marginTop:'0.25rem'
+                            }}
+                        >
+                            1 rollo se reserva automaticamente para venta por metros. Los demas quedan en stock por rollo.
+                        </p>
                     </div>
                     <div className="fp-field" style={{ marginBottom: 0 }}>
                         <label className="fp-label">Metros por rollo</label>
@@ -409,10 +379,7 @@ export const FormProducto = ({ productoToUpdate, onSuccess, onCancel }) => {
                             step="1"
                             min="1"
                             className="fp-input"
-                            {...register('metrosPorRollo', {
-                                min: 1,
-                                onChange: (e) => syncMetrosPorRollo(e.target.value)
-                            })}
+                            {...register('metrosPorRollo', { min: 1 })}
                         />
                     </div>
                 </div>
@@ -453,19 +420,8 @@ export const FormProducto = ({ productoToUpdate, onSuccess, onCancel }) => {
                     </select>
                 </div>
 
-                {/* Descuento y Color */}
+                {/* Color */}
                 <div className="fp-grid-2" style={{ marginTop: '1rem' }}>
-                    <div className="fp-field" style={{ marginBottom: 0 }}>
-                        <label className="fp-label">Descuento (%)</label>
-                        <input
-                            type="number"
-                            placeholder="0"
-                            min="0"
-                            max="100"
-                            className="fp-input"
-                            {...register('descuento', { min: 0, max: 100 })}
-                        />
-                    </div>
                     <div className="fp-field" style={{ marginBottom: 0 }}>
                         <label className="fp-label">Color</label>
                         <input

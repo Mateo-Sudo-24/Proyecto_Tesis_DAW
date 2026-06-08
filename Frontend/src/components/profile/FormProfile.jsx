@@ -175,6 +175,7 @@ const FormularioPerfil = () => {
                                         type="text"
                                         placeholder="Ej: Juan"
                                         className="prof-input"
+                                        maxLength={12}
                                         {...register("nombre", {
                                             required: "El nombre es obligatorio",
                                             validate: value => validarNombreReal(value, 2)
@@ -189,6 +190,7 @@ const FormularioPerfil = () => {
                                         type="text"
                                         placeholder="Ej: Garcia"
                                         className="prof-input"
+                                        maxLength={12}
                                         {...register("apellido", {
                                             required: "El apellido es obligatorio",
                                             validate: value => validarNombreReal(value, 2)

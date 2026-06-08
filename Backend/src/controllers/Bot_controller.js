@@ -14,7 +14,7 @@ const buscarProductos = async (req, res) => {
                 { nombre: { $regex: q, $options: "i" } },
                 { descripcion: { $regex: q, $options: "i" } }
             ]
-        }).select("nombre precio stock imagenUrl").limit(5); // Limitar a 5 para no saturar el chat
+        }).select("nombre precioPorMetro precioPorRollo unidadVenta stock imagenUrl").limit(5); // Limitar a 5 para no saturar el chat
 
         res.status(200).json({
             count: productos.length,
@@ -38,7 +38,7 @@ const agregarAlCarrito = async (req, res) => {
         const producto = await Producto.findById(productoId);
         if (!producto) return res.status(404).json({ msg: "Producto no encontrado." });
 
-        const metrosDisponibles = producto.metrosDisponibles ?? (producto.stock ?? 0);
+        const metrosDisponibles = producto.metrosDisponibles ?? 0;
         if (metrosDisponibles < cantidad) return res.status(400).json({ msg: "Stock insuficiente." });
 
         let carrito = await Carrito.findOne({ cliente: clienteId });
@@ -66,14 +66,18 @@ const agregarAlCarrito = async (req, res) => {
 
 const obtenerResumenCarrito = async (req, res) => {
     try {
-        const carrito = await Carrito.findOne({ cliente: req.usuario._id }).populate('items.producto', 'precio');
+        const carrito = await Carrito.findOne({ cliente: req.usuario._id }).populate('items.producto', 'precioPorMetro precioPorRollo');
         if (!carrito || carrito.items.length === 0) {
             return res.status(200).json({ itemCount: 0, total: 0, isEmpty: true });
         }
 
         let total = 0;
         carrito.items.forEach(item => {
-            total += item.cantidad * item.producto.precio;
+            const unidad = item.unidadSeleccionada || 'metro';
+            const precioUnidad = unidad === 'rollo'
+                ? Number(item.producto?.precioPorRollo) || 0
+                : Number(item.producto?.precioPorMetro) || 0;
+            total += item.cantidad * precioUnidad;
         });
 
         res.status(200).json({

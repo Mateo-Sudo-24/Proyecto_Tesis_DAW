@@ -185,7 +185,10 @@ const FabricAnalyzer = ({ onClose }) => {
                                             <div key={producto._id} className="bg-white p-3 rounded border border-green-100">
                                                 <p className="font-semibold text-green-900">{producto.nombre}</p>
                                                 <p className="text-sm text-gray-600">{producto.descripcion}</p>
-                                                <p className="text-sm font-bold text-green-700">Precio: ${producto.precio}</p>
+                                                <p className="text-sm font-bold text-green-700">
+                                                    Metro: ${Number(producto.precioPorMetro || 0).toFixed(2)}
+                                                    {Number(producto.precioPorRollo || 0) > 0 && ` / Rollo: $${Number(producto.precioPorRollo || 0).toFixed(2)}`}
+                                                </p>
                                                 {producto.color && <p className="text-xs text-gray-500">Color: {producto.color}</p>}
                                             </div>
                                         ))}

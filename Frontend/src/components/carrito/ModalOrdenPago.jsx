@@ -477,8 +477,6 @@ const ModalOrdenPago = ({
     tipoEntrega,
     cartItems = [],
     subtotalCart = 0,
-    subtotalSinDescuento = 0,
-    descuentoTotal = 0,
     envioBase = 2.5,
     vendedorAsignado,
     onClose,
@@ -510,7 +508,6 @@ const ModalOrdenPago = ({
         : 0
     const desglose = calcularDesglose(cartItems, metodoPago, costoEnvio)
     const subtotalVisible = desglose.subtotal || subtotalCart
-    const descuentoVisible = desglose.descuentoTotal || descuentoTotal
     const iva = desglose.iva || subtotalVisible * IVA
     const total = desglose.totalFinal || subtotalVisible + iva + costoEnvio
 
@@ -595,7 +592,7 @@ const ModalOrdenPago = ({
         const errs = {}
         const itemsValidos = cartItems.every((it) => {
             const cantidad = Number(it?.cantidad)
-            const precio = Number(it?.producto?.precioPorMetro ?? it?.producto?.precioPorRollo ?? it?.producto?.precio)
+            const precio = Number(it?.producto?.precioPorMetro ?? it?.producto?.precioPorRollo ?? 0)
             return cantidad > 0 && Number.isFinite(precio) && precio >= 0
         })
 
@@ -633,12 +630,10 @@ const ModalOrdenPago = ({
 
         const direccionEnvio = tipoEntrega === 'domicilio'
             ? { direccion: limpiarTexto(direccionDomicilio), ciudad: 'Quito', provincia: 'Pichincha', codigoPostal: '000000', pais: 'Ecuador' }
-            : { direccion: limpiarTexto(form.direccion) || 'Retiro en establecimiento', ciudad: 'Quito', provincia: 'Pichincha', codigoPostal: '000000', pais: 'Ecuador' }
+            : { direccion: limpiarTexto(form.direccion) || 'Almacenes Intex', ciudad: 'Quito', provincia: 'Pichincha', codigoPostal: '000000', pais: 'Ecuador' }
 
         if (tipoEntrega === 'retiro') {
             direccionEnvio.direccion = `Retiro en almacenes - ${datosFacturacion.direccion || 'Almacenes Intex'}`
-        } else if (tipoEntrega === 'establecimiento') {
-            direccionEnvio.direccion = `Entrega en establecimiento - ${datosFacturacion.direccion || 'direccion del cliente'}`
         } else if (tipoEntrega === 'venta_local') {
             direccionEnvio.direccion = 'Venta local - ' + (datosFacturacion.direccion || 'Almacenes Intex')
         }
@@ -752,7 +747,7 @@ const ModalOrdenPago = ({
                     <div>
                         <h2 className="mop-header-title">Orden de pago</h2>
                         <p className="mop-header-sub">
-                            {tipoEntrega === 'domicilio' ? 'Envío a domicilio' : tipoEntrega === 'establecimiento' ? 'Entrega en establecimiento' : tipoEntrega === 'venta_local' ? 'Venta local' : 'Retiro en almacenes'}
+                            {tipoEntrega === 'domicilio' ? 'Envío a domicilio' : tipoEntrega === 'venta_local' ? 'Venta local' : 'Retiro en almacenes'}
                         </p>
                     </div>
                     <button className="mop-close" onClick={onClose} type="button">×</button>
@@ -793,21 +788,20 @@ const ModalOrdenPago = ({
                         </div>
                     )}
 
-                    {(tipoEntrega === 'retiro' || tipoEntrega === 'establecimiento' || tipoEntrega === 'venta_local') && (
+                    {(tipoEntrega === 'retiro' || tipoEntrega === 'venta_local') && (
                         <div className="op-section">
                             <div className="op-section-title">
-                                {tipoEntrega === 'establecimiento' ? 'Entrega en establecimiento' : tipoEntrega === 'venta_local' ? 'Venta local' : 'Retiro en almacenes'}
+                                {tipoEntrega === 'venta_local'
+                                    ? 'Venta local'
+                                    : 'Retiro en almacenes'}
                             </div>
                             <div style={{ padding: '0.875rem 1.25rem', display: 'grid', gap: '0.45rem', color: '#374151', fontSize: '0.875rem' }}>
                                 <strong style={{ color: '#111827' }}>CAVA CORP - Almacenes Intex</strong>
                                 <span>{
                                     tipoEntrega === 'venta_local'
                                         ? 'Venta registrada en el local. El cliente paga y se lleva el producto.'
-                                        : tipoEntrega === 'establecimiento'
-                                        ? 'El pedido se entregará en el establecimiento del cliente.'
-                                        : 'Tu pedido quedará registrado para retiro en almacenes. Usa la dirección de facturación para emitir la orden y confirmar la entrega.'
+                                        : 'Tu pedido quedará registrado para retiro en almacenes.'
                                 }</span>
-                                <span style={{ color: '#6b7280' }}>Total a cancelar: <b style={{ color: '#e8760a' }}>{fmt(total)}</b></span>
                             </div>
                         </div>
                     )}
@@ -826,12 +820,12 @@ const ModalOrdenPago = ({
                         <div className="op-grid">
                             <div className="op-field">
                                 <label className="op-label">Nombre</label>
-                                <input className={`op-input${errors.nombre ? ' error' : ''}`} name="nombre" placeholder="Juan" value={form.nombre} onChange={handleForm} />
+                                <input className={`op-input${errors.nombre ? ' error' : ''}`} name="nombre" maxLength={12} placeholder="Juan" value={form.nombre} onChange={handleForm} />
                                 {errors.nombre && <span className="op-error-msg">? {errors.nombre}</span>}
                             </div>
                             <div className="op-field">
                                 <label className="op-label">Apellido</label>
-                                <input className={`op-input${errors.apellido ? ' error' : ''}`} name="apellido" placeholder="García" value={form.apellido} onChange={handleForm} />
+                                <input className={`op-input${errors.apellido ? ' error' : ''}`} name="apellido" maxLength={12} placeholder="García" value={form.apellido} onChange={handleForm} />
                                 {errors.apellido && <span className="op-error-msg">? {errors.apellido}</span>}
                             </div>
                             <div className="op-field">
@@ -871,22 +865,19 @@ const ModalOrdenPago = ({
                             {cartItems.map((it, i) => {
                                 const unidad = it.unidadSeleccionada || 'metro'
                                 const precioBase = unidad === 'rollo'
-                                    ? numeroSeguro(it.producto?.precioPorRollo ?? it.producto?.precio)
-                                    : numeroSeguro(it.producto?.precioPorMetro ?? it.producto?.precio)
-                                const precioFinal = precioBase * (1 - numeroSeguro(it.producto?.descuento) / 100)
+                                    ? numeroSeguro(it.producto?.precioPorRollo)
+                                    : numeroSeguro(it.producto?.precioPorMetro)
                                 return (
                                     <div className="mop-item-row" key={i}>
                                         <span style={{ color:'#374151', fontWeight:600 }}>{it.producto?.nombre || 'Producto'}</span>
                                         <span style={{ textAlign:'center', color:'#6b7280' }}>{numeroSeguro(it.cantidad)} {unidad}</span>
-                                        <span style={{ textAlign:'right', color:'#6b7280' }}>{fmt(precioFinal)}</span>
-                                        <span style={{ textAlign:'right', color:'#111827', fontWeight:700 }}>{fmt(precioFinal * numeroSeguro(it.cantidad))}</span>
+                                        <span style={{ textAlign:'right', color:'#6b7280' }}>{fmt(precioBase)}</span>
+                                        <span style={{ textAlign:'right', color:'#111827', fontWeight:700 }}>{fmt(precioBase * numeroSeguro(it.cantidad))}</span>
                                     </div>
                                 )
                             })}
                         </div>
                         <div className="op-totales">
-                            <div className="op-total-row"><span>Subtotal bruto</span><span>{fmt(subtotalSinDescuento || subtotalVisible + descuentoVisible)}</span></div>
-                            {descuentoVisible > 0 && <div className="op-total-row"><span>Descuentos</span><span>-{fmt(descuentoVisible)}</span></div>}
                             <div className="op-total-row"><span>Subtotal</span><span>{fmt(subtotalVisible)}</span></div>
                             <div className="op-total-row"><span>IVA (15%)</span><span>{fmt(iva)}</span></div>
                             {costoEnvio > 0 && <div className="op-total-row"><span>Envío ({DISTANCIA_ENVIO_KM} km)</span><span>{fmt(costoEnvio)}</span></div>}
@@ -960,8 +951,6 @@ ModalOrdenPago.propTypes = {
     tipoEntrega: PropTypes.string,
     cartItems: PropTypes.array,
     subtotalCart: PropTypes.number,
-    subtotalSinDescuento: PropTypes.number,
-    descuentoTotal: PropTypes.number,
     envioBase: PropTypes.number,
     vendedorAsignado: PropTypes.object,
     onClose: PropTypes.func,

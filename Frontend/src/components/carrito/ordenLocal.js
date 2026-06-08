@@ -9,17 +9,15 @@ export const COMISION_STRIPE_FIJA = 0.30;
 
 /**
  * Retorna el precio unitario de un producto según la unidad seleccionada,
- * aplicando el descuento.
  * @param {object} producto - Documento Producto del backend
  * @param {'metro'|'rollo'} unidad
  * @returns {number}
  */
 export function getPrecioUnitario(producto, unidad = 'metro') {
     const base = unidad === 'rollo'
-        ? (producto.precioPorRollo ?? producto.precio ?? 0)
-        : (producto.precioPorMetro ?? producto.precio ?? 0);
-    const descPct = producto.descuento ?? 0;
-    return parseFloat((base * (1 - descPct / 100)).toFixed(4));
+        ? (producto.precioPorRollo ?? 0)
+        : (producto.precioPorMetro ?? 0);
+    return parseFloat(Number(base).toFixed(4));
 }
 
 /**
@@ -33,24 +31,20 @@ export function getSubtotalItem(producto, cantidad, unidad = 'metro') {
  * Calcula el desglose completo de una orden.
  * @param {Array} items - [{ producto, cantidad, unidadSeleccionada }]
  * @param {string} metodoPago - nombre del método de pago seleccionado
- * @returns {{ subtotal, descuentoTotal, iva, comisionPago, totalFinal }}
+ * @returns {{ subtotal, iva, comisionPago, totalFinal }}
  */
 export function calcularDesglose(items = [], metodoPago = '', envio = 0) {
-    let subtotalSinDesc = 0;
-    let subtotalConDesc = 0;
+    let subtotalBase = 0;
 
     for (const item of items) {
         const { producto, cantidad, unidadSeleccionada: unidad = 'metro' } = item;
         const base = unidad === 'rollo'
-            ? (producto.precioPorRollo ?? producto.precio ?? 0)
-            : (producto.precioPorMetro ?? producto.precio ?? 0);
-        const descPct = producto.descuento ?? 0;
-        subtotalSinDesc += base * cantidad;
-        subtotalConDesc += base * (1 - descPct / 100) * cantidad;
+            ? (producto.precioPorRollo ?? 0)
+            : (producto.precioPorMetro ?? 0);
+        subtotalBase += base * cantidad;
     }
 
-    const descuentoTotal = parseFloat((subtotalSinDesc - subtotalConDesc).toFixed(2));
-    const subtotal = parseFloat(subtotalConDesc.toFixed(2));
+    const subtotal = parseFloat(subtotalBase.toFixed(2));
     const iva = parseFloat((subtotal * IVA_RATE).toFixed(2));
 
     const metodoLower = (metodoPago || '').toLowerCase();
@@ -62,7 +56,7 @@ export function calcularDesglose(items = [], metodoPago = '', envio = 0) {
     const envioTotal = parseFloat((Number(envio) || 0).toFixed(2));
     const totalFinal = parseFloat((subtotal + iva + comisionPago + envioTotal).toFixed(2));
 
-    return { subtotal, descuentoTotal, iva, comisionPago, envio: envioTotal, totalFinal };
+    return { subtotal, iva, comisionPago, envio: envioTotal, totalFinal };
 }
 
 /**

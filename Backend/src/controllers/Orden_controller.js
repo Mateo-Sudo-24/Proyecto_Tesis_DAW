@@ -11,8 +11,8 @@ import { isUserOnline } from "../utils/onlineUsers.js";
 
 const limpiarTexto = (valor) => String(valor ?? '').trim();
 const soloDigitos = (valor) => String(valor ?? '').replace(/\D/g, '');
-const nombreRegex = /^(?=.{2,60}$)(?=(?:.*[\p{L}]){2,})[\p{L}\p{M}]+(?:[\s.'-][\p{L}\p{M}]+)*$/u;
-const nombreOrdenRegex = /^(?=.{5,60}$)(?=(?:.*[\p{L}]){5,})[\p{L}\p{M}]+(?:[\s.'-][\p{L}\p{M}]+)*$/u;
+const nombreRegex = /^(?=.{2,12}$)(?=(?:.*[\p{L}]){2,10})[\p{L}\p{M}]+(?:[\s.'-][\p{L}\p{M}]+)*$/u;
+const nombreOrdenRegex = /^(?=.{5,12}$)(?=(?:.*[\p{L}]){5,10})[\p{L}\p{M}]+(?:[\s.'-][\p{L}\p{M}]+)*$/u;
 const emailRegex = /^[^\s@]+@[^\s@]+\.[A-Za-z]{2,24}$/;
 const telefonoRegex = /^0\d{9}$/;
 const documentoRegex = /^(\d{10}|\d{13})$/;
@@ -43,12 +43,38 @@ const esPagoPresencial = (metodo = '') => {
 
 const getTotalOrden = (orden = {}) => {
     const totalFinal = Number(orden.totalFinal);
-    if (Number.isFinite(totalFinal) && totalFinal > 0) return totalFinal;
-    const precioTotal = Number(orden.precioTotal);
-    if (Number.isFinite(precioTotal) && precioTotal > 0) return precioTotal;
-    const total = Number(orden.total);
-    if (Number.isFinite(total) && total > 0) return total;
+    if (Number.isFinite(totalFinal) && totalFinal > 0) {
+        return totalFinal;
+    }
+
     return 0;
+};
+
+const validarStockPedido = (producto, cantidad, unidad = 'metro') => {
+    if (unidad === 'rollo') {
+        const rollosRequeridos = Math.ceil(cantidad);
+        if ((producto.stock ?? 0) < rollosRequeridos) {
+            throw new Error(`Stock insuficiente para: ${producto.nombre}`);
+        }
+        return { rollosRequeridos };
+    }
+
+    if ((producto.metrosDisponibles ?? 0) < cantidad) {
+        throw new Error(`Stock insuficiente para: ${producto.nombre}`);
+    }
+    return { metrosRequeridos: cantidad };
+};
+
+const descontarStockPedido = async (productoId, cantidad, unidad = 'metro') => {
+    if (unidad === 'rollo') {
+        return Producto.findByIdAndUpdate(productoId, {
+            $inc: { stock: -Math.ceil(cantidad) }
+        });
+    }
+
+    return Producto.findByIdAndUpdate(productoId, {
+        $inc: { metrosDisponibles: -cantidad }
+    });
 };
 
 const validarAvanceManualOrden = (estadoActualRaw, estadoSiguiente) => {
@@ -63,7 +89,7 @@ const validarAvanceManualOrden = (estadoActualRaw, estadoSiguiente) => {
 
 const crearEmailGuest = () => `guest.${Date.now()}.${Math.random().toString(36).slice(2, 7)}@intex.local`;
 
-const validarDatosFacturacion = (datos = {}, { minLetras = 5 } = {}) => {
+const validarDatosFacturacion = (datos = {}, { minLetras = 2 } = {}) => {
     const nombre = limpiarTexto(datos.nombre);
     const apellido = limpiarTexto(datos.apellido);
     const correo = limpiarTexto(datos.correo || datos.email).toLowerCase();
@@ -72,8 +98,8 @@ const validarDatosFacturacion = (datos = {}, { minLetras = 5 } = {}) => {
     const telefono = soloDigitos(datos.telefono);
     const regexNombre = minLetras >= 5 ? nombreOrdenRegex : nombreRegex;
 
-    if (!regexNombre.test(nombre)) return `El nombre debe tener al menos ${minLetras} letras y solo caracteres validos.`;
-    if (!regexNombre.test(apellido)) return `El apellido debe tener al menos ${minLetras} letras y solo caracteres validos.`;
+    if (!regexNombre.test(nombre)) return `El nombre debe tener entre ${minLetras} y 10 letras, maximo 12 caracteres y solo caracteres validos.`;
+    if (!regexNombre.test(apellido)) return `El apellido debe tener entre ${minLetras} y 10 letras, maximo 12 caracteres y solo caracteres validos.`;
     if (!emailRegex.test(correo)) return 'Ingresa un correo valido.';
     if (!documentoRegex.test(ruc)) return 'Usa cedula de 10 digitos o RUC de 13.';
     if (!telefonoRegex.test(telefono)) return 'El telefono debe tener 10 digitos y empezar con 0.';
@@ -233,29 +259,20 @@ const registrarOrden = async (req, res) => {
         const productosPedido = carrito.items.map(item => {
             if (!item.producto) throw new Error(`Un producto en tu carrito ya no está disponible.`);
             const unidad = item.unidadSeleccionada || 'metro';
-            const precioUnitario = unidad === 'rollo'
-                ? (item.producto.precioPorRollo || item.producto.precio)
-                : (item.producto.precioPorMetro || item.producto.precio);
-            const descuentoPct = item.producto.descuento || 0;
-            const precioConDesc = precioUnitario * (1 - descuentoPct / 100);
-            const subtotalItem = item.cantidad * precioConDesc;
+            const precioPorUnidad = unidad === 'rollo'
+                ? (item.producto.precioPorRollo || 0)
+                : (item.producto.precioPorMetro || 0);
+            const subtotalItem = item.cantidad * precioPorUnidad;
 
-            // Validación de stock en metros
-            const metrosRequeridos = unidad === 'rollo'
-                ? item.cantidad * (item.producto.metrosPorRollo || 100)
-                : item.cantidad;
-            if ((item.producto.metrosDisponibles ?? 0) < metrosRequeridos) {
-                throw new Error(`Stock insuficiente para: ${item.producto.nombre}`);
-            }
+            validarStockPedido(item.producto, item.cantidad, unidad);
 
             return {
                 nombre: item.producto.nombre,
                 cantidad: item.cantidad,
                 unidadSeleccionada: unidad,
                 imagen: item.producto.imagenUrl,
-                precio: precioUnitario,
-                precioUnitario,
-                descuento: descuentoPct,
+                precioPorUnidad: precioPorUnidad,
+                unidadPrecio: unidad,
                 subtotal: subtotalItem,
                 producto: item.producto._id
             };
@@ -266,7 +283,6 @@ const registrarOrden = async (req, res) => {
         const COMISION_STRIPE_PCT = 0.054;
         const COMISION_STRIPE_FIJA = 0.30;
         const subtotalBase = productosPedido.reduce((s, i) => s + i.subtotal, 0);
-        const descuentoTotal = desglose?.descuentoTotal ?? 0;
         const subtotal = desglose?.subtotal ?? subtotalBase;
         const iva = desglose?.iva ?? parseFloat((subtotal * IVA_RATE).toFixed(2));
         const envio = desglose?.envio ?? 0;
@@ -288,7 +304,7 @@ const registrarOrden = async (req, res) => {
             }
             : undefined;
 
-        const errorFacturacion = validarDatosFacturacion(datosFacturacionLimpios, { minLetras: 5 });
+        const errorFacturacion = validarDatosFacturacion(datosFacturacionLimpios, { minLetras: 2 });
         if (errorFacturacion) {
             return res.status(400).json({ msg: errorFacturacion });
         }
@@ -305,7 +321,6 @@ const registrarOrden = async (req, res) => {
             metodoPago,
             precioTotal: totalFinal,
             subtotal,
-            descuentoTotal,
             iva,
             envio,
             comisionPago,
@@ -319,15 +334,10 @@ const registrarOrden = async (req, res) => {
         // Notificar al admin sobre nueva orden creada
         crearNotificacionNuevaOrden(orden).catch(() => {});
 
-        // Descontar stock en metros
+        // Descontar stock segun unidad vendida
         for (const item of carrito.items) {
             const unidad = item.unidadSeleccionada || 'metro';
-            const metros = unidad === 'rollo'
-                ? item.cantidad * ((await Producto.findById(item.producto._id).select('metrosPorRollo'))?.metrosPorRollo || 100)
-                : item.cantidad;
-            await Producto.findByIdAndUpdate(item.producto._id, {
-                $inc: { metrosDisponibles: -metros }
-            });
+            await descontarStockPedido(item.producto._id, item.cantidad, unidad);
         }
 
         carrito.items = [];
@@ -375,31 +385,22 @@ const registrarOrdenPagadaTarjeta = async (req, res) => {
         const productosPedido = carrito.items.map(item => {
             if (!item.producto) throw new Error("Un producto en tu carrito ya no esta disponible.");
             const unidad = item.unidadSeleccionada || 'metro';
-            const precioUnitario = unidad === 'rollo'
-                ? (item.producto.precioPorRollo || item.producto.precio)
-                : (item.producto.precioPorMetro || item.producto.precio);
-            const descuentoPct = item.producto.descuento || 0;
-            const precioConDesc = precioUnitario * (1 - descuentoPct / 100);
-            const subtotalItem = item.cantidad * precioConDesc;
-            const metrosRequeridos = unidad === 'rollo'
-                ? item.cantidad * (item.producto.metrosPorRollo || 100)
-                : item.cantidad;
-
-            if ((item.producto.metrosDisponibles ?? 0) < metrosRequeridos) {
-                throw new Error(`Stock insuficiente para: ${item.producto.nombre}`);
-            }
+            const precioPorUnidad = unidad === 'rollo'
+                ? (item.producto.precioPorRollo || 0)
+                : (item.producto.precioPorMetro || 0);
+            const subtotalItem = item.cantidad * precioPorUnidad;
+            const stockRequerido = validarStockPedido(item.producto, item.cantidad, unidad);
 
             return {
                 nombre: item.producto.nombre,
                 cantidad: item.cantidad,
                 unidadSeleccionada: unidad,
                 imagen: item.producto.imagenUrl,
-                precio: precioUnitario,
-                precioUnitario,
-                descuento: descuentoPct,
+                precioPorUnidad: precioPorUnidad,
+                unidadPrecio: unidad,
                 subtotal: subtotalItem,
                 producto: item.producto._id,
-                metrosRequeridos
+                ...stockRequerido
             };
         });
 
@@ -407,7 +408,6 @@ const registrarOrdenPagadaTarjeta = async (req, res) => {
         const COMISION_STRIPE_PCT = 0.054;
         const COMISION_STRIPE_FIJA = 0.30;
         const subtotalBase = productosPedido.reduce((s, i) => s + i.subtotal, 0);
-        const descuentoTotal = desglose?.descuentoTotal ?? 0;
         const subtotal = desglose?.subtotal ?? subtotalBase;
         const iva = desglose?.iva ?? parseFloat((subtotal * IVA_RATE).toFixed(2));
         const envio = desglose?.envio ?? 0;
@@ -425,7 +425,7 @@ const registrarOrdenPagadaTarjeta = async (req, res) => {
             }
             : undefined;
 
-        const errorFacturacion = validarDatosFacturacion(datosFacturacionLimpios, { minLetras: 5 });
+        const errorFacturacion = validarDatosFacturacion(datosFacturacionLimpios, { minLetras: 2 });
         if (errorFacturacion) return res.status(400).json({ msg: errorFacturacion });
 
         let pagoStripeId = paymentMethodId;
@@ -470,7 +470,7 @@ const registrarOrdenPagadaTarjeta = async (req, res) => {
         const orden = new Orden({
             cliente: clienteId,
             vendedor: vendedorAsignado,
-            productoPedido: productosPedido.map(({ metrosRequeridos, ...item }) => item),
+            productoPedido: productosPedido.map(({ metrosRequeridos, rollosRequeridos, ...item }) => item),
             direccionEnvio: requiereDireccion ? direccionEnvio : undefined,
             metodoPago,
             metodoPagoInterno: 'stripe',
@@ -480,7 +480,6 @@ const registrarOrdenPagadaTarjeta = async (req, res) => {
             fechaPago: new Date(),
             precioTotal: totalFinal,
             subtotal,
-            descuentoTotal,
             iva,
             envio,
             comisionPago,
@@ -492,7 +491,7 @@ const registrarOrdenPagadaTarjeta = async (req, res) => {
         await orden.save();
 
         await Promise.all(productosPedido.map(item =>
-            Producto.findByIdAndUpdate(item.producto, { $inc: { metrosDisponibles: -item.metrosRequeridos } })
+            descontarStockPedido(item.producto, item.cantidad, item.unidadSeleccionada)
         ));
 
         carrito.items = [];
@@ -575,30 +574,21 @@ const registrarOrdenTienda = async (req, res) => {
             }
 
             const cantidadFinal = unidad === 'rollo' ? Math.ceil(cantidad) : cantidad;
-            const metrosRequeridos = unidad === 'rollo'
-                ? cantidadFinal * (producto.metrosPorRollo || 100)
-                : cantidadFinal;
-            if ((producto.metrosDisponibles ?? 0) < metrosRequeridos) {
-                throw new Error(`Stock insuficiente para: ${producto.nombre}`);
-            }
+            const stockRequerido = validarStockPedido(producto, cantidadFinal, unidad);
 
-            const precioUnitario = unidad === 'rollo'
-                ? (producto.precioPorRollo || producto.precio)
-                : (producto.precioPorMetro || producto.precio);
-            const descuentoPct = producto.descuento || 0;
-            const precioConDesc = precioUnitario * (1 - descuentoPct / 100);
-
+            const precioPorUnidad = unidad === 'rollo'
+                ? (producto.precioPorRollo || 0)
+                : (producto.precioPorMetro || 0);
             return {
                 nombre: producto.nombre,
                 cantidad: cantidadFinal,
                 unidadSeleccionada: unidad,
                 imagen: producto.imagenUrl,
-                precio: precioUnitario,
-                precioUnitario,
-                descuento: descuentoPct,
-                subtotal: cantidadFinal * precioConDesc,
+                precioPorUnidad: precioPorUnidad,
+                unidadPrecio: unidad,
+                subtotal: cantidadFinal * precioPorUnidad,
                 producto: producto._id,
-                metrosRequeridos
+                ...stockRequerido
             };
         });
 
@@ -635,7 +625,6 @@ const registrarOrdenTienda = async (req, res) => {
         const IVA_RATE = 0.15;
         const subtotalBase = productosPedido.reduce((s, item) => s + item.subtotal, 0);
         const subtotal = Number(desglose?.subtotal) || subtotalBase;
-        const descuentoTotal = Number(desglose?.descuentoTotal) || 0;
         const iva = Number(desglose?.iva) || Number((subtotal * IVA_RATE).toFixed(2));
         const envio = Number(desglose?.envio) || 0;
         const comisionPago = Number(desglose?.comisionPago) || 0;
@@ -653,11 +642,10 @@ const registrarOrdenTienda = async (req, res) => {
         const orden = await Orden.create({
             cliente: clienteOrden._id,
             vendedor: req.usuario._id,
-            productoPedido: productosPedido.map(({ metrosRequeridos, ...item }) => item),
+            productoPedido: productosPedido.map(({ metrosRequeridos, rollosRequeridos, ...item }) => item),
             metodoPago,
             precioTotal: totalFinal,
             subtotal,
-            descuentoTotal,
             iva,
             envio,
             comisionPago,
@@ -673,7 +661,7 @@ const registrarOrdenTienda = async (req, res) => {
         });
 
         await Promise.all(productosPedido.map(item =>
-            Producto.findByIdAndUpdate(item.producto, { $inc: { metrosDisponibles: -item.metrosRequeridos } })
+            descontarStockPedido(item.producto, item.cantidad, item.unidadSeleccionada)
         ));
 
         crearNotificacionNuevaOrden(orden).catch(() => {});

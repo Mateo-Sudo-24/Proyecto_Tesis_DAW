@@ -20,12 +20,15 @@ const getUnidadItem = (item) => {
 const getPrecioUnidad = (item) => {
     const unidad = getUnidadItem(item);
     const producto = item?.producto || {};
-    if (unidad === 'rollo') return Number(producto.precioPorRollo ?? producto.precio ?? 0) || 0;
-    return Number(producto.precioPorMetro ?? producto.precio ?? 0) || 0;
+    if (unidad === 'rollo') {
+        return Number(producto.precioPorRollo) || 0;
+    }
+
+    return Number(producto.precioPorMetro) || 0;
 };
 
-const getMetrosDisponibles = (producto = {}) => Number(producto.metrosDisponibles ?? producto.stock ?? 0) || 0;
-const getRollosDisponibles = (producto = {}) => Math.floor(getMetrosDisponibles(producto) / (producto.metrosPorRollo || 100));
+const getRollosDisponibles = (producto = {}) => Number(producto.stock ?? 0) || 0;
+const getMetrosDisponibles = (producto = {}) => Number(producto.metrosDisponibles ?? 0) || 0;
 const handleProductImageError = (e) => {
     e.currentTarget.onerror = null;
     e.currentTarget.src = "/images/no-image.png";
@@ -112,7 +115,7 @@ const cartStyles = `
         .cart-table { min-width: 720px; }
         .cart-table-footer { flex-direction: column; align-items: stretch; gap: 0.75rem; }
         .cart-clear-btn, .cart-continue-link { justify-content: center; }
-        .cart-delivery-options { grid-template-columns: 1fr; }
+        .cart-delivery-options { grid-template-columns: 1fr 1fr; }
     }
 
     /* ──── Card base ──── */
@@ -443,7 +446,7 @@ const Carrito = () => {
     const tiendaLink = isVendedor ? "/dashboard/tienda" : "/dashboard/productos";
 
     // Tipo de entrega
-    const [tipoEntrega, setTipoEntrega] = useState(''); // 'domicilio' | 'retiro' | 'establecimiento' | 'venta_local'
+    const [tipoEntrega, setTipoEntrega] = useState(''); // 'domicilio' | 'retiro' | 'venta_local'
 
     // Modal orden de pago
     const [showModalOP, setShowModalOP] = useState(false);
@@ -464,7 +467,6 @@ const Carrito = () => {
 
     const getEntregaLabel = (tipo) => {
         if (tipo === 'domicilio') return 'Envio a domicilio';
-        if (tipo === 'establecimiento') return 'Entrega en establecimiento';
         if (tipo === 'venta_local') return 'Venta local';
         return 'Retiro en almacenes';
     };
@@ -604,10 +606,6 @@ const Carrito = () => {
         setPagoTarjetaPendiente(null);
     };
 
-    const subtotalSinDescuento = itemsPreview.reduce(
-        (acc, item) => acc + getPrecioUnidad(item) * item.cantidad,
-        0
-    );
     const desglosePreview = calcularDesglose(itemsPreview, '', 0);
 
     if (pedidoExitoso) {
@@ -721,8 +719,6 @@ const Carrito = () => {
                                             const unidad = getUnidadItem(item);
                                             const cantidadEfectiva = getCantidadEfectiva(item);
                                             const precioUnidad = getPrecioUnidad(item);
-                                            const descuento = Number(item.producto?.descuento ?? 0) || 0;
-                                            const precioConDescuento = precioUnidad * (1 - descuento / 100);
                                             const permiteAmbos = item.producto?.unidadVenta === 'ambos';
                                             const stepCantidad = unidad === 'rollo' ? 1 : 0.01;
                                             const updating = !!updatingItems[item.producto?._id];
@@ -761,7 +757,7 @@ const Carrito = () => {
                                                         </span>
                                                     )}
                                                     <div style={{ fontSize: '0.68rem', color: '#9ca3af', marginTop: '0.25rem' }}>
-                                                        {getMetrosDisponibles(item.producto)}m / {getRollosDisponibles(item.producto)} rollos
+                                                        {getRollosDisponibles(item.producto)} rollos / {getMetrosDisponibles(item.producto)}m sueltos
                                                     </div>
                                                 </td>
                                                 <td style={{textAlign:'center'}}>
@@ -780,7 +776,7 @@ const Carrito = () => {
                                                     />
                                                 </td>
                                                 <td className="cart-subtotal">
-                                                    ${(precioConDescuento * cantidadEfectiva).toFixed(2)}
+                                                    ${(precioUnidad * cantidadEfectiva).toFixed(2)}
                                                 </td>
                                                 <td style={{textAlign:'center'}}>
                                                     <button
@@ -813,14 +809,8 @@ const Carrito = () => {
                                 <h3>📋 Resumen del pedido</h3>
                                 <div className="cart-summary-row">
                                     <span>Subtotal</span>
-                                    <span>${subtotalSinDescuento.toFixed(2)}</span>
+                                    <span>${desglosePreview.subtotal.toFixed(2)}</span>
                                 </div>
-                                {desglosePreview.descuentoTotal > 0 && (
-                                    <div className="cart-summary-row">
-                                        <span>Descuentos</span>
-                                        <span>-${desglosePreview.descuentoTotal.toFixed(2)}</span>
-                                    </div>
-                                )}
                                 <div className="cart-summary-row">
                                     <span>IVA (15%)</span>
                                     <span>${desglosePreview.iva.toFixed(2)}</span>
@@ -850,28 +840,30 @@ const Carrito = () => {
                                     <div className="cart-delivery-options">
                                         <div
                                             className={`cart-delivery-opt${tipoEntrega === 'domicilio' ? ' selected' : ''}`}
-                                            onClick={() => { setTipoEntrega('domicilio'); setShowModalOP(true); }}
+                                            onClick={() => {
+                                                setTipoEntrega('domicilio');
+                                                setShowModalOP(true);
+                                            }}
                                         >
                                             <span className="cart-delivery-opt-icon">🛵</span>
-                                            <span className="cart-delivery-opt-label">Envío a domicilio</span>
+                                            <span className="cart-delivery-opt-label">
+                                                Envío a domicilio
+                                            </span>
                                         </div>
+
                                         {!isVendedor && (
-                                            <>
-                                                <div
-                                                    className={`cart-delivery-opt${tipoEntrega === 'retiro' ? ' selected' : ''}`}
-                                                    onClick={() => { setTipoEntrega('retiro'); setShowModalOP(true); }}
-                                                >
-                                                    <span className="cart-delivery-opt-icon">🏪</span>
-                                                    <span className="cart-delivery-opt-label">Retiro en almacenes</span>
-                                                </div>
-                                                <div
-                                                    className={`cart-delivery-opt${tipoEntrega === 'establecimiento' ? ' selected' : ''}`}
-                                                    onClick={() => { setTipoEntrega('establecimiento'); setShowModalOP(true); }}
-                                                >
-                                                    <span className="cart-delivery-opt-icon">🏢</span>
-                                                    <span className="cart-delivery-opt-label">Entrega en establecimiento</span>
-                                                </div>
-                                            </>
+                                            <div
+                                                className={`cart-delivery-opt${tipoEntrega === 'retiro' ? ' selected' : ''}`}
+                                                onClick={() => {
+                                                    setTipoEntrega('retiro');
+                                                    setShowModalOP(true);
+                                                }}
+                                            >
+                                                <span className="cart-delivery-opt-icon">🏪</span>
+                                                <span className="cart-delivery-opt-label">
+                                                    Retiro en almacenes
+                                                </span>
+                                            </div>
                                         )}
                                     </div>
                                     {isVendedor && (
@@ -909,8 +901,6 @@ const Carrito = () => {
                     tipoEntrega={tipoEntrega}
                     cartItems={itemsPreview}
                     subtotalCart={desglosePreview.subtotal}
-                    subtotalSinDescuento={subtotalSinDescuento}
-                    descuentoTotal={desglosePreview.descuentoTotal}
                     envioBase={ENVIO_BASE}
                     vendedorAsignado={vendedorAsignado}
                     onClose={() => { setShowModalOP(false); setTipoEntrega(''); }}

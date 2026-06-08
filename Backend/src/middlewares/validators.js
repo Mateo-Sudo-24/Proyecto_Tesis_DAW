@@ -8,7 +8,7 @@ const normalizeEmailOptions = {
     icloud_remove_subaddress: false,
 };
 
-const nombreRegex = /^(?=.{2,60}$)(?=(?:.*[\p{L}]){2,})[\p{L}\p{M}]+(?:[\s.'-][\p{L}\p{M}]+)*$/u;
+const nombreRegex = /^(?=.{2,12}$)(?=(?:.*[\p{L}]){2,10})[\p{L}\p{M}]+(?:[\s.'-][\p{L}\p{M}]+)*$/u;
 const emailRegex = /^[^\s@]+@[^\s@]+\.[A-Za-z]{2,24}$/;
 const telefonoRegex = /^0\d{9}$/;
 
@@ -40,6 +40,8 @@ const validateNombre = body('nombre')
     .trim()
     .notEmpty()
     .withMessage('El nombre es obligatorio.')
+    .isLength({ min: 2, max: 12 })
+    .withMessage('El nombre debe tener entre 2 y 12 caracteres.')
     .matches(nombreRegex)
     .withMessage('Ingresa un nombre real, solo letras y espacios.');
 
@@ -47,6 +49,8 @@ const validateApellido = body('apellido')
     .trim()
     .notEmpty()
     .withMessage('El apellido es obligatorio.')
+    .isLength({ min: 2, max: 12 })
+    .withMessage('El apellido debe tener entre 2 y 12 caracteres.')
     .matches(nombreRegex)
     .withMessage('Ingresa un apellido real, solo letras y espacios.');
 
@@ -71,8 +75,8 @@ export const validatePasswordRecovery = [validateEmail, handleValidationErrors];
 export const validatePasswordReset = [validatePassword, handleValidationErrors];
 
 export const validateProfileUpdate = [
-    body('nombre').optional().trim().matches(nombreRegex).withMessage('Ingresa un nombre real.'),
-    body('apellido').optional().trim().matches(nombreRegex).withMessage('Ingresa un apellido real.'),
+    body('nombre').optional().trim().isLength({ min: 2, max: 12 }).withMessage('El nombre debe tener entre 2 y 12 caracteres.').matches(nombreRegex).withMessage('Ingresa un nombre real.'),
+    body('apellido').optional().trim().isLength({ min: 2, max: 12 }).withMessage('El apellido debe tener entre 2 y 12 caracteres.').matches(nombreRegex).withMessage('Ingresa un apellido real.'),
     body('email').optional().trim().toLowerCase().isEmail().matches(emailRegex).normalizeEmail(normalizeEmailOptions),
     body('telefono').optional().trim().matches(telefonoRegex).withMessage('El telefono debe tener 10 digitos.'),
     body('direccion').optional().trim().isLength({ min: 5 }).withMessage('La direccion debe tener al menos 5 caracteres.'),

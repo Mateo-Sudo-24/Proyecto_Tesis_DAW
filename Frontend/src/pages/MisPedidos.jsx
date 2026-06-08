@@ -122,6 +122,7 @@ const VENTA_LOCAL_MAP     = { 'Listo': 'listo' };
 const getStepConfig = (tipoEntrega) => {
     if (tipoEntrega === 'domicilio')       return { steps: STEPS_DOMICILIO,       map: DOMICILIO_MAP };
     if (tipoEntrega === 'venta_local')     return { steps: STEPS_VENTA_LOCAL,     map: VENTA_LOCAL_MAP };
+    // retiro utiliza STEPS_ESTABLECIMIENTO porque comparte el flujo sin despacho a domicilio.
     return { steps: STEPS_ESTABLECIMIENTO, map: ESTABLECIMIENTO_MAP };
 };
 const ITEMS_PER_PAGE = 3;
@@ -142,20 +143,24 @@ const calcularTotalesOrden = (orden = {}) => {
     const subtotalItems = items.reduce((s, it) => {
         const subtotalItem = numeroPositivo(it.subtotal);
         if (subtotalItem > 0) return s + subtotalItem;
-        const precio = numeroValido(it.precio ?? it.precioUnitario ?? it.producto?.precioPorMetro ?? it.producto?.precioPorRollo ?? it.producto?.precio);
+        const precio = numeroValido(
+            it.precioPorUnidad ??
+            it.precioPorMetro ??
+            it.precioPorRollo ??
+            0
+        );
         const cantidad = numeroValido(it.cantidad || 1);
         return s + (precio * cantidad);
     }, 0);
 
     const subtotal = numeroPositivo(orden.subtotal) || subtotalItems;
-    const descuentoTotal = numeroValido(orden.descuentoTotal);
     const iva = numeroPositivo(orden.iva) || Number((subtotal * IVA_RATE).toFixed(2));
     const envio = numeroValido(orden.envio);
     const comisionPago = numeroValido(orden.comisionPago);
     const totalGuardado = numeroPositivo(orden.totalFinal) || numeroPositivo(orden.precioTotal) || numeroPositivo(orden.total);
     const totalFinal = totalGuardado || Number((subtotal + iva + envio + comisionPago).toFixed(2));
 
-    return { subtotal, descuentoTotal, iva, envio, comisionPago, totalFinal };
+    return { subtotal, iva, envio, comisionPago, totalFinal };
 };
 
 const estadoIcono = { pendiente:'⏳', pagado:'💰', procesando:'⚙️', listo:'🚚', enviado:'🚚', entregado:'✅', cancelado:'❌' };
@@ -334,6 +339,7 @@ const OrdenCard = ({ orden: ordenInicial, index, isVendedor, token }) => {
     const vendedorNombre = orden.vendedor
         ? `${orden.vendedor.nombrePropietario || orden.vendedor.nombre || ''} ${orden.vendedor.apellido || ''}`.trim()
         : '';
+    const direccionFactura = orden.datosFacturacion?.direccion || orden.direccionEnvio?.direccion || '';
 
     return (
         <div className="mp-card">
@@ -398,6 +404,12 @@ const OrdenCard = ({ orden: ordenInicial, index, isVendedor, token }) => {
                         <p className="mp-info-value">{orden.cliente.nombre} {orden.cliente.apellido ?? ''}</p>
                     </div>
                 )}
+                {direccionFactura && (
+                    <div className="mp-info">
+                        <p className="mp-info-label">Dirección</p>
+                        <p className="mp-info-value">{direccionFactura}</p>
+                    </div>
+                )}
                 <div className="mp-info">
                     <p className="mp-info-label">Vendedor asignado</p>
                     <p className="mp-info-value">{vendedorNombre || 'Pendiente'}</p>
@@ -420,7 +432,19 @@ const OrdenCard = ({ orden: ordenInicial, index, isVendedor, token }) => {
                                         {it.producto?.nombre ?? it.nombre ?? 'Producto'}
                                         <span className="mp-item-qty">x{it.cantidad}</span>
                                     </span>
-                                    <span className="mp-item-price">${Number(it.subtotal ?? ((it.precio ?? it.producto?.precio ?? 0) * (it.cantidad || 1))).toFixed(2)}</span>
+                                    <span className="mp-item-price">
+                                        ${Number(it.subtotal ?? 0).toFixed(2)}
+
+                                        <span
+                                            style={{
+                                                fontSize:'0.7rem',
+                                                color:'#9ca3af',
+                                                marginLeft:'0.3rem'
+                                            }}
+                                        >
+                                            ({it.unidadPrecio === 'rollo' ? 'rollo' : 'metro'})
+                                        </span>
+                                    </span>
                                 </div>
                             ))}
                             <div className="mp-total-row">

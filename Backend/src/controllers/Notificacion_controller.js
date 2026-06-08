@@ -24,7 +24,8 @@ export const recibirNotificacion = async (req, res) => {
         umbral: p.umbral || p.umbralCritico || 5,
         productId: p._id || p.productId,
         categoria: p.categoria,
-        precio: p.precio
+        precioPorMetro: p.precioPorMetro,
+        precioPorRollo: p.precioPorRollo
       }));
     }
 

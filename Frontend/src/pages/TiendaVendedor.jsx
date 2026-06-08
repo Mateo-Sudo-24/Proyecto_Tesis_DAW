@@ -88,14 +88,14 @@ const styles = `
 
 const getPrecioUnidad = (producto, unidad) => (
     unidad === 'rollo'
-        ? (Number(producto.precioPorRollo) || Number(producto.precio) || 0)
-        : (Number(producto.precioPorMetro) || Number(producto.precio) || 0)
+        ? (Number(producto.precioPorRollo) || 0)
+        : (Number(producto.precioPorMetro) || 0)
 );
 
-const getMetros = (producto, cantidad, unidad) => (
+const getStockDisponible = (producto, unidad) => (
     unidad === 'rollo'
-        ? Math.ceil(Number(cantidad) || 0) * (Number(producto.metrosPorRollo) || 100)
-        : Number(cantidad) || 0
+        ? (Number(producto.stock) || 0)
+        : (Number(producto.metrosDisponibles) || 0)
 );
 
 const TiendaVendedor = () => {
@@ -154,19 +154,13 @@ const TiendaVendedor = () => {
     }, [pagina, busqueda]);
 
     const totales = useMemo(() => {
-        const subtotalBruto = carrito.reduce((sum, item) => {
+        const subtotal = carrito.reduce((sum, item) => {
             const precio = getPrecioUnidad(item.producto, item.unidadSeleccionada);
             return sum + (precio * item.cantidad);
         }, 0);
-        const subtotal = carrito.reduce((sum, item) => {
-            const precio = getPrecioUnidad(item.producto, item.unidadSeleccionada);
-            const descuento = Number(item.producto.descuento) || 0;
-            return sum + (precio * item.cantidad * (1 - descuento / 100));
-        }, 0);
-        const descuentoTotal = Number((subtotalBruto - subtotal).toFixed(2));
         const iva = Number((subtotal * IVA_RATE).toFixed(2));
         const totalFinal = Number((subtotal + iva).toFixed(2));
-        return { subtotal: Number(subtotal.toFixed(2)), descuentoTotal, iva, totalFinal };
+        return { subtotal: Number(subtotal.toFixed(2)), iva, totalFinal };
     }, [carrito]);
 
     const agregar = async (producto) => {
@@ -177,8 +171,12 @@ const TiendaVendedor = () => {
             toast.error("Ingresa una cantidad válida.");
             return;
         }
-        const metros = getMetros(producto, cantidad, unidad);
-        if (metros > (Number(producto.metrosDisponibles) || 0)) {
+        const disponible = getStockDisponible(producto, unidad);
+        const requerido = unidad === 'rollo'
+            ? Math.ceil(cantidad)
+            : cantidad;
+
+        if (requerido > disponible) {
             toast.error(`Stock insuficiente para ${producto.nombre}.`);
             return;
         }
@@ -332,7 +330,7 @@ const TiendaVendedor = () => {
                             const unidadDefault = producto.unidadVenta === 'rollo' ? 'rollo' : 'metro';
                             const unidad = unidades[producto._id] || unidadDefault;
                             const metros = Number(producto.metrosDisponibles) || 0;
-                            const rollos = Math.floor(metros / (Number(producto.metrosPorRollo) || 100));
+                            const rollos = Number(producto.stock) || 0;
                             return (
                                 <article className="tv-card" key={producto._id}>
                                     <div className="tv-img">
@@ -340,10 +338,24 @@ const TiendaVendedor = () => {
                                     </div>
                                     <div className="tv-body">
                                         <p className="tv-name">{producto.nombre}</p>
-                                        <p className="tv-meta">{metros} metros disponibles / {rollos} rollos</p>
+                                        <p className="tv-meta">
+                                            {producto.stock ?? 0} rollos en stock / {producto.metrosDisponibles ?? 0}m sueltos
+                                        </p>
                                         <div className="tv-row">
-                                            <span className="tv-price">${getPrecioUnidad(producto, unidad).toFixed(2)}</span>
-                                            <span className={`tv-stock${metros > 0 ? "" : " out"}`}>{metros > 0 ? "Activo" : "Sin stock"}</span>
+                                            <div style={{ display:'flex', flexDirection:'column', gap:'0.15rem' }}>
+                                                {producto.precioPorMetro > 0 && (
+                                                    <span className="tv-price" style={{ fontSize:'0.85rem' }}>
+                                                        Metro: ${producto.precioPorMetro.toFixed(2)}
+                                                    </span>
+                                                )}
+
+                                                {producto.precioPorRollo > 0 && (
+                                                    <span className="tv-price" style={{ fontSize:'0.85rem' }}>
+                                                        Rollo: ${producto.precioPorRollo.toFixed(2)}
+                                                    </span>
+                                                )}
+                                            </div>
+                                            <span className={`tv-stock${(rollos > 0 || metros > 0) ? "" : " out"}`}>{(rollos > 0 || metros > 0) ? "Activo" : "Sin stock"}</span>
                                         </div>
                                         <select className="tv-select" value={unidad} onChange={e => setUnidades(prev => ({ ...prev, [producto._id]: e.target.value }))}>
                                             <option value="metro">Metros</option>
@@ -402,7 +414,6 @@ const TiendaVendedor = () => {
                         {carrito.length > 0 && (
                             <div className="tv-total">
                                 <div><span>Subtotal</span><span>${totales.subtotal.toFixed(2)}</span></div>
-                                {totales.descuentoTotal > 0 && <div><span>Descuento</span><span>-${totales.descuentoTotal.toFixed(2)}</span></div>}
                                 <div><span>IVA</span><span>${totales.iva.toFixed(2)}</span></div>
                                 <div><strong>Total</strong><strong>${totales.totalFinal.toFixed(2)}</strong></div>
                                 <button className="tv-primary" disabled={carrito.length === 0} onClick={() => esPedidoEnTienda ? setModalOpen(true) : setOrdenPagoOpen(true)}>
@@ -432,6 +443,7 @@ const TiendaVendedor = () => {
                                     <label>{label}</label>
                                     <input
                                         className="tv-input"
+                                        maxLength={["nombre", "apellido"].includes(name) ? 12 : undefined}
                                         value={cliente[name]}
                                         onChange={e => setCliente(prev => ({ ...prev, [name]: e.target.value }))}
                                     />
@@ -453,8 +465,6 @@ const TiendaVendedor = () => {
                     tipoEntrega="domicilio"
                     cartItems={carrito}
                     subtotalCart={totales.subtotal}
-                    subtotalSinDescuento={totales.subtotal + totales.descuentoTotal}
-                    descuentoTotal={totales.descuentoTotal}
                     vendedorAsignado={vendedorAsignado}
                     onClose={() => setOrdenPagoOpen(false)}
                     onOrdenCreada={() => {

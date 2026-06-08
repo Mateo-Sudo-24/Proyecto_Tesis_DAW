@@ -195,18 +195,6 @@ const styles = `
         font-size: 3rem;
         color: #d1d5db;
     }
-    .pa-badge-off {
-        position: absolute;
-        top: 0.5rem;
-        right: 0.5rem;
-        background: #ef4444;
-        color: #fff;
-        font-size: 0.7rem;
-        font-weight: 800;
-        padding: 0.2rem 0.55rem;
-        border-radius: 999px;
-    }
-
     /* ── Card body ── */
     .pa-card-body {
         padding: 1rem 1.1rem;
@@ -459,7 +447,7 @@ const styles = `
     .btn-pa-pag:disabled { opacity: 0.4; cursor: not-allowed; }
 `;
 
-const STOCK_CRITICO = 50;
+const STOCK_CRITICO = 4;
 
 const ProductosAdmin = () => {
     const [productos, setProductos] = useState([]);
@@ -568,7 +556,7 @@ const ProductosAdmin = () => {
     };
 
     const stockClass = (stock) => {
-        if (stock > STOCK_CRITICO) return 'pa-stock-ok';
+        if (stock >= STOCK_CRITICO) return 'pa-stock-ok';
         if (stock > 0) return 'pa-stock-low';
         return 'pa-stock-out';
     };
@@ -646,17 +634,26 @@ const ProductosAdmin = () => {
                                         ? <img src={producto.imagenUrl} alt={producto.nombre} loading="lazy" decoding="async" onError={handleImageError} />
                                         : <div className="pa-card-no-img">📷</div>
                                     }
-                                    {producto.descuento > 0 && (
-                                        <span className="pa-badge-off">-{producto.descuento}%</span>
-                                    )}
                                 </div>
                                 <div className="pa-card-body">
                                     <p className="pa-card-name">{producto.nombre}</p>
                                     <p className="pa-card-desc">{producto.descripcion}</p>
                                     <div className="pa-card-meta">
-                                        <span className="pa-price">${producto.precio?.toLocaleString()}</span>
-                                        <span className={`pa-stock-badge ${stockClass(producto.metrosDisponibles ?? 0)}`}>
-                                            {(producto.metrosDisponibles ?? 0)}m / {Math.floor((producto.metrosDisponibles ?? 0) / (producto.metrosPorRollo || 100))} rol.
+                                        <div style={{ display:'flex', flexDirection:'column', gap:'0.1rem' }}>
+                                            {producto.precioPorMetro > 0 && (
+                                                <span className="pa-price" style={{ fontSize:'0.85rem' }}>
+                                                    M: ${producto.precioPorMetro.toFixed(2)}
+                                                </span>
+                                            )}
+
+                                            {producto.precioPorRollo > 0 && (
+                                                <span className="pa-price" style={{ fontSize:'0.85rem' }}>
+                                                    R: ${producto.precioPorRollo.toFixed(2)}
+                                                </span>
+                                            )}
+                                        </div>
+                                        <span className={`pa-stock-badge ${stockClass(producto.stock ?? 0)}`}>
+                                            {(producto.stock ?? 0)} rollos / {(producto.metrosDisponibles ?? 0)}m
                                         </span>
                                     </div>
                                     {producto.color && (

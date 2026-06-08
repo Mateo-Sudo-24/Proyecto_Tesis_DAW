@@ -255,7 +255,7 @@ const ChatModal = ({ onClose }) => {
                 {
                     id: botMessageId,
                     role: 'assistant',
-                    content: 'No logre relacionar tu mensaje con telas o productos textiles. Puedes preguntarme por tipos de tela, colores, texturas, usos, precios, o subir una foto para analizarla.',
+                    content: 'No logré relacionar tu mensaje con telas o productos textiles. Puedes preguntarme por tipos de tela, colores, texturas, usos, precios, o subir una foto para analizarla.',
                 },
             ]);
             setIsLoading(false);
@@ -286,15 +286,19 @@ const ChatModal = ({ onClose }) => {
 
             const productosCoincidentes = response?.productosCoincidentes ?? [];
             if (productosCoincidentes.length > 0) {
+                const tipoRecomendacion = response?.tipoRecomendacion;
                 setMessages(prev => [...prev, {
                     id: Date.now() + 1,
                     role: 'assistant',
                     type: 'products',
-                    content: response?.tipoRecomendacion === 'general'
+                    content: tipoRecomendacion === 'general'
                         ? 'No encontré una coincidencia exacta en nuestros productos. Te recomendamos estas alternativas disponibles:'
-                        : 'Productos verificados en nuestros productos que coinciden con el análisis:',
+                        : tipoRecomendacion === 'imagen_similar'
+                            ? 'Productos con imagen disponible que se parecen al análisis de tu foto:'
+                            : 'Productos verificados en nuestros productos que coinciden con el análisis:',
                     productos: productosCoincidentes,
-                    verified: response?.tipoRecomendacion !== 'general',
+                    verified: tipoRecomendacion !== 'general',
+                    tipoRecomendacion,
                 }]);
                 if (mostrarCtaProductos) {
                     setMessages(prev => [...prev, crearCtaProgresivo(Date.now() + 2)]);
@@ -375,7 +379,9 @@ const ChatModal = ({ onClose }) => {
                                 {msg.type === 'products' ? (
                                     <>
                                         <p style={{ marginBottom: '0.75rem', fontWeight: 600 }}>{limpiarTextoChat(msg.content)}</p>
-                                        {msg.verified && (
+                                        {msg.tipoRecomendacion === 'imagen_similar' ? (
+                                            <span className="chat-verified-badge">Coincidencia por imagen similar</span>
+                                        ) : msg.verified && (
                                             <span className="chat-verified-badge">Verificado en nuestros productos</span>
                                         )}
                                         <div className="chat-products-grid">
@@ -391,7 +397,10 @@ const ChatModal = ({ onClose }) => {
                                                     )}
                                                     <div className="chat-product-info">
                                                         <span className="chat-product-name">{limpiarTextoChat(p.nombre)}</span>
-                                                        <span className="chat-product-price">${Number(p.precio || 0).toFixed(2)}</span>
+                                                        <span className="chat-product-price">
+                                                            Metro: ${Number(p.precioPorMetro || 0).toFixed(2)}
+                                                            {Number(p.precioPorRollo || 0) > 0 && ` / Rollo: $${Number(p.precioPorRollo || 0).toFixed(2)}`}
+                                                        </span>
                                                         <Link
                                                             to={`/products/${p._id}`}
                                                             className="chat-product-btn"
