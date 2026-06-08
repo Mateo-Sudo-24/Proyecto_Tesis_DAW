@@ -427,9 +427,6 @@ const Productos = () => {
                                 <div className="dash-card-body">
                                     <p className="dash-card-name">{producto.nombre}</p>
                                     <p className="dash-card-desc">{producto.descripcion}</p>
-                                    <div style={{ fontSize: '0.76rem', color: '#6b7280', marginBottom: '0.65rem', fontWeight: 700 }}>
-                                        Unidad: {producto.unidadVenta || 'metro'}
-                                    </div>
                                     <div className="dash-card-footer">
                                         <span className={`dash-stock-badge ${((producto.stock ?? 0) > 0 || (producto.metrosDisponibles ?? 0) > 0) ? "in" : "out"}`}>
                                             {(() => {

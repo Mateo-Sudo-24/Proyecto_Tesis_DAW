@@ -575,33 +575,35 @@ const ProductDetails = () => {
                             <p className="pd-description">{producto.descripcion}</p>
 
                             {/* Price */}
-                            <div className="pd-price-row">
-                                {producto.precioPorMetro > 0 && (
-                                    <div style={{ display:'flex', flexDirection:'column' }}>
-                                        <span style={{ fontSize:'0.75rem', color:'#6b7280', fontWeight:700 }}>
-                                            Por metro
-                                        </span>
-                                        <span className="pd-price">
-                                            ${producto.precioPorMetro.toFixed(2)}
-                                        </span>
-                                    </div>
-                                )}
-
-                                {producto.precioPorRollo > 0 && (
-                                    <div style={{ display:'flex', flexDirection:'column' }}>
-                                        <span style={{ fontSize:'0.75rem', color:'#6b7280', fontWeight:700 }}>
-                                            Por rollo
-                                        </span>
-                                        <span className="pd-price">
-                                            ${producto.precioPorRollo.toFixed(2)}
-                                        </span>
-                                    </div>
-                                )}
-                            </div>
                             {opcionesUnidadProducto(producto).length > 1 && (
                                 <div className="pd-price-compare">
                                     <span className="pd-price-chip">Metro: ${precioUnidadProducto(producto, 'metro').toLocaleString()}</span>
                                     <span className="pd-price-chip">Rollo: ${precioUnidadProducto(producto, 'rollo').toLocaleString()}</span>
+                                </div>
+                            )}
+                            {opcionesUnidadProducto(producto).length <= 1 && (
+                                <div className="pd-price-row">
+                                    {producto.precioPorMetro > 0 && (
+                                        <div style={{ display:'flex', flexDirection:'column' }}>
+                                            <span style={{ fontSize:'0.75rem', color:'#6b7280', fontWeight:700 }}>
+                                                Por metro
+                                            </span>
+                                            <span className="pd-price">
+                                                ${producto.precioPorMetro.toFixed(2)}
+                                            </span>
+                                        </div>
+                                    )}
+
+                                    {producto.precioPorRollo > 0 && (
+                                        <div style={{ display:'flex', flexDirection:'column' }}>
+                                            <span style={{ fontSize:'0.75rem', color:'#6b7280', fontWeight:700 }}>
+                                                Por rollo
+                                            </span>
+                                            <span className="pd-price">
+                                                ${producto.precioPorRollo.toFixed(2)}
+                                            </span>
+                                        </div>
+                                    )}
                                 </div>
                             )}
 

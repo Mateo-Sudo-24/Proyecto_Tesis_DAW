@@ -619,9 +619,6 @@ const Products = () => {
                                             <span className="prod-price-chip">Rollo: ${precioUnidad(producto, 'rollo').toLocaleString()}</span>
                                         </div>
                                     )}
-                                    <p style={{ margin: '0 0 0.75rem', color: '#6b7280', fontSize: '0.78rem', fontWeight: 700 }}>
-                                        Unidad: {producto.unidadVenta || 'metro'}
-                                    </p>
                                     {opcionesUnidad(producto).length > 1 && (
                                         <div style={{ display: 'grid', gap: '0.35rem', marginBottom: '0.75rem' }}>
                                             <p style={{ margin: 0, color: '#92400e', fontSize: '0.76rem', fontWeight: 800 }}>
