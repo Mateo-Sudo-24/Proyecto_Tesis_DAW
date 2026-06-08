@@ -89,24 +89,32 @@ const styles = `
     .ch-group-toggle:hover { background: rgba(255,255,255,0.07); }
     .ch-group-caret { color: var(--orange-main); font-size: 0.8rem; }
     .ch-pagination {
-        display: flex;
-        align-items: center;
-        justify-content: center;
-        gap: 0.45rem;
-        padding: 0.6rem 0.75rem 0.75rem;
+        display:flex;
+        align-items:center;
+        justify-content:center;
+        gap:0.5rem;
+        padding:0.875rem;
+        border-top:1px solid rgba(255,255,255,0.08);
+        flex-wrap:wrap;
     }
     .ch-page-btn {
-        border: 1px solid rgba(255,255,255,0.12);
-        background: rgba(255,255,255,0.05);
-        color: #f9fafb;
-        border-radius: 0.45rem;
-        padding: 0.32rem 0.55rem;
-        font-size: 0.72rem;
-        font-weight: 800;
-        cursor: pointer;
+        padding:0.45rem 0.9rem;
+        border-radius:0.5rem;
+        border:1.5px solid #e5e7eb;
+        background:#fff;
+        color:#374151;
+        font-size:0.82rem;
+        font-weight:700;
+        cursor:pointer;
+        transition:all 0.15s;
+    }
+    .ch-page-btn:hover:not(:disabled) {
+        background:var(--orange-light);
+        border-color:var(--orange-main);
+        color:var(--orange-dark);
     }
     .ch-page-btn:disabled {
-        opacity: 0.35;
+        opacity: 0.4;
         cursor: not-allowed;
     }
     .ch-page-info {
@@ -710,7 +718,7 @@ const Chat = () => {
                                                                 onClick={() => setClientePage(p => Math.max(1, p - 1))}
                                                                 disabled={paginaClientes === 1}
                                                             >
-                                                                Prev
+                                                                Anterior
                                                             </button>
                                                             <span className="ch-page-info">{paginaClientes}/{totalPaginasClientes}</span>
                                                             <button
@@ -719,7 +727,7 @@ const Chat = () => {
                                                                 onClick={() => setClientePage(p => Math.min(totalPaginasClientes, p + 1))}
                                                                 disabled={paginaClientes === totalPaginasClientes}
                                                             >
-                                                                Next
+                                                                Siguiente
                                                             </button>
                                                         </div>
                                                     )}

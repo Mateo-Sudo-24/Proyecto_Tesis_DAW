@@ -317,21 +317,27 @@ const styles = `
 
     /* ── PAGINACIÓN ── */
     .prod-pagination {
-        display: flex;
-        justify-content: center;
-        align-items: center;
-        gap: 0.75rem;
-        margin-top: 3rem;
+        display:flex;
+        align-items:center;
+        justify-content:center;
+        gap:0.5rem;
+        padding:0.875rem;
+        border-top:1px solid #f3f4f6;
+        flex-wrap:wrap;
+        margin-top:3rem;
     }
     .btn-pag {
-        width: 40px; height: 40px;
-        display: flex; align-items: center; justify-content: center;
-        border: 1.5px solid #e5e7eb;
-        background: #fff; color: #374151;
-        border-radius: 0.5rem; font-weight: 700;
-        cursor: pointer; transition: all 0.15s;
+        padding:0.45rem 0.9rem;
+        border-radius:0.5rem;
+        border:1.5px solid #e5e7eb;
+        background:#fff;
+        color:#374151;
+        font-size:0.82rem;
+        font-weight:700;
+        cursor:pointer;
+        transition:all 0.15s;
     }
-    .btn-pag:hover:not(:disabled) { border-color: var(--orange-main); color: var(--orange-main); }
+    .btn-pag:hover:not(:disabled) { background:var(--orange-light); border-color:var(--orange-main); color:var(--orange-dark); }
     .btn-pag.active { background: var(--orange-main); color: #fff; border-color: var(--orange-main); }
     .btn-pag:disabled { opacity: 0.4; cursor: not-allowed; }
 
@@ -663,7 +669,7 @@ const Products = () => {
                                 onClick={() => cambiarPagina(Math.max(1, pagina - 1))}
                                 disabled={pagina === 1}
                             >
-                                &lt;
+                                Anterior
                             </button>
                             {[...Array(totalPaginas)].map((_, i) => (
                                 <button
@@ -679,7 +685,7 @@ const Products = () => {
                                 onClick={() => cambiarPagina(Math.min(totalPaginas, pagina + 1))}
                                 disabled={pagina === totalPaginas}
                             >
-                                &gt;
+                                Siguiente
                             </button>
                         </div>
                     )}

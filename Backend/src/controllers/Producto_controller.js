@@ -24,6 +24,7 @@ const descargarImagenCloudinary = async (imagenUrl) => {
 
 // Umbral de stock crítico
 const STOCK_CRITICO_ROLLOS = 4;
+const MAX_NOMBRE_PRODUCTO = 45;
 const escapeRegex = (value = '') => String(value).replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
 const toNumber = (value, fallback = 0) => {
     const num = Number(value);
@@ -125,6 +126,9 @@ const registrarProducto = async (req, res) => {
     if (!nombre || !descripcion || !categoria) {
         return res.status(400).json({ msg: "Todos los campos de texto son obligatorios." });
     }
+    if (nombre.trim().length > MAX_NOMBRE_PRODUCTO) {
+        return res.status(400).json({ msg: `El nombre del producto no puede superar ${MAX_NOMBRE_PRODUCTO} caracteres.` });
+    }
 
     try {
         const existeProducto = await Producto.findOne({ nombre: { $regex: `^${escapeRegex(nombre.trim())}$`, $options: 'i' } });
@@ -209,6 +213,9 @@ const actualizarProducto = async (req, res) => {
         const { imagenUrl: nuevaImagenUrl, imagenID: nuevaImagenID, ...restoDelBody } = req.body;
         delete restoDelBody['des' + 'cuento'];
         if (restoDelBody.nombre) {
+            if (restoDelBody.nombre.trim().length > MAX_NOMBRE_PRODUCTO) {
+                return res.status(400).json({ msg: `El nombre del producto no puede superar ${MAX_NOMBRE_PRODUCTO} caracteres.` });
+            }
             const duplicado = await Producto.findOne({
                 _id: { $ne: id },
                 nombre: { $regex: `^${escapeRegex(restoDelBody.nombre.trim())}$`, $options: 'i' }

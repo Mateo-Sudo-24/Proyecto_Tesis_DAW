@@ -531,7 +531,8 @@ const registrarOrdenTienda = async (req, res) => {
         direccionEnvio,
         datosFacturacion: datosFacturacionBody,
     } = req.body;
-    const tipoEntregaFinal = tipoEntrega === 'domicilio' ? 'domicilio' : 'venta_local';
+    const tiposEntregaTienda = ['domicilio', 'retiro', 'venta_local'];
+    const tipoEntregaFinal = tiposEntregaTienda.includes(tipoEntrega) ? tipoEntrega : 'venta_local';
     const esVentaLocal = tipoEntregaFinal === 'venta_local';
     if (!Array.isArray(items) || items.length === 0) {
         return res.status(400).json({ msg: "Agrega al menos un producto para registrar la venta." });
@@ -651,7 +652,7 @@ const registrarOrdenTienda = async (req, res) => {
             comisionPago,
             totalFinal,
             tipoEntrega: tipoEntregaFinal,
-            direccionEnvio: tipoEntregaFinal === 'domicilio' ? direccionEnvio : undefined,
+            direccionEnvio: ['domicilio', 'retiro'].includes(tipoEntregaFinal) ? direccionEnvio : undefined,
             origenPedido: 'tienda',
             clienteGuest: !emailCliente || !clienteOrden.confirmEmail,
             datosFacturacion,

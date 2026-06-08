@@ -5,6 +5,8 @@ import { toast } from 'react-toastify';
 import { editCloudinaryImage, getPreviewUrl, revokePreviewUrl, checkDuplicateProductName } from '../../services/cloudinary';
 import { validarDescripcionProducto } from '../../utils/textValidators.js';
 
+const PRODUCT_NAME_MAX = 45;
+
 const fpStyles = `
     :root {
         --orange-main: #e8760a;
@@ -298,8 +300,14 @@ export const FormProducto = ({ productoToUpdate, onSuccess, onCancel }) => {
                         type="text"
                         placeholder="Ej: Tela Oxford Premium"
                         className="fp-input"
-                        maxLength={120}
-                        {...register('nombre', { required: 'El nombre es obligatorio' })}
+                        maxLength={PRODUCT_NAME_MAX}
+                        {...register('nombre', {
+                            required: 'El nombre es obligatorio',
+                            maxLength: {
+                                value: PRODUCT_NAME_MAX,
+                                message: `Máximo ${PRODUCT_NAME_MAX} caracteres`
+                            }
+                        })}
                     />
                     {errors.nombre && <p className="fp-error">⚠ {errors.nombre.message}</p>}
                 </div>
@@ -368,7 +376,7 @@ export const FormProducto = ({ productoToUpdate, onSuccess, onCancel }) => {
                                 marginTop:'0.25rem'
                             }}
                         >
-                            1 rollo se reserva automaticamente para venta por metros. Los demas quedan en stock por rollo.
+                            1 rollo reservado para venta de metros.
                         </p>
                     </div>
                     <div className="fp-field" style={{ marginBottom: 0 }}>
@@ -380,6 +388,27 @@ export const FormProducto = ({ productoToUpdate, onSuccess, onCancel }) => {
                             min="1"
                             className="fp-input"
                             {...register('metrosPorRollo', { min: 1 })}
+                        />
+                    </div>
+                </div>
+
+                {/* Unidad de venta y color */}
+                <div className="fp-grid-2" style={{ marginTop: '1rem' }}>
+                    <div className="fp-field" style={{ marginBottom: 0 }}>
+                        <label className="fp-label">Unidad de venta</label>
+                        <select className="fp-select" {...register('unidadVenta')}>
+                            <option value="metro">Metro</option>
+                            <option value="rollo">Rollo</option>
+                            <option value="ambos">Ambos (metro y rollo)</option>
+                        </select>
+                    </div>
+                    <div className="fp-field" style={{ marginBottom: 0 }}>
+                        <label className="fp-label">Color</label>
+                        <input
+                            type="text"
+                            placeholder="Ej: Azul marino"
+                            className="fp-input"
+                            {...register('color')}
                         />
                     </div>
                 </div>
@@ -406,29 +435,6 @@ export const FormProducto = ({ productoToUpdate, onSuccess, onCancel }) => {
                             min="0"
                             className="fp-input"
                             {...register('precioPorRollo', { min: 0 })}
-                        />
-                    </div>
-                </div>
-
-                {/* Unidad de venta */}
-                <div className="fp-field" style={{ marginTop: '1rem' }}>
-                    <label className="fp-label">Unidad de venta</label>
-                    <select className="fp-select" {...register('unidadVenta')}>
-                        <option value="metro">Metro</option>
-                        <option value="rollo">Rollo</option>
-                        <option value="ambos">Ambos (metro y rollo)</option>
-                    </select>
-                </div>
-
-                {/* Color */}
-                <div className="fp-grid-2" style={{ marginTop: '1rem' }}>
-                    <div className="fp-field" style={{ marginBottom: 0 }}>
-                        <label className="fp-label">Color</label>
-                        <input
-                            type="text"
-                            placeholder="Ej: Azul marino"
-                            className="fp-input"
-                            {...register('color')}
                         />
                     </div>
                 </div>

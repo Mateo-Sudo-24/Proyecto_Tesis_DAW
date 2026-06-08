@@ -60,7 +60,7 @@ const pageStyles = `
     }
 `;
 
-const ITEMS_PER_PAGE = 10;
+const ITEMS_PER_PAGE = 6;
 const getOrderTotal = (orden) => Number(orden?.totalFinal ?? orden?.precioTotal ?? orden?.total ?? 0) || 0;
 const getPagoEstado = (estadoPago) => {
     if (estadoPago === true || estadoPago === 'true' || estadoPago === 'completado' || estadoPago === 'pagado') return 'realizado';

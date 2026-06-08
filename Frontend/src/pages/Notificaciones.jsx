@@ -195,47 +195,41 @@ const styles = `
 
     /* ── Paginación ── */
     .notif-pagination {
-        display: flex;
-        align-items: center;
-        justify-content: center;
-        flex-wrap: wrap;
-        gap: 0.25rem;
-        padding: 0.65rem 0 0.25rem;
+        display:flex;
+        align-items:center;
+        justify-content:center;
+        gap:0.5rem;
+        padding:0.875rem;
+        border-top:1px solid #f3f4f6;
+        flex-wrap:wrap;
     }
     .notif-page-btn {
-        border-radius: 9999px;
-        border: 1px solid #cbd5e1;
-        padding: 0.45rem 0.75rem;
-        text-align: center;
-        font-size: 0.8rem;
-        line-height: 1.25;
-        transition: all 0.15s;
-        box-shadow: 0 1px 2px rgba(0,0,0,0.06);
-        color: #475569;
-        background: #fff;
-        cursor: pointer;
-        font-weight: 700;
+        padding:0.45rem 0.9rem;
+        border-radius:0.5rem;
+        border:1.5px solid #e5e7eb;
+        background:#fff;
+        color:#374151;
+        font-size:0.82rem;
+        font-weight:700;
+        cursor:pointer;
+        transition:all 0.15s;
+        text-align:center;
     }
     .notif-page-btn:hover:not(:disabled) {
-        background: #1f2937;
-        color: #fff;
-        border-color: #1f2937;
-        box-shadow: 0 4px 6px rgba(0,0,0,0.12);
+        background:var(--orange-light);
+        border-color:var(--orange-main);
+        color:var(--orange-dark);
     }
     .notif-page-btn:disabled {
-        opacity: 0.5;
+        opacity: 0.4;
         cursor: not-allowed;
-        pointer-events: none;
-        box-shadow: none;
     }
-    .notif-page-num { min-width: 2.25rem; }
-    .notif-page-num.active {
-        background: #1f2937;
+    .notif-page-num { min-width:auto; }
+    .notif-page-num.active,
+    .notif-page-btn.active {
+        background: var(--orange-main);
         color: #fff;
-        border-color: transparent;
-        box-shadow: 0 2px 8px rgba(0,0,0,0.18);
-        cursor: default;
-        pointer-events: none;
+        border-color: var(--orange-main);
     }
 
     /* Botones acción en cuerpo expandido */
@@ -635,7 +629,7 @@ const Notificaciones = () => {
                                 onClick={() => { setPagina(p => Math.max(1, p - 1)); setExpandido(null); }}
                                 disabled={paginaActual === 1}
                             >
-                                Prev
+                                Anterior
                             </button>
                             {Array.from({ length: totalPaginas }, (_, i) => (
                                 <button
@@ -651,7 +645,7 @@ const Notificaciones = () => {
                                 onClick={() => { setPagina(p => Math.min(totalPaginas, p + 1)); setExpandido(null); }}
                                 disabled={paginaActual === totalPaginas}
                             >
-                                Next
+                                Siguiente
                             </button>
                         </div>
                     )}

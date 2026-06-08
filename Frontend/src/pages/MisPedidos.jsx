@@ -44,8 +44,8 @@ const pageStyles = `
     .mp-total-label { color:#6b7280; font-weight:600; }
     .mp-spinner { text-align:center; padding:3rem; color:#9ca3af; }
     /* ── Paginación ── */
-    .mp-pagination { display:flex; align-items:center; justify-content:center; gap:0.5rem; margin-top:1.25rem; flex-wrap:wrap; }
-    .mp-page-btn { padding:0.45rem 0.9rem; border-radius:0.5rem; border:1.5px solid #e5e7eb; background:#fff; color:#374151; font-size:0.82rem; font-weight:700; cursor:pointer; transition:background 0.15s,border-color 0.15s,color 0.15s; }
+    .mp-pagination { display:flex; align-items:center; justify-content:center; gap:0.5rem; padding:0.875rem; border-top:1px solid #f3f4f6; margin-top:1.25rem; flex-wrap:wrap; }
+    .mp-page-btn { padding:0.45rem 0.9rem; border-radius:0.5rem; border:1.5px solid #e5e7eb; background:#fff; color:#374151; font-size:0.82rem; font-weight:700; cursor:pointer; transition:all 0.15s; }
     .mp-page-btn:hover:not(:disabled) { background:var(--orange-light); border-color:var(--orange-main); color:var(--orange-dark); }
     .mp-page-btn.current { background:var(--orange-main); border-color:var(--orange-main); color:#fff; }
     .mp-page-btn:disabled { opacity:0.4; cursor:not-allowed; }
@@ -559,7 +559,7 @@ const MisPedidos = () => {
                                     className="mp-page-btn"
                                     onClick={() => setPage(p => p - 1)}
                                     disabled={page === 1}
-                                >← Anterior</button>
+                                >Anterior</button>
                                 {Array.from({ length: totalPages }, (_, i) => (
                                     <button
                                         key={i + 1}
@@ -571,7 +571,7 @@ const MisPedidos = () => {
                                     className="mp-page-btn"
                                     onClick={() => setPage(p => p + 1)}
                                     disabled={page === totalPages}
-                                >Siguiente →</button>
+                                >Siguiente</button>
                             </div>
                         )}
                     </>

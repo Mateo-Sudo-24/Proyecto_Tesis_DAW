@@ -1,6 +1,6 @@
 import { useEffect, useRef, useState } from 'react';
 
-const ITEMS_POR_PAGINA = 10;
+const NOTIFICACIONES_HEADER = 6;
 
 const bmStyles = `
     /* ── Wrapper ── */
@@ -232,51 +232,6 @@ const bmStyles = `
         .bm-panel::before { display: none; }
     }
 
-    /* ── Paginación ── */
-    .bm-pagination {
-        display: flex;
-        align-items: center;
-        justify-content: center;
-        flex-wrap: wrap;
-        gap: 0.25rem;
-        padding: 0.65rem 1rem;
-        border-top: 1px solid #f3f4f6;
-    }
-    .bm-page-btn {
-        border-radius: 9999px;
-        border: 1px solid #cbd5e1;
-        padding: 0.4rem 0.7rem;
-        text-align: center;
-        font-size: 0.75rem;
-        line-height: 1.25;
-        transition: all 0.15s;
-        box-shadow: 0 1px 2px rgba(0,0,0,0.06);
-        color: #475569;
-        background: #fff;
-        cursor: pointer;
-        font-weight: 700;
-    }
-    .bm-page-btn:hover:not(:disabled) {
-        background: #1f2937;
-        color: #fff;
-        border-color: #1f2937;
-        box-shadow: 0 4px 6px rgba(0,0,0,0.12);
-    }
-    .bm-page-btn:disabled {
-        opacity: 0.5;
-        cursor: not-allowed;
-        pointer-events: none;
-        box-shadow: none;
-    }
-    .bm-page-num { min-width: 2rem; }
-    .bm-page-num.active {
-        background: #1f2937;
-        color: #fff;
-        border-color: transparent;
-        box-shadow: 0 2px 8px rgba(0,0,0,0.18);
-        cursor: default;
-        pointer-events: none;
-    }
 `;
 
 const necesitaGestion = (n) =>
@@ -294,7 +249,6 @@ export default function BandejaMensajes() {
     const [abierta, setAbierta] = useState(false);
     const [expandido, setExpandido] = useState(null);
     const [gestionando, setGestionando] = useState(null);
-    const [pagina, setPagina] = useState(1);
     const [pollingActivo, setPollingActivo] = useState(true);
     const panelRef = useRef(null);
 
@@ -419,15 +373,9 @@ export default function BandejaMensajes() {
     // ── Badge: total de notificaciones no leídas ──
     const totalBadge = notifs.length;
 
-    // Mostrar todas las notificaciones sin filtros en la burbuja.
-    const notifsFiltradas = notifs;
-
-    // ── Paginación (solo admin) ──
-    const totalPaginas  = Math.ceil(notifsFiltradas.length / ITEMS_POR_PAGINA);
-    const paginaActual  = Math.min(pagina, Math.max(1, totalPaginas));
-    const notifsEnPagina = isAdminUser
-        ? notifsFiltradas.slice((paginaActual - 1) * ITEMS_POR_PAGINA, paginaActual * ITEMS_POR_PAGINA)
-        : notifsFiltradas;
+    const notifsVisibles = [...notifs]
+        .sort((a, b) => new Date(b.createdAt || 0) - new Date(a.createdAt || 0))
+        .slice(0, NOTIFICACIONES_HEADER);
 
     // ── Clase visual del item ──
     const getItemClass = (n) => {
@@ -477,13 +425,13 @@ export default function BandejaMensajes() {
 
                         {/* Lista */}
                         <div className="bm-list">
-                            {notifsEnPagina.length === 0 ? (
+                            {notifsVisibles.length === 0 ? (
                                 <div className="bm-empty">
                                     <div className="bm-empty-icon">🔕</div>
                                     <p>Sin notificaciones por ahora</p>
                                 </div>
                             ) : (
-                                notifsEnPagina.map(n => {
+                                notifsVisibles.map(n => {
                                     const estaExpandido    = expandido === n._id;
                                     const esUnreadAdmin    = isAdminUser && !n.leida && (!n.estadoGestion || n.estadoGestion === 'pendiente');
                                     const enPendienteLocal = isAdminUser && n.estadoGestion === 'pendiente' && n.leida;
@@ -627,42 +575,10 @@ export default function BandejaMensajes() {
                             )}
                         </div>
 
-                        {/* Paginación — solo admin, cuando hay más de una página */}
-                        {isAdminUser && totalPaginas > 1 && (
-                            <div className="bm-pagination">
-                                <button
-                                    className="bm-page-btn"
-                                    onClick={() => { setPagina(p => Math.max(1, p - 1)); setExpandido(null); }}
-                                    disabled={paginaActual === 1}
-                                >
-                                    Prev
-                                </button>
-                                {Array.from({ length: totalPaginas }, (_, i) => (
-                                    <button
-                                        key={i + 1}
-                                        className={`bm-page-btn bm-page-num${paginaActual === i + 1 ? ' active' : ''}`}
-                                        onClick={() => { setPagina(i + 1); setExpandido(null); }}
-                                    >
-                                        {i + 1}
-                                    </button>
-                                ))}
-                                <button
-                                    className="bm-page-btn"
-                                    onClick={() => { setPagina(p => Math.min(totalPaginas, p + 1)); setExpandido(null); }}
-                                    disabled={paginaActual === totalPaginas}
-                                >
-                                    Next
-                                </button>
-                            </div>
-                        )}
-
                         {/* Footer */}
                         {notifs.length > 0 && (
                             <div className="bm-footer">
-                                {notifs.length} notificación{notifs.length !== 1 ? 'es' : ''} en total
-                                {isAdminUser && totalPaginas > 1 && (
-                                    <span> · Pág. {paginaActual}/{totalPaginas}</span>
-                                )}
+                                Mostrando {Math.min(notifs.length, NOTIFICACIONES_HEADER)} de {notifs.length} notificación{notifs.length !== 1 ? 'es' : ''}
                             </div>
                         )}
                     </div>

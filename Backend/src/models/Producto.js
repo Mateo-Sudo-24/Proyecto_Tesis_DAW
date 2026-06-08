@@ -4,7 +4,8 @@ const productoSchema = new Schema({
     nombre: {
         type: String,
         required: true,
-        trim: true
+        trim: true,
+        maxlength: [45, "El nombre del producto no puede superar 45 caracteres."]
     },
     descripcion: {
         type: String,

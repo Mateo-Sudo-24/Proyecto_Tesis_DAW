@@ -479,6 +479,7 @@ const ModalOrdenPago = ({
     subtotalCart = 0,
     envioBase = 2.5,
     vendedorAsignado,
+    ocultarSubtituloEntrega = false,
     onClose,
     onOrdenCreada,
     onNeedCardPayment,
@@ -596,13 +597,13 @@ const ModalOrdenPago = ({
             return cantidad > 0 && Number.isFinite(precio) && precio >= 0
         })
 
-        const nombreOk = validarNombreReal(form.nombre, 5)
-        const apellidoOk = validarNombreReal(form.apellido, 5)
+        const nombreOk = validarNombreReal(form.nombre, 2)
+        const apellidoOk = validarNombreReal(form.apellido, 2)
         const rucOk = validarCedulaRuc(form.ruc)
         const emailOk = validarEmailRealista(form.email)
         const telefonoOk = validarTelefono10(form.telefono)
-        if (nombreOk !== true) errs.nombre = 'Ingresa al menos 5 letras'
-        if (apellidoOk !== true) errs.apellido = 'Ingresa al menos 5 letras'
+        if (nombreOk !== true) errs.nombre = nombreOk
+        if (apellidoOk !== true) errs.apellido = apellidoOk
         if (rucOk !== true) errs.ruc = rucOk
         if (emailOk !== true) errs.email = emailOk
         if (telefonoOk !== true) errs.telefono = telefonoOk
@@ -746,9 +747,11 @@ const ModalOrdenPago = ({
                     <div className="mop-header-icon">OP</div>
                     <div>
                         <h2 className="mop-header-title">Orden de pago</h2>
-                        <p className="mop-header-sub">
-                            {tipoEntrega === 'domicilio' ? 'Envío a domicilio' : tipoEntrega === 'venta_local' ? 'Venta local' : 'Retiro en almacenes'}
-                        </p>
+                        {!ocultarSubtituloEntrega && (
+                            <p className="mop-header-sub">
+                                {tipoEntrega === 'domicilio' ? 'Envío a domicilio' : tipoEntrega === 'venta_local' ? 'Venta local' : 'Retiro en almacenes'}
+                            </p>
+                        )}
                     </div>
                     <button className="mop-close" onClick={onClose} type="button">×</button>
                 </div>
@@ -953,6 +956,7 @@ ModalOrdenPago.propTypes = {
     subtotalCart: PropTypes.number,
     envioBase: PropTypes.number,
     vendedorAsignado: PropTypes.object,
+    ocultarSubtituloEntrega: PropTypes.bool,
     onClose: PropTypes.func,
     onOrdenCreada: PropTypes.func,
     onNeedCardPayment: PropTypes.func,
