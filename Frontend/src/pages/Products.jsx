@@ -3,7 +3,6 @@ import { Link } from "react-router-dom";
 import { FaSearch, FaFilter, FaTimes } from "react-icons/fa";
 import { toast } from "react-toastify";
 import storeAuth from "../context/storeAuth";
-import { formatPrecioCard } from '../utils/precioProducto.js';
 
 const NO_IMAGE_SRC = "data:image/svg+xml;utf8," + encodeURIComponent(`
 <svg xmlns="http://www.w3.org/2000/svg" width="640" height="420" viewBox="0 0 640 420">
@@ -601,28 +600,6 @@ const Products = () => {
                                         <p className="prod-card-color">Color: <span>{producto.color}</span></p>
                                     )}
                                     <div className="prod-card-footer">
-                                        {(() => {
-                                            const precios = formatPrecioCard(producto);
-
-                                            return precios.mostrarAmbos ? (
-                                                <div style={{ display:'flex', flexDirection:'column', gap:'0.15rem' }}>
-                                                    <span className="prod-price" style={{ fontSize:'0.95rem' }}>
-                                                        Metro: ${precios.metro.toFixed(2)}
-                                                    </span>
-                                                    <span className="prod-price" style={{ fontSize:'0.95rem' }}>
-                                                        Rollo: ${precios.rollo.toFixed(2)}
-                                                    </span>
-                                                </div>
-                                            ) : precios.rollo ? (
-                                                <span className="prod-price">
-                                                    Rollo: ${precios.rollo.toFixed(2)}
-                                                </span>
-                                            ) : (
-                                                <span className="prod-price">
-                                                    Metro: ${precios.metro.toFixed(2)}
-                                                </span>
-                                            );
-                                        })()}
                                         <span className={`prod-stock-badge ${((producto.stock ?? 0) > 0 || (producto.metrosDisponibles ?? 0) > 0) ? 'in' : 'out'}`}>
                                             {(() => {
                                                 const rollos = producto.stock ?? 0;
