@@ -348,7 +348,19 @@ const Ventas = () => {
                         </div>
 
                         {/* Fila inferior — Contadores de estado */}
-                        <div className="vt-rag-estados">
+                        <div className="vt-rag-estados" style={{ position: 'relative', paddingTop: '1.5rem' }}>
+                            <p style={{
+                                position: 'absolute',
+                                top: 0,
+                                left: 0,
+                                fontSize: '0.82rem',
+                                fontWeight: 800,
+                                color: '#374151',
+                                textTransform: 'uppercase',
+                                letterSpacing: '0.05em'
+                            }}>
+                                📦 Estado de los pedidos
+                            </p>
                             {[
                                 {
                                     label: 'Pendientes',
