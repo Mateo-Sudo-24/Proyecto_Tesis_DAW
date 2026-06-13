@@ -327,8 +327,13 @@ const OrdenCard = ({ orden: ordenInicial, index, isVendedor, token }) => {
             const data = await res.json().catch(() => ({}));
             if (!res.ok) throw new Error(data.msg || 'No se pudo confirmar el pago.');
             setOrden(prev => ({ ...prev, ...(data.orden ?? {}), estadoPago: 'completado' }));
-            toast.success('Pago marcado como realizado.');
-            setConfirmPago(false);
+            // DESPUÉS — dar feedback más completo
+            toast.success(
+                '✅ Pago confirmado correctamente. El estado del pedido avanzará en breve.',
+                { autoClose: 4000 }
+            );
+            // Esperar un momento antes de cerrar el modal de confirmación
+            setTimeout(() => setConfirmPago(false), 800);
         } catch (error) {
             toast.error(error.message);
         } finally {

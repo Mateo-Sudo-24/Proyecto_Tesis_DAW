@@ -663,6 +663,20 @@ const Carrito = () => {
                                 Seguir comprando
                             </Link>
                         </div>
+                        {pedidoExitoso && pedidoExitoso.orden?.metodoPago !== 'Pago por tarjeta en linea' && (
+                            <p style={{
+                                fontSize: '0.78rem',
+                                color: '#6b7280',
+                                textAlign: 'center',
+                                marginTop: '1rem',
+                                padding: '0.5rem',
+                                background: '#f9fafb',
+                                borderRadius: '0.5rem',
+                                border: '1px solid #e5e7eb'
+                            }}>
+                                💬 Puedes ir al chat para coordinar el pago con tu vendedor cuando estés listo.
+                            </p>
+                        )}
                     </div>
                 </div>
             </>
