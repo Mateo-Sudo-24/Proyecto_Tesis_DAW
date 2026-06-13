@@ -403,7 +403,7 @@ const PublicProductHeader = () => (
                     <li><Link to="/contacto">Contacto</Link></li>
                 </ul>
                 <div className="pd-header-btns">
-                    <Link to="/login" className="pd-login">Iniciar sesion</Link>
+                    <Link to="/login" className="pd-login">Iniciar sesión</Link>
                     <Link to="/register" className="pd-register">Registrarse</Link>
                 </div>
             </div>
@@ -702,7 +702,7 @@ const ProductDetails = () => {
                                                 className="pd-cart-btn"
                                                 style={{ textDecoration: 'none', display: 'inline-flex', alignItems: 'center', justifyContent: 'center', gap: '0.55rem' }}
                                             >
-                                                <FaShoppingCart /> Inicia sesion para comprar
+                                                <FaShoppingCart /> Inicia sesión para comprar
                                             </Link>
                                         )}
                                         </div>

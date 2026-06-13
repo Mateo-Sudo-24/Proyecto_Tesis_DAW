@@ -41,6 +41,14 @@ const extraerTerminos = (...texts) => {
     return [...new Set(tokens.filter(term => base.includes(term)))].slice(0, 10);
 };
 
+const detectarIntencion = (mensaje = '') => {
+    const t = normalizar(mensaje);
+    const esSaludo = /^(hola|buenas|buenos|buen dia|buen tarde|saludos|hey|hi|hello|ola)\b/.test(t.trim());
+    const esInfo = /(direccion|ubicacion|horario|atencion|donde|como llegar|telefono|correo|email|informacion|info)\b/.test(t);
+    const esCatalogo = /(catalogo|productos|que tienen|que telas|telas disponibles|ver productos)\b/.test(t);
+    return { esSaludo, esInfo, esCatalogo };
+};
+
 const scoreProducto = (producto, terminos) => {
     const nombre = normalizar(producto.nombre);
     const descripcion = normalizar(producto.descripcion);
@@ -188,8 +196,20 @@ export const consultarGroqPublic = async (req, res) => {
             return res.status(400).json({ error: 'Mensaje es requerido' });
         }
 
+        const { esSaludo } = detectarIntencion(mensaje);
+        const tieneImagen = imagenesBase64.length > 0 || !!imagenBase64;
         const respuesta = await consultarGroq(mensaje, imagenBase64, historial, imagenesBase64);
-        await responderConProductos(res, mensaje, respuesta, Boolean(imagenBase64 || imagenesBase64.length));
+
+        if (esSaludo && !tieneImagen && historial.length === 0) {
+            return res.json({
+                respuesta,
+                productosCoincidentes: [],
+                tipoRecomendacion: 'saludo',
+                verificacionBDD: { consultada: false, total: 0 },
+            });
+        }
+
+        await responderConProductos(res, mensaje, respuesta, tieneImagen);
     } catch (error) {
         console.error('Error en consultarGroqPublic:', error);
         res.status(500).json({ error: error.message });
@@ -204,8 +224,20 @@ export const consultarGroqAuth = async (req, res) => {
             return res.status(400).json({ error: 'Mensaje es requerido' });
         }
 
+        const { esSaludo } = detectarIntencion(mensaje);
+        const tieneImagen = imagenesBase64.length > 0 || !!imagenBase64;
         const respuesta = await consultarGroq(mensaje, imagenBase64, historial, imagenesBase64);
-        await responderConProductos(res, mensaje, respuesta, Boolean(imagenBase64 || imagenesBase64.length));
+
+        if (esSaludo && !tieneImagen && historial.length === 0) {
+            return res.json({
+                respuesta,
+                productosCoincidentes: [],
+                tipoRecomendacion: 'saludo',
+                verificacionBDD: { consultada: false, total: 0 },
+            });
+        }
+
+        await responderConProductos(res, mensaje, respuesta, tieneImagen);
     } catch (error) {
         console.error('Error en consultarGroqAuth:', error);
         res.status(500).json({ error: error.message });

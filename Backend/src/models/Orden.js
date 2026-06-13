@@ -37,12 +37,12 @@ const datosFacturacionSchema = new Schema({
     ruc: {
         type: String,
         trim: true,
-        match: [/^(\d{10}|\d{13})$/, 'El RUC/cedula debe tener 10 o 13 digitos.']
+        match: [/^(\d{10}|\d{13})$/, 'El RUC/cédula debe tener 10 o 13 dígitos.']
     },
     telefono: {
         type: String,
         trim: true,
-        match: [/^$|^0\d{8,9}$/, 'Telefono de facturacion invalido.']
+        match: [/^$|^0\d{8,9}$/, 'Teléfono de facturación inválido.']
     }
 }, { _id: false });
 
@@ -114,5 +114,10 @@ const ordenSchema = new Schema({
         motivoRechazo: { type: String, maxlength: 500 }
     }
 }, { timestamps: true });
+
+ordenSchema.path('metodoPago').enum(
+    'Efectivo o tarjeta dÃ©bito en casa',
+    'Efectivo o tarjeta debito en casa'
+);
 
 export default model("Orden", ordenSchema);

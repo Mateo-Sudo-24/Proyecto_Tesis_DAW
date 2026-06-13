@@ -48,7 +48,7 @@ const statusCopy = {
     success: {
         title: "Cuenta confirmada",
         icon: "✓",
-        primary: { to: "/login", label: "Iniciar sesion" }
+        primary: { to: "/login", label: "Iniciar sesión" }
     },
     notice: {
         title: "Enlace ya procesado",
@@ -80,7 +80,7 @@ export const Confirm = () => {
             const confirmStatus = sessionStorage.getItem(confirmKey);
             if (confirmStatus === "success") {
                 setStatus("success");
-                setMessage("Tu cuenta ya fue confirmada. Puedes iniciar sesion.");
+                setMessage("Tu cuenta ya fue confirmada. Puedes iniciar sesión.");
                 return;
             }
             if (confirmStatus === "pending") return;
@@ -93,26 +93,26 @@ export const Confirm = () => {
 
                 if (!response.ok) {
                     setStatus("success");
-                    setMessage("Cuenta verificada correctamente. Ya puedes iniciar sesion.");
+                    setMessage("Cuenta verificada correctamente. Ya puedes iniciar sesión.");
                     sessionStorage.setItem(confirmKey, "success");
                     return;
                 }
 
                 if (data.status === "used_or_invalid" || data.status === "confirmed_demo" || data.status === "already_verified") {
                     setStatus("success");
-                    setMessage(data.msg || "Token verificado correctamente. Puedes intentar iniciar sesion.");
+                    setMessage(data.msg || "Token verificado correctamente. Puedes intentar iniciar sesión.");
                     sessionStorage.setItem(confirmKey, "success");
                     return;
                 }
 
                 setStatus("success");
-                setMessage(data.msg || "Cuenta confirmada exitosamente. Ya puedes iniciar sesion.");
+                setMessage(data.msg || "Cuenta confirmada exitosamente. Ya puedes iniciar sesión.");
                 sessionStorage.setItem(confirmKey, "success");
                 toast.success(data.msg || "Cuenta confirmada.");
             } catch (error) {
                 console.error("Confirmacion demo sin bloqueo:", error);
                 setStatus("success");
-                setMessage("Cuenta verificada correctamente. Ya puedes iniciar sesion.");
+                setMessage("Cuenta verificada correctamente. Ya puedes iniciar sesión.");
                 sessionStorage.setItem(confirmKey, "success");
             }
         };

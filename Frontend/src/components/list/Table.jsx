@@ -192,7 +192,7 @@ const Table = ({ tipo = "clientes" }) => {
                                 <th>No.</th>
                                 <th>Nombre y apellido</th>
                                 <th>Email</th>
-                                <th>Telefono</th>
+                                <th>Teléfono</th>
                                 {esClientes ? (
                                     <>
                                         <th>Sector</th>
@@ -217,7 +217,7 @@ const Table = ({ tipo = "clientes" }) => {
                                         {!esClientes && item.nombreTienda && <div className="tbl-cell-sub">{item.nombreTienda}</div>}
                                     </td>
                                     <td className="tbl-email">{item.email}</td>
-                                    <td className="tbl-phone">{item.telefono || "Sin telefono"}</td>
+                                    <td className="tbl-phone">{item.telefono || "Sin teléfono"}</td>
                                     {esClientes ? (
                                         <>
                                             <td style={{ fontSize: "0.82rem", color: "#6b7280" }}>
@@ -237,7 +237,7 @@ const Table = ({ tipo = "clientes" }) => {
                                                 <MdPublishedWithChanges size={20} />
                                             </button>
                                         )}
-                                        <button title="Mas informacion" className="tbl-icon-btn blue" onClick={() => navigate(`/dashboard/visualizar/${item._id}`, { state: { tipo } })}>
+                                        <button title="M?s informaci?n" className="tbl-icon-btn blue" onClick={() => navigate(`/dashboard/visualizar/${item._id}`, { state: { tipo } })}>
                                             <MdInfo size={20} />
                                         </button>
                                         <button title="Eliminar" className="tbl-icon-btn red" onClick={() => pedirConfirmacion(item)}>
@@ -263,8 +263,8 @@ const Table = ({ tipo = "clientes" }) => {
                                 <span className="tbl-card-value" style={{ fontSize: "0.78rem" }}>{item.email}</span>
                             </div>
                             <div className="tbl-card-row">
-                                <span className="tbl-card-label">Telefono</span>
-                                <span className="tbl-card-value">{item.telefono || "Sin telefono"}</span>
+                                <span className="tbl-card-label">Teléfono</span>
+                                <span className="tbl-card-value">{item.telefono || "Sin teléfono"}</span>
                             </div>
                             {esClientes ? (
                                 <>

@@ -22,11 +22,17 @@ const numeroSeguro = (value) => {
 }
 
 const metodosCliente = [
-    { value: 'Pago por tarjeta en linea', label: 'Pago en linea con tarjeta de credito', helper: 'Pago con Stripe para tarjeta de credito o debito.' },
+    { value: 'Pago por tarjeta en linea', label: 'Tarjeta de credito en linea', helper: 'Pago seguro con Stripe. Se aplica comision del 5.4% + $0.30.' },
     { value: 'De Una', label: 'De Una', helper: 'Pago por QR. Conserva el comprobante para validación del vendedor.' },
     { value: 'Transferencia Bancaria', label: 'Transferencia bancaria', helper: 'El vendedor comprobará el pago antes de marcarlo como realizado.' },
     { value: 'Pago efectivo / tarjeta debito', label: 'Efectivo / tarjeta débito', helper: 'Pago presencial comprobado por el vendedor.' },
 ]
+
+metodosCliente[3] = {
+    value: 'Efectivo o tarjeta dÃ©bito en casa',
+    label: 'Efectivo o tarjeta debito en casa',
+    helper: 'Paga en efectivo o con tarjeta de debito al momento de la entrega. Sin cargo adicional.'
+}
 
 const metodosVendedor = metodosCliente
 
@@ -607,8 +613,8 @@ const ModalOrdenPago = ({
         if (rucOk !== true) errs.ruc = rucOk
         if (emailOk !== true) errs.email = emailOk
         if (telefonoOk !== true) errs.telefono = telefonoOk
-        if (!form.direccion.trim()) errs.direccion = 'Ingresa la direccion de facturacion'
-        if (tipoEntrega === 'domicilio' && !direccionDomicilio) errs.mapaDireccion = 'Selecciona tu direccion en el mapa'
+        if (!form.direccion.trim()) errs.direccion = 'Ingresa la dirección de facturación'
+        if (tipoEntrega === 'domicilio' && !direccionDomicilio) errs.mapaDireccion = 'Selecciona tu dirección en el mapa'
         if (!itemsValidos) errs.items = 'Hay productos con cantidad o precio invalido'
         setErrors(errs)
         const valido = Object.keys(errs).length === 0
@@ -811,12 +817,38 @@ const ModalOrdenPago = ({
 
                     {/* Datos de facturación */}
                     <div className="op-section">
-                        <div className="op-section-title">Datos de facturaci?n</div>
+                        <div className="op-section-title">Datos de facturación</div>
                         <div style={{ display:'flex', gap:'0.5rem', flexWrap:'wrap', padding:'0.8rem 1.25rem 0' }}>
-                            <button type="button" className="mop-mapa-toggle" style={{ width:'auto', borderRadius:'0.55rem' }} onClick={llenarConMisDatos}>
+                            <button
+                                type="button"
+                                className="mop-mapa-toggle"
+                                style={{
+                                    width:'auto',
+                                    borderRadius:'0.55rem',
+                                    background:'linear-gradient(135deg, #e8760a, #c4620a)',
+                                    color:'#fff',
+                                    border:'none',
+                                    fontWeight:800,
+                                    boxShadow:'0 3px 10px rgba(232,118,10,0.3)'
+                                }}
+                                onClick={llenarConMisDatos}
+                            >
                                 Llenar con mis datos
                             </button>
-                            <button type="button" className="mop-mapa-toggle" style={{ width:'auto', borderRadius:'0.55rem', background:'#f9fafb' }} onClick={llenarConOtrosDatos}>
+                            <button
+                                type="button"
+                                className="mop-mapa-toggle"
+                                style={{
+                                    width:'auto',
+                                    borderRadius:'0.55rem',
+                                    background:'#1f2937',
+                                    color:'#f59e0b',
+                                    border:'1px solid #374151',
+                                    fontWeight:800,
+                                    boxShadow:'0 2px 6px rgba(0,0,0,0.2)'
+                                }}
+                                onClick={llenarConOtrosDatos}
+                            >
                                 Llenar con otros datos
                             </button>
                         </div>

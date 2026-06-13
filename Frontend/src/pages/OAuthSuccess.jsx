@@ -55,7 +55,7 @@ const OAuthSuccess = () => {
                     <div className="oauth-icon">
                         {failed ? <span className="oauth-mark">!</span> : <div className="oauth-spinner" />}
                     </div>
-                    <h2 className="oauth-title">{failed ? "No se pudo iniciar sesion" : "Procesando autenticacion"}</h2>
+                    <h2 className="oauth-title">{failed ? "No se pudo iniciar sesión" : "Procesando autenticación"}</h2>
                     <p className="oauth-text">
                         {failed
                             ? "El enlace de autenticacion no es valido o expiro."

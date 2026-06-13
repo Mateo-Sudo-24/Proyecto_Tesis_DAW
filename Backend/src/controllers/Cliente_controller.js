@@ -1,4 +1,5 @@
 import Cliente from "../models/Cliente.js";
+import Carrito from "../models/Carrito.js";
 import Administrador from "../models/Administrador.js";
 import Vendedor from "../models/Vendedor.js";
 import { sendMailToRegister, sendMailToRecoveryPassword, sendMailToInviteCliente } from "../config/nodemailer.js";
@@ -59,7 +60,7 @@ const confirmarEmail = async (req, res) => {
         if (!cliente) {
             return res.status(200).json({
                 status: "already_verified",
-                msg: "Token verificado correctamente. Si tu cuenta ya fue confirmada, puedes iniciar sesion."
+                msg: "Token verificado correctamente. Si tu cuenta ya fue confirmada, puedes iniciar sesión."
             });
         }
 
@@ -95,6 +96,15 @@ const login = async (req, res) => {
             await cliente.save();
         }
         
+        try {
+            await Carrito.updateOne(
+                { cliente: cliente._id },
+                { $set: { items: [] } }
+            );
+        } catch (err) {
+            console.warn('No se pudo vaciar el carrito al login:', err.message);
+        }
+
         const token = crearTokenJWT(cliente._id, cliente.rol);
         const { _id, nombre, rol } = cliente;
         
@@ -224,7 +234,7 @@ const actualizarPassword = async (req, res) => {
         cliente.password = passwordNuevo;
         await cliente.save();
 
-        res.status(200).json({ msg: "Contrasena actualizada correctamente." });
+        res.status(200).json({ msg: "Contrase?a actualizada correctamente." });
     } catch (error) {
         res.status(500).json({ msg: "Error al actualizar la contrasena." });
     }
@@ -238,7 +248,7 @@ const verificarPasswordActual = async (req, res) => {
         const cliente = await Cliente.findById(_id);
         if (!cliente) return res.status(404).json({ msg: "Cliente no encontrado." });
         if (!await cliente.matchPassword(passwordActual)) return res.status(401).json({ msg: "La contrasena actual es incorrecta." });
-        return res.status(200).json({ ok: true, msg: "Contrasena verificada." });
+        return res.status(200).json({ ok: true, msg: "Contrase?a verificada." });
     } catch (error) {
         return res.status(500).json({ msg: "Error al verificar la contrasena." });
     }

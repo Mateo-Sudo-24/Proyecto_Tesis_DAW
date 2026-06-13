@@ -63,7 +63,9 @@ const agregarItem = async (req, res) => {
         let carrito = await Carrito.findOne({ cliente: clienteId });
 
         if (carrito) {
-            const itemIndex = carrito.items.findIndex(p => p.producto.equals(productoId));
+            const itemIndex = carrito.items.findIndex(
+                p => p.producto.equals(productoId) && p.unidadSeleccionada === unidadSeleccionada
+            );
             if (itemIndex > -1) {
                 carrito.items[itemIndex].cantidad = cantidadFinal;
                 carrito.items[itemIndex].unidadSeleccionada = unidadSeleccionada;
@@ -91,15 +93,20 @@ const agregarItem = async (req, res) => {
 const eliminarItem = async (req, res) => {
     const { productoId } = req.params;
     const clienteId = req.usuario._id;
+    const unidadSeleccionada = req.query.unidad || null;
 
     if (!mongoose.Types.ObjectId.isValid(productoId)) {
         return res.status(400).json({ msg: "ID de producto no válido." });
     }
 
     try {
+        const pullFilter = unidadSeleccionada
+            ? { producto: productoId, unidadSeleccionada }
+            : { producto: productoId };
+
         const carrito = await Carrito.findOneAndUpdate(
             { cliente: clienteId },
-            { $pull: { items: { producto: productoId } } },
+            { $pull: { items: pullFilter } },
             { new: true }
         ).populate('items.producto', 'nombre imagenUrl stock metrosDisponibles metrosPorRollo precioPorMetro precioPorRollo unidadVenta');
 

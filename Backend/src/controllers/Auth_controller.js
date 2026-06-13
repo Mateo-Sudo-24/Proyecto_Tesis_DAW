@@ -1,6 +1,7 @@
 import Administrador from "../models/Administrador.js";
 import Vendedor from "../models/Vendedor.js";
 import Cliente from "../models/Cliente.js";
+import Carrito from "../models/Carrito.js";
 import { crearTokenJWT } from "../middlewares/JWT.js";
 import { sendMailToRecoveryPassword } from "../config/nodemailer.js";
 import { normalizarEmail, buscarDocumentoPorEmail } from "../utils/emailLookup.js";
@@ -50,7 +51,7 @@ const loginUnificado = async (req, res) => {
         if (!usuario) return res.status(404).json({ msg: "Credencial incorrecta: correo o contraseña." });
 
         if (usuario.rol === 'cliente' && usuario.proveedor && usuario.proveedor !== 'local') {
-            return res.status(400).json({ msg: "Esta cuenta fue registrada con Google. Inicia sesion con Google." });
+            return res.status(400).json({ msg: "Esta cuenta fue registrada con Google. Inicia sesión con Google." });
         }
         if (usuario.rol === 'vendedor' && usuario.status !== 'activo') {
             return res.status(403).json({ msg: "Tu cuenta no esta activa. Revisa el correo de invitacion." });
@@ -60,9 +61,18 @@ const loginUnificado = async (req, res) => {
         }
         if (usuario.rol === 'cliente' && !usuario.confirmEmail) {
             if (usuario.token) {
-                return res.status(403).json({ msg: "Debes confirmar tu cuenta antes de iniciar sesion." });
+                return res.status(403).json({ msg: "Debes confirmar tu cuenta antes de iniciar sesión." });
             }
             return res.status(403).json({ msg: "Debes confirmar tu cuenta desde el enlace enviado a tu correo." });
+        }
+
+        try {
+            await Carrito.updateOne(
+                { cliente: usuario._id },
+                { $set: { items: [] } }
+            );
+        } catch (carritoErr) {
+            console.warn('No se pudo vaciar el carrito al login:', carritoErr.message);
         }
 
         return responderLogin(res, usuario);

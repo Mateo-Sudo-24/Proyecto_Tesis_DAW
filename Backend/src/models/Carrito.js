@@ -17,7 +17,7 @@ const itemSchema = new mongoose.Schema({
         enum: ['metro', 'rollo'],
         default: 'metro'
     }
-}, { _id: false });
+}, { _id: true });
 
 const carritoSchema = new mongoose.Schema({
     cliente: {

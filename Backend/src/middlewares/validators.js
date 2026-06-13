@@ -57,7 +57,7 @@ const validateApellido = body('apellido')
 const validateTelefono = body('telefono')
     .trim()
     .matches(telefonoRegex)
-    .withMessage('El telefono debe tener 10 digitos y empezar con 0.');
+    .withMessage('El teléfono debe tener 10 dígitos y empezar con 0.');
 
 const validateDireccion = body('direccion')
     .trim()
@@ -78,7 +78,7 @@ export const validateProfileUpdate = [
     body('nombre').optional().trim().isLength({ min: 2, max: 12 }).withMessage('El nombre debe tener entre 2 y 12 caracteres.').matches(nombreRegex).withMessage('Ingresa un nombre real.'),
     body('apellido').optional().trim().isLength({ min: 2, max: 12 }).withMessage('El apellido debe tener entre 2 y 12 caracteres.').matches(nombreRegex).withMessage('Ingresa un apellido real.'),
     body('email').optional().trim().toLowerCase().isEmail().matches(emailRegex).normalizeEmail(normalizeEmailOptions),
-    body('telefono').optional().trim().matches(telefonoRegex).withMessage('El telefono debe tener 10 digitos.'),
+    body('telefono').optional().trim().matches(telefonoRegex).withMessage('El teléfono debe tener 10 dígitos.'),
     body('direccion').optional().trim().isLength({ min: 5 }).withMessage('La direccion debe tener al menos 5 caracteres.'),
     handleValidationErrors
 ];
@@ -117,7 +117,7 @@ export const validateClienteRegistro = [
 export const validateAdminClienteCreation = [
     validateNombre,
     validateEmail,
-    body('telefono').optional({ checkFalsy: true }).trim().matches(telefonoRegex).withMessage('El telefono debe tener 10 digitos.'),
+    body('telefono').optional({ checkFalsy: true }).trim().matches(telefonoRegex).withMessage('El teléfono debe tener 10 dígitos.'),
     body('direccion').optional({ checkFalsy: true }).trim().isLength({ min: 5 }).withMessage('La direccion debe tener al menos 5 caracteres.'),
     handleValidationErrors
 ];

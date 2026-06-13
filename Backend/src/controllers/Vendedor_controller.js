@@ -81,7 +81,7 @@ const actualizarPassword = async (req, res) => {
         vendedor.password = passwordNuevo;
         await vendedor.save();
 
-        res.status(200).json({ msg: "Contrasena actualizada correctamente." });
+        res.status(200).json({ msg: "Contrase?a actualizada correctamente." });
     } catch (error) {
         res.status(500).json({ msg: "Error en el servidor al actualizar la contrasena." });
     }
@@ -95,7 +95,7 @@ const verificarPasswordActual = async (req, res) => {
         const vendedor = await Vendedor.findById(_id);
         if (!vendedor) return res.status(404).json({ msg: "Credencial incorrecta: correo o contraseña." });
         if (!await vendedor.matchPassword(passwordActual)) return res.status(401).json({ msg: "La contrasena actual es incorrecta." });
-        return res.status(200).json({ ok: true, msg: "Contrasena verificada." });
+        return res.status(200).json({ ok: true, msg: "Contrase?a verificada." });
     } catch (error) {
         return res.status(500).json({ msg: "Error al verificar la contrasena." });
     }

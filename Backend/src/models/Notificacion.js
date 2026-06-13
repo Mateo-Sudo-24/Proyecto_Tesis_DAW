@@ -62,6 +62,8 @@ const NotificacionSchema = new mongoose.Schema({
   }
 }, { timestamps: true });
 
+NotificacionSchema.path('tipo').enum('producto_reabastecido');
+
 // Middleware pre-save para cifrar datos sensibles
 NotificacionSchema.pre('save', function (next) {
   try {

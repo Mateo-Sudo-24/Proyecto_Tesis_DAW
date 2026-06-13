@@ -14,8 +14,8 @@ export const validarNombreReal = (value = "", minLetras = 2) => {
     const limpio = String(value || "").trim().replace(/\s+/g, " ");
     const letras = (limpio.match(/[\p{L}]/gu) || []).length;
     if (letras < minLetras) return `Debe tener al menos ${minLetras} letras`;
-    if (limpio.length > 12) return "Maximo 12 caracteres";
-    if (letras > 10) return "Maximo 10 letras";
+    if (limpio.length > 12) return "M?ximo 12 caracteres";
+    if (letras > 10) return "M?ximo 10 letras";
     return (minLetras >= 5 ? nombreOrdenPagoRegex : nombreRealRegex).test(limpio)
         || "Usa solo nombres reales con letras y espacios";
 };
@@ -24,8 +24,8 @@ export const validarDescripcionProducto = (value = "") => {
     const texto = String(value || "").trim().replace(/\s+/g, " ");
     const palabras = texto ? texto.split(" ").filter(Boolean).length : 0;
     if (!texto) return "La descripcion es obligatoria";
-    if (texto.length > 300) return "Maximo 300 caracteres";
-    if (palabras > 50) return "Maximo 50 palabras";
+    if (texto.length > 300) return "M?ximo 300 caracteres";
+    if (palabras > 50) return "M?ximo 50 palabras";
     return true;
 };
 
@@ -41,8 +41,8 @@ export const validarEmailRealista = (value = "") => {
 
 export const validarTelefono10 = (value = "") =>
     telefonoEcuadorRegex.test(String(value || "").replace(/\D/g, ""))
-        || "El telefono debe tener 10 digitos";
+        || "El teléfono debe tener 10 dígitos";
 
 export const validarCedulaRuc = (value = "") =>
     cedulaRucRegex.test(String(value || "").replace(/\D/g, ""))
-        || "Usa cedula de 10 digitos o RUC de 13";
+        || "Usa cédula de 10 dígitos o RUC de 13";

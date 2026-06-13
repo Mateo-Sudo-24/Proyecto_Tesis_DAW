@@ -10,12 +10,9 @@ import { toast } from "react-toastify";
 
 const ENVIO_BASE = 2.5;
 
-const getUnidadItem = (item) => {
-    const unidadProducto = item?.producto?.unidadVenta;
-    if (unidadProducto === 'rollo') return 'rollo';
-    if (unidadProducto === 'metro') return 'metro';
-    return item?.unidadSeleccionada || 'metro';
-};
+const getUnidadItem = (item) => item?.unidadSeleccionada || 'metro';
+
+const getItemKey = (item) => `${item?.producto?._id || 'producto'}-${getUnidadItem(item)}`;
 
 const getPrecioUnidad = (item) => {
     const unidad = getUnidadItem(item);
@@ -511,7 +508,8 @@ const Carrito = () => {
     const cambiarCantidad = async (productoId, cantidad, unidadSeleccionada) => {
         const cant = Number(cantidad);
         if (!Number.isFinite(cant) || cant <= 0) return null;
-        setUpdatingItems(prev => ({ ...prev, [productoId]: true }));
+        const updateKey = `${productoId}-${unidadSeleccionada || 'metro'}`;
+        setUpdatingItems(prev => ({ ...prev, [updateKey]: true }));
         const response = await fetchDataBackend(
             `${import.meta.env.VITE_BACKEND_URL}/carrito/items`,
             { productoId, cantidad: cant, unidadSeleccionada },
@@ -521,27 +519,28 @@ const Carrito = () => {
             setCarrito(response);
             setCantidadDrafts(prev => {
                 const next = { ...prev };
-                delete next[productoId];
+                delete next[updateKey];
                 return next;
             });
         }
-        setUpdatingItems(prev => ({ ...prev, [productoId]: false }));
+        setUpdatingItems(prev => ({ ...prev, [updateKey]: false }));
         return response;
     };
 
     const getCantidadDraft = (item) => {
         const productoId = item.producto?._id;
         if (!productoId) return String(item.cantidad ?? '');
-        return cantidadDrafts[productoId] ?? String(item.cantidad ?? '');
+        return cantidadDrafts[getItemKey(item)] ?? String(item.cantidad ?? '');
     };
 
-    const setCantidadDraft = (productoId, value) => {
-        setCantidadDrafts(prev => ({ ...prev, [productoId]: value }));
+    const setCantidadDraft = (itemOrKey, value) => {
+        const key = typeof itemOrKey === 'string' ? itemOrKey : getItemKey(itemOrKey);
+        setCantidadDrafts(prev => ({ ...prev, [key]: value }));
     };
 
     const getCantidadEfectiva = (item) => {
         const productoId = item.producto?._id;
-        const raw = productoId ? cantidadDrafts[productoId] : undefined;
+        const raw = productoId ? cantidadDrafts[getItemKey(item)] : undefined;
         if (raw == null || String(raw).trim() === '') return Number(item.cantidad) || 0;
         const parsed = Number(raw);
         if (!Number.isFinite(parsed) || parsed <= 0) return Number(item.cantidad) || 0;
@@ -557,35 +556,37 @@ const Carrito = () => {
         const productoId = item.producto?._id;
         if (!productoId) return;
 
-        const raw = cantidadDrafts[productoId] ?? String(item.cantidad ?? '');
+        const itemKey = getItemKey(item);
+        const raw = cantidadDrafts[itemKey] ?? String(item.cantidad ?? '');
         const text = String(raw).trim();
         if (text === '') {
-            setCantidadDrafts(prev => ({ ...prev, [productoId]: String(item.cantidad ?? '') }));
+            setCantidadDrafts(prev => ({ ...prev, [itemKey]: String(item.cantidad ?? '') }));
             return;
         }
 
         const cantidad = Number(text);
         if (!Number.isFinite(cantidad) || cantidad <= 0) {
             toast.error("Ingresa una cantidad válida.");
-            setCantidadDrafts(prev => ({ ...prev, [productoId]: String(item.cantidad ?? '') }));
+            setCantidadDrafts(prev => ({ ...prev, [itemKey]: String(item.cantidad ?? '') }));
             return;
         }
 
         const cantidadFinal = unidad === 'rollo' ? Math.ceil(cantidad) : cantidad;
-        setCantidadDrafts(prev => ({ ...prev, [productoId]: String(cantidadFinal) }));
+        setCantidadDrafts(prev => ({ ...prev, [itemKey]: String(cantidadFinal) }));
         await cambiarCantidad(productoId, cantidadFinal, unidad);
     };
 
     // Eliminar item
-    const eliminarItem = async (productoId) => {
-        setUpdatingItems(prev => ({ ...prev, [productoId]: true }));
+    const eliminarItem = async (productoId, unidadSeleccionada = 'metro') => {
+        const updateKey = `${productoId}-${unidadSeleccionada || 'metro'}`;
+        setUpdatingItems(prev => ({ ...prev, [updateKey]: true }));
         const response = await fetchDataBackend(
-            `${import.meta.env.VITE_BACKEND_URL}/carrito/items/${productoId}`,
+            `${import.meta.env.VITE_BACKEND_URL}/carrito/items/${productoId}?unidad=${unidadSeleccionada || 'metro'}`,
             null,
             "DELETE"
         );
         if (response) setCarrito(response);
-        setUpdatingItems(prev => ({ ...prev, [productoId]: false }));
+        setUpdatingItems(prev => ({ ...prev, [updateKey]: false }));
     };
 
     // Vaciar carrito
@@ -715,15 +716,15 @@ const Carrito = () => {
                                         </tr>
                                     </thead>
                                     <tbody>
-                                        {carrito.items.map((item) => {
+                                        {carrito.items.map((item, itemIdx) => {
                                             const unidad = getUnidadItem(item);
+                                            const itemKey = `${getItemKey(item)}-${itemIdx}`;
                                             const cantidadEfectiva = getCantidadEfectiva(item);
                                             const precioUnidad = getPrecioUnidad(item);
-                                            const permiteAmbos = item.producto?.unidadVenta === 'ambos';
                                             const stepCantidad = unidad === 'rollo' ? 1 : 0.01;
-                                            const updating = !!updatingItems[item.producto?._id];
+                                            const updating = !!updatingItems[getItemKey(item)];
                                             return (
-                                            <tr key={item.producto?._id} style={{ opacity: updating ? 0.62 : 1, pointerEvents: updating ? 'none' : 'auto' }}>
+                                            <tr key={itemKey} style={{ opacity: updating ? 0.62 : 1, pointerEvents: updating ? 'none' : 'auto' }}>
                                                 <td>
                                                     <div className="cart-product-cell">
                                                         <img
@@ -737,27 +738,21 @@ const Carrito = () => {
                                                 </td>
                                                 <td className="cart-price">${precioUnidad.toFixed(2)}</td>
                                                 <td style={{textAlign:'center'}}>
-                                                    {permiteAmbos ? (
-                                                        <select
-                                                            className="cart-select"
-                                                            value={unidad}
-                                                            disabled={updating}
-                                                            onChange={e => {
-                                                                const nextCantidad = e.target.value === 'rollo' ? 1 : 0.5;
-                                                                setCantidadDraft(item.producto?._id, '');
-                                                                cambiarCantidad(item.producto?._id, nextCantidad, e.target.value);
-                                                            }}
-                                                        >
-                                                            <option value="metro">Metro</option>
-                                                            <option value="rollo">Rollo</option>
-                                                        </select>
-                                                    ) : (
-                                                        <span style={{ fontWeight: 700, color: '#4b5563' }}>
-                                                            {unidad === 'rollo' ? 'Rollo' : 'Metro'}
-                                                        </span>
-                                                    )}
+                                                    <span style={{
+                                                        fontWeight: 800,
+                                                        color: unidad === 'rollo' ? '#1e40af' : '#065f46',
+                                                        background: unidad === 'rollo' ? '#dbeafe' : '#d1fae5',
+                                                        padding: '0.2rem 0.65rem',
+                                                        borderRadius: '999px',
+                                                        fontSize: '0.75rem',
+                                                        display: 'inline-block'
+                                                    }}>
+                                                        {unidad === 'rollo' ? 'Rollo' : 'Metro'}
+                                                    </span>
                                                     <div style={{ fontSize: '0.68rem', color: '#9ca3af', marginTop: '0.25rem' }}>
-                                                        {getRollosDisponibles(item.producto)} rollos / {getMetrosDisponibles(item.producto)}m sueltos
+                                                        {unidad === 'rollo'
+                                                            ? `${getRollosDisponibles(item.producto)} rollos disp.`
+                                                            : `${getMetrosDisponibles(item.producto)}m disp.`}
                                                     </div>
                                                 </td>
                                                 <td style={{textAlign:'center'}}>
@@ -767,7 +762,7 @@ const Carrito = () => {
                                                         step={stepCantidad}
                                                         value={getCantidadDraft(item)}
                                                         disabled={updating}
-                                                        onChange={e => setCantidadDraft(item.producto?._id, e.target.value)}
+                                                        onChange={e => setCantidadDraft(item, e.target.value)}
                                                         onBlur={() => confirmarCantidad(item, unidad)}
                                                         onKeyDown={e => {
                                                             if (e.key === 'Enter') e.currentTarget.blur();
@@ -782,7 +777,7 @@ const Carrito = () => {
                                                     <button
                                                         className="cart-delete-btn"
                                                         disabled={updating}
-                                                        onClick={() => eliminarItem(item.producto?._id)}
+                                                        onClick={() => eliminarItem(item.producto?._id, unidad)}
                                                     >
                                                         {updating ? 'Actualizando...' : 'Eliminar'}
                                                     </button>

@@ -54,7 +54,7 @@ const Update = () => {
                         <p className="upd-kicker">Edicion</p>
                         <h1 className="upd-title">Actualizar registro</h1>
                         <p className="upd-subtitle">
-                            Modifica la informacion del {tipo === "clientes" ? "cliente" : "vendedor"} seleccionado.
+                            Modifica la informaci?n del {tipo === "clientes" ? "cliente" : "vendedor"} seleccionado.
                         </p>
                     </div>
                     <span className="upd-badge">{tipo === "clientes" ? "Cliente" : "Vendedor"}</span>

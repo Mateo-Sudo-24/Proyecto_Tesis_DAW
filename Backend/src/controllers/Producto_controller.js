@@ -43,7 +43,11 @@ const normalizarProductoTextil = (body, productoActual = {}) => {
             : toNumber(productoActual.stock, 0) + 1;
 
     const rollosStock = Math.max(0, rollosIngresados - 1);
-    const metrosDisponibles = 1 * metrosPorRollo;
+    const metrosDisponibles = body.metrosDisponibles !== undefined
+        ? toNumber(body.metrosDisponibles, productoActual.metrosDisponibles ?? metrosPorRollo)
+        : productoActual.metrosDisponibles !== undefined
+            ? toNumber(productoActual.metrosDisponibles, metrosPorRollo)
+            : metrosPorRollo;
 
     const unidadVenta = ['metro', 'rollo', 'ambos'].includes(body.unidadVenta)
         ? body.unidadVenta
@@ -114,6 +118,32 @@ const crearNotificacionStockCritico = async (producto) => {
 
     } catch (error) {
         console.error('❌ Error al crear notificación de stock crítico:', error);
+    }
+};
+
+const crearNotificacionReabastecimiento = async (producto, stockAnterior) => {
+    try {
+        const admins = await Administrador.find().select('_id');
+        await Promise.all(admins.map(admin =>
+            Notificacion.crearConCifrado({
+                administrador: admin._id,
+                tipo: 'producto_reabastecido',
+                mensaje: `Producto reabastecido: "${producto.nombre}" paso de ${stockAnterior} a ${producto.stock} rollos disponibles.`,
+                productos: [{
+                    productId: producto._id,
+                    nombre: producto.nombre,
+                    stock: producto.stock,
+                    umbral: STOCK_CRITICO_ROLLOS,
+                    categoria: producto.categoria,
+                    precio: producto.precioPorRollo
+                }],
+                leida: false,
+                estadoGestion: 'completado',
+                metadatos: { timestamp: new Date() }
+            })
+        ));
+    } catch (error) {
+        console.error('Error al crear notificacion de reabastecimiento:', error.message);
     }
 };
 
@@ -271,9 +301,14 @@ const actualizarProducto = async (req, res) => {
         await producto.save();
 
         // Crear notificación si el stock ha cambiado y ahora es crítico.
-        const ahora_es_critico = producto.stock < STOCK_CRITICO_ROLLOS;
+        const stockNuevo = producto.stock;
+        if (stockNuevo > stockAnteriorRollos) {
+            crearNotificacionReabastecimiento(producto, stockAnteriorRollos).catch(() => {});
+        }
+
+        const ahora_es_critico = stockNuevo < STOCK_CRITICO_ROLLOS;
         
-        if (producto.stock !== stockAnteriorRollos && ahora_es_critico) {
+        if (stockNuevo < stockAnteriorRollos && ahora_es_critico) {
             await crearNotificacionStockCritico(producto);
         }
         

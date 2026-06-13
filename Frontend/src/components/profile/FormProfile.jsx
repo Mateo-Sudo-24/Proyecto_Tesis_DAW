@@ -151,7 +151,7 @@ const FormularioPerfil = () => {
             <div className="prof-data-card">
                 <div className="prof-data-head">
                     <h2>Cambiar datos</h2>
-                    <p>Actualiza nombre, apellido, direccion y telefono del perfil.</p>
+                    <p>Actualiza nombre, apellido, dirección y teléfono del perfil.</p>
                 </div>
                 <div className="prof-data-body">
                     <button type="button" className="prof-open-btn" onClick={() => setOpen(true)}>
@@ -202,7 +202,7 @@ const FormularioPerfil = () => {
                                 <div className="prof-divider" />
 
                                 <div className="prof-field">
-                                    <label className="prof-label">Direccion</label>
+                                    <label className="prof-label">Direcci?n</label>
                                     <input
                                         type="text"
                                         placeholder="Calle, numero, ciudad"
@@ -213,13 +213,13 @@ const FormularioPerfil = () => {
                                 </div>
 
                                 <div className="prof-field">
-                                    <label className="prof-label">Telefono</label>
+                                    <label className="prof-label">Teléfono</label>
                                     <input
                                         type="tel"
                                         placeholder="Ej: 0987654321"
                                         className="prof-input"
                                         {...register("telefono", {
-                                            required: "El telefono es obligatorio",
+                                            required: "El teléfono es obligatorio",
                                             setValueAs: value => String(value || '').replace(/\D/g, ''),
                                             validate: validarTelefono10,
                                         })}

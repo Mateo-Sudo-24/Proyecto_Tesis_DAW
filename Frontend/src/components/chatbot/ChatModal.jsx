@@ -9,6 +9,36 @@ import './ChatModal.css';
 
 const MAX_IMAGES = 4;
 
+const FLUJOS = {
+    info: {
+        burbuja: '📍 Información de la tienda',
+        mensaje: '¿Dónde están ubicados y qué servicios ofrecen?',
+        siguientes: [
+            '¿Cuál es el horario de atención?',
+            '¿Hacen envíos a domicilio?',
+            '¿Puedo ver el catálogo completo?',
+        ],
+    },
+    productos: {
+        burbuja: '🧵 Buscar un producto',
+        mensaje: 'Quiero ver los productos disponibles',
+        siguientes: [
+            '¿Qué telas tienen en algodón?',
+            '¿Tienen telas por metro y por rollo?',
+            '¿Cuáles son los precios?',
+        ],
+    },
+    preguntas: {
+        burbuja: '❓ Tengo una pregunta',
+        mensaje: '¿Qué puede hacer el asistente de Intex?',
+        siguientes: [
+            '¿Puedo subir una foto de una tela?',
+            '¿Cómo hago un pedido?',
+            '¿Aceptan pagos con tarjeta?',
+        ],
+    },
+};
+
 const normalizarTexto = (value = '') => String(value)
     .toLowerCase()
     .normalize('NFD')
@@ -56,7 +86,7 @@ const esConsultaTextilReconocible = (texto = '') => {
     return /\b(tela|telas|tejido|textil|algodon|lino|seda|poliester|lana|nylon|viscosa|rayon|terciopelo|denim|jean|jersey|saten|gasa|tul|encaje|polar|fleece|gabardina|tafetan|lycra|spandex|microfibra|loneta|popelina|organza|color|textura|metro|rollo|comprar|precio|catalogo|carrito|reponer|reposicion|stock)\b/.test(t);
 };
 
-// Convierte markdown basico a JSX sin dependencias externas.
+// Convierte markdown básico a JSX sin dependencias externas.
 const renderMarkdown = (text) => {
     if (!text) return null;
     const lines = limpiarTextoChat(text).split('\n');
@@ -108,6 +138,10 @@ const ChatModal = ({ onClose }) => {
     const [showCamera, setShowCamera] = useState(false);
     const [selectedImages, setSelectedImages] = useState([]); // array de dataURLs
     const [productIntentCount, setProductIntentCount] = useState(0);
+    const [burbujasActivas, setBurbujasActivas] = useState([]);
+    const [mostrarBurbujas, setMostrarBurbujas] = useState(true);
+    const [tituloImagen, setTituloImagen] = useState('');
+    const [descripcionImagen, setDescripcionImagen] = useState('');
     const messagesEndRef = useRef(null);
     const webcamRef = useRef(null);
     const fileInputRef = useRef(null);
@@ -127,7 +161,7 @@ const ChatModal = ({ onClose }) => {
         type: 'cta',
         content: token
             ? 'Ya tengo suficiente contexto. Te dejo un acceso directo para revisar productos relacionados.'
-            : 'Ya tengo suficiente contexto. Puedes revisar productos en /products; si decides comprar, el sistema te llevara a iniciar sesion.',
+            : 'Ya tengo suficiente contexto. Puedes revisar productos en /products; si decides comprar, el sistema te llevará a iniciar sesión.',
     });
 
     useEffect(() => {
@@ -178,19 +212,27 @@ const ChatModal = ({ onClose }) => {
         setSelectedImages(prev => prev.filter((_, i) => i !== idx));
     };
 
-    const sendMessage = async () => {
-        if (!input.trim() && selectedImages.length === 0) return;
+    const sendMessage = async ({ mensaje = null, siguientes = null } = {}) => {
+        const textoEntrada = typeof mensaje === 'string' ? mensaje : input.trim();
+        if (!textoEntrada.trim() && selectedImages.length === 0) return;
+        if (!mensaje) setBurbujasActivas([]);
 
         const imagenesSnapshot = [...selectedImages];
+        const mensajeConContexto = imagenesSnapshot.length > 0 && tituloImagen.trim()
+            ? `${tituloImagen.trim()}${descripcionImagen.trim() ? ': ' + descripcionImagen.trim() : ''}${textoEntrada.trim() ? '. ' + textoEntrada.trim() : ''}`
+            : textoEntrada.trim() || '📸 Analiza esta imagen de tela';
         const userMessage = {
             role: 'user',
-            content: input.trim() || '📸 Analiza estas imágenes de tela',
+            content: mensajeConContexto,
             images: imagenesSnapshot,
         };
 
         setMessages(prev => [...prev, userMessage]);
         setInput('');
         setSelectedImages([]);
+        setTituloImagen('');
+        setDescripcionImagen('');
+        if (siguientes) setBurbujasActivas(siguientes);
         setIsLoading(true);
 
         const botMessageId = Date.now();
@@ -306,7 +348,7 @@ const ChatModal = ({ onClose }) => {
                 return;
             }
 
-            // Buscar productos similares si habia imagenes o mencion de tela.
+            // Buscar productos similares si había imágenes o mención de tela.
             if (imagenesSnapshot.length > 0 || userMessage.content.toLowerCase().includes('tela')) {
                 try {
                     const kw = extractFabricKeywords(respuestaTexto);
@@ -331,7 +373,7 @@ const ChatModal = ({ onClose }) => {
         } catch (error) {
             setMessages(prev => prev.map(msg =>
                 msg.id === botMessageId
-                    ? { ...msg, content: 'No pude completar el analisis en este momento. Intenta describir la tela con color, textura y uso, o adjunta una foto para revisarla mejor.' }
+                    ? { ...msg, content: 'No pude completar el análisis en este momento. Intenta describir la tela con color, textura y uso, o adjunta una foto para revisarla mejor.' }
                     : msg
             ));
         } finally {
@@ -346,6 +388,11 @@ const ChatModal = ({ onClose }) => {
         }
     };
 
+    const handleBurbujaPredefinida = async (flujo) => {
+        setMostrarBurbujas(false);
+        await sendMessage({ mensaje: flujo.mensaje, siguientes: flujo.siguientes });
+    };
+
     return (
         <div className="chat-modal-overlay" onClick={onClose}>
             <div className="chat-modal-container" onClick={e => e.stopPropagation()}>
@@ -353,7 +400,7 @@ const ChatModal = ({ onClose }) => {
                 <div className="chat-modal-header">
                     <div>
                         <h2>Asesor de Telas IA</h2>
-                        <p>Analisis inteligente de telas</p>
+                        <p>Análisis inteligente de telas</p>
                     </div>
                     <button onClick={onClose} className="chat-close-btn" aria-label="Cerrar chat">
                         <MdClose size={24} />
@@ -362,11 +409,44 @@ const ChatModal = ({ onClose }) => {
 
                 {/* Messages */}
                 <div className="chat-messages-container">
-                    {messages.length === 0 && (
+                    {messages.length === 0 && mostrarBurbujas && (
                         <div className="chat-welcome-message">
-                            <p>Hola, soy tu asesor experto en telas.</p>
-                            <p>Puedes subir hasta {MAX_IMAGES} fotos para analizar.</p>
-                            <p>Cuéntame qué tela buscas o qué necesitas comparar.</p>
+                            <div style={{ fontSize: '2rem', marginBottom: '0.5rem' }}>🧵</div>
+                            <p style={{ fontWeight: 700, color: '#374151', margin: '0 0 0.35rem' }}>
+                                Hola, soy <strong>Intex IA</strong>
+                            </p>
+                            <p style={{ fontSize: '0.82rem', color: '#6b7280', margin: '0 0 1.25rem' }}>
+                                Tu asesor experto en telas. ¿En qué puedo ayudarte hoy?
+                            </p>
+                            <div style={{ display: 'flex', flexDirection: 'column', gap: '0.5rem' }}>
+                                {Object.values(FLUJOS).map((flujo, i) => (
+                                    <button
+                                        key={i}
+                                        type="button"
+                                        onClick={() => handleBurbujaPredefinida(flujo)}
+                                        style={{
+                                            background: '#fff',
+                                            border: '1.5px solid #e8760a',
+                                            borderRadius: '1.5rem',
+                                            padding: '0.6rem 1rem',
+                                            fontSize: '0.85rem',
+                                            fontWeight: 700,
+                                            color: '#c4620a',
+                                            cursor: 'pointer',
+                                            textAlign: 'left',
+                                            transition: 'background 0.15s',
+                                        }}
+                                        onMouseOver={e => e.currentTarget.style.background = '#fde8ce'}
+                                        onMouseOut={e => e.currentTarget.style.background = '#fff'}
+                                    >
+                                        {flujo.burbuja}
+                                    </button>
+                                ))}
+                            </div>
+                            <p style={{ fontSize: '0.72rem', color: '#9ca3af', marginTop: '0.875rem', textAlign: 'center', lineHeight: 1.5 }}>
+                                📸 Puedes subir una foto de tela con un título y descripción<br />
+                                para identificarla y encontrar productos similares
+                            </p>
                         </div>
                     )}
 
@@ -443,6 +523,35 @@ const ChatModal = ({ onClose }) => {
                             </div>
                         </div>
                     ))}
+                    {burbujasActivas.length > 0 && !isLoading && messages.length > 0 && messages[messages.length - 1]?.role === 'assistant' && (
+                        <div style={{ display: 'flex', flexWrap: 'wrap', gap: '0.4rem', padding: '0.5rem 0', marginTop: '0.25rem' }}>
+                            {burbujasActivas.map((pregunta, i) => (
+                                <button
+                                    key={i}
+                                    type="button"
+                                    onClick={() => {
+                                        setBurbujasActivas([]);
+                                        sendMessage({ mensaje: pregunta });
+                                    }}
+                                    style={{
+                                        background: '#f9fafb',
+                                        border: '1px solid #e5e7eb',
+                                        borderRadius: '1rem',
+                                        padding: '0.4rem 0.85rem',
+                                        fontSize: '0.78rem',
+                                        fontWeight: 600,
+                                        color: '#374151',
+                                        cursor: 'pointer',
+                                        transition: 'all 0.15s',
+                                    }}
+                                    onMouseOver={e => { e.currentTarget.style.borderColor = '#e8760a'; e.currentTarget.style.color = '#c4620a'; }}
+                                    onMouseOut={e => { e.currentTarget.style.borderColor = '#e5e7eb'; e.currentTarget.style.color = '#374151'; }}
+                                >
+                                    {pregunta}
+                                </button>
+                            ))}
+                        </div>
+                    )}
                     <div ref={messagesEndRef} />
                 </div>
 
@@ -485,6 +594,25 @@ const ChatModal = ({ onClose }) => {
                     </div>
                 )}
 
+                {selectedImages.length > 0 && (
+                    <div style={{ padding: '0.5rem 1rem 0', display: 'flex', flexDirection: 'column', gap: '0.4rem' }}>
+                        <input
+                            type="text"
+                            placeholder="Título de la tela (ej: Tela azul para tapicería)"
+                            value={tituloImagen}
+                            onChange={e => setTituloImagen(e.target.value)}
+                            style={{ border: '1px solid #e5e7eb', borderRadius: '0.5rem', padding: '0.45rem 0.75rem', fontSize: '0.82rem', outline: 'none' }}
+                        />
+                        <textarea
+                            placeholder="Descripción opcional (color, uso, material)"
+                            value={descripcionImagen}
+                            onChange={e => setDescripcionImagen(e.target.value)}
+                            rows={2}
+                            style={{ border: '1px solid #e5e7eb', borderRadius: '0.5rem', padding: '0.45rem 0.75rem', fontSize: '0.82rem', resize: 'none', outline: 'none', fontFamily: 'inherit' }}
+                        />
+                    </div>
+                )}
+
                 {/* Input Area */}
                 <div className="chat-input-container">
                     <div className="chat-input-buttons">
@@ -521,7 +649,7 @@ const ChatModal = ({ onClose }) => {
                         value={input}
                         onChange={(e) => setInput(e.target.value)}
                         onKeyPress={handleKeyPress}
-                        placeholder="Escribe tu consulta... (Enter para enviar)"
+                        placeholder="Escribe tu consulta o sube una foto de tela... (Enter para enviar)"
                         rows="2"
                         disabled={isLoading}
                         className="chat-textarea"

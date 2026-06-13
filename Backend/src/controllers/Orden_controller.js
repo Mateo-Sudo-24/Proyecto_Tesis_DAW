@@ -19,9 +19,14 @@ const documentoRegex = /^(\d{10}|\d{13})$/;
 const flujoManualOrden = ['pagado', 'procesando', 'listo', 'entregado'];
 const esPagoTarjetaOnline = (metodo = '') => {
     const normalizado = String(metodo).toLowerCase();
-    return normalizado.includes('tarjeta en linea')
+    return (normalizado.includes('tarjeta en linea')
         || normalizado.includes('tarjeta en l')
-        || normalizado === 'stripe';
+        || normalizado.includes('credito')
+        || normalizado === 'stripe'
+        || normalizado.includes('stripe'))
+        && !normalizado.includes('debito')
+        && !normalizado.includes('dÃ©bito')
+        && !normalizado.includes('en casa');
 };
 
 const esPaymentMethodDemo = (paymentMethodId = '') => (
@@ -38,6 +43,7 @@ const esPagoPresencial = (metodo = '') => {
     const normalizado = String(metodo).toLowerCase();
     return normalizado.includes('efectivo')
         || normalizado.includes('debito')
+        || normalizado.includes('en casa')
         || normalizado.includes('débito');
 };
 
@@ -101,8 +107,8 @@ const validarDatosFacturacion = (datos = {}, { minLetras = 2 } = {}) => {
     if (!regexNombre.test(nombre)) return `El nombre debe tener entre ${minLetras} y 10 letras, maximo 12 caracteres y solo caracteres validos.`;
     if (!regexNombre.test(apellido)) return `El apellido debe tener entre ${minLetras} y 10 letras, maximo 12 caracteres y solo caracteres validos.`;
     if (!emailRegex.test(correo)) return 'Ingresa un correo valido.';
-    if (!documentoRegex.test(ruc)) return 'Usa cedula de 10 digitos o RUC de 13.';
-    if (!telefonoRegex.test(telefono)) return 'El telefono debe tener 10 digitos y empezar con 0.';
+    if (!documentoRegex.test(ruc)) return 'Usa cédula de 10 dígitos o RUC de 13.';
+    if (!telefonoRegex.test(telefono)) return 'El teléfono debe tener 10 dígitos y empezar con 0.';
     if (direccion.length < 5) return 'La direccion debe tener al menos 5 caracteres.';
     return null;
 };
@@ -993,6 +999,10 @@ const procesarPagoOrden = async (req, res) => {
         // ─── Métodos que no requieren pasarela externa ───────────────────────
         const metodosInmediatos = ['Transferencia Bancaria', 'Efectivo', 'Contra Entrega', 'PayPal', 'De Una',
                                    'Pago contra entrega', 'Pago efectivo / tarjeta débito', 'Pago efectivo / tarjeta debito'];
+        metodosInmediatos.push(
+            'Efectivo o tarjeta dÃ©bito en casa',
+            'Efectivo o tarjeta debito en casa'
+        );
         if (metodosInmediatos.includes(orden.metodoPago) || esPagoPresencial(orden.metodoPago)) {
             orden.estadoPago = 'pendiente';
             orden.estadoOrden = 'pendiente';

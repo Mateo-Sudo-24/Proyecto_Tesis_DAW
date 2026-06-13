@@ -207,7 +207,7 @@ const CardEmail = () => {
 
                             {step === 1 ? (
                                 <div className="email-field">
-                                    <label className="email-label">Contrasena actual</label>
+                                    <label className="email-label">Contrase?a actual</label>
                                     <PasswordInput
                                         className="email-input"
                                         placeholder="Confirma tu contrasena"

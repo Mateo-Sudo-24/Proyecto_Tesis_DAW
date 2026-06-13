@@ -81,7 +81,7 @@ const FabricAnalyzer = ({ onClose }) => {
         } catch (error) {
             console.error("Error al analizar:", error);
             if (error.message.includes('Failed to fetch') || error.message.includes('connect')) {
-                setRecommendations('Error: No hay conexion con el servidor de analisis.');
+                setRecommendations('Error: No hay conexión con el servidor de análisis.');
             } else {
                 setRecommendations("Intenta con otra foto.");
             }
