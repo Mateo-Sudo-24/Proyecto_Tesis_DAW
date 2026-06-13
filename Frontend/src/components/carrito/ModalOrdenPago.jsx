@@ -719,7 +719,22 @@ const ModalOrdenPago = ({
             const msg = requiereComprobacion
                 ? 'Pedido registrado. Comunícate con tu vendedor por el chat para comprobar el pago.'
                 : 'Pedido registrado exitosamente.'
-            toast[requiereComprobacion ? 'info' : 'success'](msg)
+
+            if (requiereComprobacion) {
+                localStorage.setItem('intex-chat-prefill', JSON.stringify({
+                    vendedorId: vendedorAsignado?.id || vendedorAsignado?._id || null,
+                    texto: `Hola, ya registré mi pedido con ${metodoPago}. Cuando puedas, ayúdame a revisar la confirmación del pago.`
+                }));
+                // Toast con cuenta regresiva visual
+                toast.info(
+                    '✅ Pedido registrado. Te redirigiremos al chat del vendedor en 5 segundos para confirmar tu pago.',
+                    { autoClose: 5000, icon: false }
+                );
+                setTimeout(() => navigate('/dashboard/chat'), 5000); // 5 segundos
+            } else {
+                toast.success(msg);
+            }
+
             onOrdenCreada(pagoRes.orden ?? ordenRecien, {
                 nombre: form.nombre,
                 apellido: form.apellido,
@@ -728,13 +743,6 @@ const ModalOrdenPago = ({
                 ruc: form.ruc,
                 telefono: form.telefono,
             })
-            if (requiereComprobacion) {
-                localStorage.setItem('intex-chat-prefill', JSON.stringify({
-                    vendedorId: vendedorAsignado?.id || vendedorAsignado?._id || null,
-                    texto: `Hola, ya registre mi pedido con ${metodoPago}. Cuando puedas, ayudame a revisar la confirmacion del pago.`
-                }))
-                setTimeout(() => navigate('/dashboard/chat'), 1400)
-            }
         }
     }
 
