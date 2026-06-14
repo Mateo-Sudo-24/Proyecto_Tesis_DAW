@@ -379,7 +379,10 @@ export const obtenerNotificacionesNoLeidasWebhook = async (req, res) => {
 // ✅ Obtener notificaciones APROBADAS pendientes de procesar (polling n8n - SIN JWT)
 export const obtenerAprobadasPendientesWebhook = async (req, res) => {
   try {
-    const notifs = await Notificacion.find({ estadoGestion: 'completado' })
+    // Soporta tanto 'completado' (nuevo) como 'aprobado' (legacy) para no romper el flujo
+    const notifs = await Notificacion.find({
+      estadoGestion: { $in: ['completado', 'aprobado'] }
+    })
       .sort({ createdAt: -1 })
       .limit(200);
 

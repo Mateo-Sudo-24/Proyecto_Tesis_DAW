@@ -101,17 +101,11 @@ const ordenSchema = new Schema({
         unique: true
     },
     solicitudCancelacion: {
-        estado: {
-            type: String,
-            enum: ['ninguna', 'pendiente', 'aprobada', 'rechazada'],
-            default: 'ninguna'
-        },
-        solicitadoEn: { type: Date },
-        solicitadoPor: { type: String, enum: ['cliente', 'vendedor'] },
-        razon: { type: String, maxlength: 500 },
-        aprobadoPor: { type: String, enum: ['cliente', 'vendedor'] },
-        respondidoEn: { type: Date },
-        motivoRechazo: { type: String, maxlength: 500 }
+        solicitada: { type: Boolean, default: false },
+        motivo: { type: String, default: '' },
+        detalleAdicional: { type: String, default: '' },
+        fechaSolicitud: { type: Date },
+        resuelta: { type: Boolean, default: false }
     }
 }, { timestamps: true });
 

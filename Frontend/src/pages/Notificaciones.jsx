@@ -16,6 +16,7 @@ const clasificarNotif = (n) => {
   if (n.tipo === 'pago_completado') return 'pago';
   if (n.tipo === 'mensaje_chat') return 'chat';
   if (n.tipo === 'producto_reabastecido') return 'info';
+  if (n.tipo === 'solicitud_cancelacion' || n.tipo === 'orden_cancelada') return 'automatizacion';
   return 'automatizacion';
 };
 
@@ -26,6 +27,8 @@ const TITULOS_NOTIF = {
   confirmacion_pedido:   '✅ Confirmación de Pedido',
   pago_completado:       '💳 Pago Recibido (Stripe)',
   mensaje_chat:          '💬 Nuevo Mensaje',
+  solicitud_cancelacion: '❌ Solicitud de Cancelación',
+  orden_cancelada:       '🚫 Pedido Cancelado',
 };
 
 const tituloSegunTipo = (n) => TITULOS_NOTIF[n.tipo] || '🔔 Notificación';

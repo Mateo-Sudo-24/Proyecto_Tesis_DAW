@@ -39,7 +39,7 @@ const NotificacionSchema = new mongoose.Schema({
   administrador: { type: mongoose.Schema.Types.ObjectId, ref: 'Administrador', default: null },
   vendedor: { type: mongoose.Schema.Types.ObjectId, ref: 'Vendedor', default: null },
   cliente: { type: mongoose.Schema.Types.ObjectId, ref: 'Cliente', default: null },
-  tipo: { type: String, default: 'stock_critico', enum: ['stock_critico', 'orden_creada', 'pago_completado', 'envio_listo', 'solicitud_cancelacion', 'confirmacion_pedido', 'mensaje_chat', 'producto_reabastecido'] },
+  tipo: { type: String, default: 'stock_critico', enum: ['stock_critico', 'orden_creada', 'pago_completado', 'envio_listo', 'solicitud_cancelacion', 'confirmacion_pedido', 'mensaje_chat', 'producto_reabastecido', 'orden_cancelada'] },
   mensaje: { type: String, required: true },
   mensajeCifrado: { type: String, default: null }, // Almacena mensaje cifrado
   productos: [{ 
