@@ -119,6 +119,17 @@ const DOMICILIO_MAP      = { 'Pedido recibido': 'pagado', 'Procesando': 'procesa
 const ESTABLECIMIENTO_MAP = { 'Pedido recibido': 'pagado', 'Procesando pedido': 'procesando', 'Pedido listo': 'listo', 'Pedido en recepción': 'entregado' };
 const VENTA_LOCAL_MAP     = { 'Listo': 'listo' };
 
+const MOTIVOS_CANCELACION = [
+  'No llegó el motorizado / repartidor',
+  'Error en la compra (producto o cantidad equivocada)',
+  'Compré por error / me arrepentí',
+  'Encontré mejor precio en otro lugar',
+  'El tiempo de espera es muy largo',
+  'Problemas con el método de pago',
+  'Ya no necesito el producto',
+  'Otro motivo',
+];
+
 const getStepConfig = (tipoEntrega) => {
     if (tipoEntrega === 'domicilio')       return { steps: STEPS_DOMICILIO,       map: DOMICILIO_MAP };
     if (tipoEntrega === 'venta_local')     return { steps: STEPS_VENTA_LOCAL,     map: VENTA_LOCAL_MAP };
@@ -292,11 +303,49 @@ const ProgressBar = ({ estadoOrden, estadoPago, tipoEntrega, isVendedor, ordenId
     );
 };
 
-const OrdenCard = ({ orden: ordenInicial, index, isVendedor, token }) => {
+const OrdenCard = ({ orden: ordenInicial, index, isVendedor, token, fetchOrdenes }) => {
     const [orden, setOrden] = useState(ordenInicial);
     const [open, setOpen] = useState(false);
     const [confirmPago, setConfirmPago] = useState(false);
     const [actualizandoPago, setActualizandoPago] = useState(false);
+
+    const [modalCancelacion, setModalCancelacion] = useState(null); // null o { ordenId, nombreProducto }
+    const [motivoCancelacion, setMotivoCancelacion] = useState('');
+    const [detalleCancelacion, setDetalleCancelacion] = useState('');
+    const [enviandoCancelacion, setEnviandoCancelacion] = useState(false);
+
+    const enviarSolicitudCancelacion = async () => {
+      if (!motivoCancelacion) {
+        toast.error('Selecciona un motivo para la cancelación');
+        return;
+      }
+      setEnviandoCancelacion(true);
+      try {
+        const res = await fetch(`${import.meta.env.VITE_BACKEND_URL}/ordenes/${modalCancelacion.ordenId}/solicitar-cancelacion`, {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            Authorization: `Bearer ${token}`
+          },
+          body: JSON.stringify({ motivo: motivoCancelacion, detalleAdicional: detalleCancelacion })
+        });
+        if (res.ok) {
+          toast.success('Solicitud enviada. El vendedor procesará la cancelación.');
+          setModalCancelacion(null);
+          setMotivoCancelacion('');
+          setDetalleCancelacion('');
+          // Refrescar lista de pedidos
+          if (fetchOrdenes) fetchOrdenes();
+        } else {
+          const data = await res.json();
+          toast.error(data.msg || 'Error al enviar la solicitud');
+        }
+      } catch {
+        toast.error('Error al enviar la solicitud');
+      } finally {
+        setEnviandoCancelacion(false);
+      }
+    };
     const fecha = new Date(orden.createdAt).toLocaleDateString('es-ES', { day:'2-digit', month:'short', year:'numeric' });
     const itemsOrden = orden.productoPedido ?? orden.items ?? [];
     const totalesOrden = calcularTotalesOrden(orden);
@@ -466,6 +515,36 @@ const OrdenCard = ({ orden: ordenInicial, index, isVendedor, token }) => {
                         Marcar pago realizado
                     </button>
                 )}
+                {(['pendiente', 'procesando'].includes(orden.estadoOrden) && !orden.solicitudCancelacion?.solicitada) && (
+                  <button
+                    onClick={() => setModalCancelacion({ ordenId: orden._id, nombreProducto: itemsOrden?.[0]?.producto?.nombre || itemsOrden?.[0]?.nombre })}
+                    style={{
+                      padding: '0.45rem 0.9rem',
+                      borderRadius: '0.5rem',
+                      border: '1.5px solid #fca5a5',
+                      background: '#fff',
+                      color: '#dc2626',
+                      fontSize: '0.8rem',
+                      fontWeight: 700,
+                      cursor: 'pointer'
+                    }}
+                  >
+                    ✕ Cancelar pedido
+                  </button>
+                )}
+
+                {orden.solicitudCancelacion?.solicitada && !orden.solicitudCancelacion?.resuelta && (
+                  <span style={{
+                    fontSize: '0.75rem',
+                    color: '#92400e',
+                    background: '#fef3c7',
+                    padding: '0.3rem 0.65rem',
+                    borderRadius: '999px',
+                    fontWeight: 700
+                  }}>
+                    ⏳ Cancelación en revisión
+                  </span>
+                )}
                 <FacturaPDF
                     orden={ordenFactura}
                     facturacion={
@@ -480,6 +559,94 @@ const OrdenCard = ({ orden: ordenInicial, index, isVendedor, token }) => {
                     label="Factura PDF"
                 />
             </div>
+
+            {modalCancelacion && (
+              <div style={{
+                position: 'fixed', inset: 0,
+                background: 'rgba(0,0,0,0.5)',
+                zIndex: 9999,
+                display: 'flex', alignItems: 'center', justifyContent: 'center',
+                padding: '1rem'
+              }}>
+                <div style={{
+                  background: '#fff',
+                  borderRadius: '1rem',
+                  padding: '1.5rem',
+                  width: '100%',
+                  maxWidth: '460px',
+                  boxShadow: '0 8px 30px rgba(0,0,0,0.18)'
+                }}>
+                  <h3 style={{ fontWeight: 900, color: '#111827', margin: '0 0 0.25rem' }}>
+                    Solicitar cancelación
+                  </h3>
+                  <p style={{ fontSize: '0.82rem', color: '#6b7280', margin: '0 0 1.25rem' }}>
+                    Tu solicitud será enviada al vendedor para que confirme la cancelación.
+                  </p>
+
+                  <label style={{ display: 'block', fontWeight: 700, fontSize: '0.82rem', color: '#374151', marginBottom: '0.4rem' }}>
+                    Motivo *
+                  </label>
+                  <select
+                    value={motivoCancelacion}
+                    onChange={e => setMotivoCancelacion(e.target.value)}
+                    style={{
+                      width: '100%', padding: '0.6rem 0.75rem',
+                      border: '1.5px solid #e5e7eb', borderRadius: '0.5rem',
+                      fontSize: '0.85rem', color: '#374151',
+                      marginBottom: '1rem', outline: 'none'
+                    }}
+                  >
+                    <option value="">Selecciona un motivo...</option>
+                    {MOTIVOS_CANCELACION.map(m => <option key={m} value={m}>{m}</option>)}
+                  </select>
+
+                  <label style={{ display: 'block', fontWeight: 700, fontSize: '0.82rem', color: '#374151', marginBottom: '0.4rem' }}>
+                    Detalle adicional (opcional)
+                  </label>
+                  <textarea
+                    value={detalleCancelacion}
+                    onChange={e => setDetalleCancelacion(e.target.value)}
+                    rows={3}
+                    placeholder="Agrega más contexto si lo necesitas..."
+                    style={{
+                      width: '100%', padding: '0.6rem 0.75rem',
+                      border: '1.5px solid #e5e7eb', borderRadius: '0.5rem',
+                      fontSize: '0.85rem', color: '#374151',
+                      resize: 'vertical', outline: 'none',
+                      marginBottom: '1.25rem',
+                      fontFamily: 'inherit',
+                      boxSizing: 'border-box'
+                    }}
+                  />
+
+                  <div style={{ display: 'flex', gap: '0.75rem', justifyContent: 'flex-end' }}>
+                    <button
+                      onClick={() => { setModalCancelacion(null); setMotivoCancelacion(''); setDetalleCancelacion(''); }}
+                      style={{
+                        padding: '0.55rem 1.1rem', borderRadius: '0.5rem',
+                        border: '1.5px solid #e5e7eb', background: '#fff',
+                        color: '#374151', fontWeight: 700, fontSize: '0.85rem', cursor: 'pointer'
+                      }}
+                    >
+                      Volver
+                    </button>
+                    <button
+                      onClick={enviarSolicitudCancelacion}
+                      disabled={!motivoCancelacion || enviandoCancelacion}
+                      style={{
+                        padding: '0.55rem 1.1rem', borderRadius: '0.5rem',
+                        border: 'none',
+                        background: enviandoCancelacion || !motivoCancelacion ? '#fca5a5' : '#dc2626',
+                        color: '#fff', fontWeight: 800, fontSize: '0.85rem',
+                        cursor: motivoCancelacion && !enviandoCancelacion ? 'pointer' : 'not-allowed'
+                      }}
+                    >
+                      {enviandoCancelacion ? 'Enviando...' : 'Enviar solicitud'}
+                    </button>
+                  </div>
+                </div>
+              </div>
+            )}
         </div>
     );
 };
@@ -494,26 +661,27 @@ const MisPedidos = () => {
     const isVendedor = user?.rol === 'vendedor';
     const isCliente  = user?.rol === 'cliente';
 
+    const fetchOrdenes = async () => {
+        if (!token) return;
+        try {
+            const url = `${import.meta.env.VITE_BACKEND_URL}/ordenes`;
+            const res = await fetch(url, {
+                headers: { Authorization: `Bearer ${token}` },
+            });
+            if (!res.ok) throw new Error("Error al cargar pedidos");
+            const data = await res.json();
+            const raw = Array.isArray(data) ? data : (data.ordenes ?? []);
+            // Más reciente primero
+            raw.sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt));
+            setOrdenes(raw);
+        } catch (e) {
+            toast.error(e.message || "No se pudieron cargar los pedidos.");
+        } finally {
+            setLoading(false);
+        }
+    };
+
     useEffect(() => {
-        const fetchOrdenes = async () => {
-            if (!token) return;
-            try {
-                const url = `${import.meta.env.VITE_BACKEND_URL}/ordenes`;
-                const res = await fetch(url, {
-                    headers: { Authorization: `Bearer ${token}` },
-                });
-                if (!res.ok) throw new Error("Error al cargar pedidos");
-                const data = await res.json();
-                const raw = Array.isArray(data) ? data : (data.ordenes ?? []);
-                // Más reciente primero
-                raw.sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt));
-                setOrdenes(raw);
-            } catch (e) {
-                toast.error(e.message || "No se pudieron cargar los pedidos.");
-            } finally {
-                setLoading(false);
-            }
-        };
         fetchOrdenes();
     }, [token]);
 
@@ -556,6 +724,7 @@ const MisPedidos = () => {
                                 index={ordenes.length - 1 - ((page - 1) * ITEMS_PER_PAGE + i)}
                                 isVendedor={isVendedor}
                                 token={token}
+                                fetchOrdenes={fetchOrdenes}
                             />
                         ))}
                         {totalPages > 1 && (

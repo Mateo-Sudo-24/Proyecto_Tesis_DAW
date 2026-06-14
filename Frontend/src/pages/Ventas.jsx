@@ -221,27 +221,53 @@ const Ventas = () => {
     const [filtroPago, setFiltroPago] = useState('');
     const [filtroTipo, setFiltroTipo] = useState('');
     const [page, setPage] = useState(1);
+    const [cancelandoOrden, setCancelandoOrden] = useState(null); // id de orden en proceso
+
+    const fetchOrdenes = async () => {
+        if (!token) return;
+        try {
+            const res = await fetch(`${import.meta.env.VITE_BACKEND_URL}/ordenes`, {
+                headers: { Authorization: `Bearer ${token}` },
+            });
+            if (!res.ok) throw new Error('Error al cargar ventas');
+            const data = await res.json();
+            const raw = Array.isArray(data) ? data : (data.ordenes ?? []);
+            raw.sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt));
+            setOrdenes(raw);
+        } catch (e) {
+            toast.error(e.message || 'No se pudieron cargar las ventas.');
+        } finally {
+            setLoading(false);
+        }
+    };
 
     useEffect(() => {
-        const fetchOrdenes = async () => {
-            if (!token) return;
-            try {
-                const res = await fetch(`${import.meta.env.VITE_BACKEND_URL}/ordenes`, {
-                    headers: { Authorization: `Bearer ${token}` },
-                });
-                if (!res.ok) throw new Error('Error al cargar ventas');
-                const data = await res.json();
-                const raw = Array.isArray(data) ? data : (data.ordenes ?? []);
-                raw.sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt));
-                setOrdenes(raw);
-            } catch (e) {
-                toast.error(e.message || 'No se pudieron cargar las ventas.');
-            } finally {
-                setLoading(false);
-            }
-        };
         fetchOrdenes();
     }, [token]);
+
+    const ejecutarCancelacion = async (ordenId) => {
+      setCancelandoOrden(ordenId);
+      try {
+        const res = await fetch(`${import.meta.env.VITE_BACKEND_URL}/ordenes/${ordenId}/cancelar-vendedor`, {
+          method: 'PATCH',
+          headers: {
+            'Content-Type': 'application/json',
+            Authorization: `Bearer ${token}`
+          }
+        });
+        if (res.ok) {
+          toast.success('Pedido cancelado y stock revertido correctamente.');
+          fetchOrdenes(); // refrescar lista
+        } else {
+          const data = await res.json();
+          toast.error(data.msg || 'Error al cancelar el pedido');
+        }
+      } catch {
+        toast.error('Error al cancelar el pedido');
+      } finally {
+        setCancelandoOrden(null);
+      }
+    };
 
     const filtered = ordenes.filter(o => {
         if (filtroEstado && o.estadoOrden !== filtroEstado) return false;
@@ -446,6 +472,7 @@ const Ventas = () => {
                                     <th>Estado</th>
                                     <th>Pago</th>
                                     <th>Total</th>
+                                    <th>Acción</th>
                                 </tr>
                             </thead>
                             <tbody>
@@ -463,9 +490,50 @@ const Ventas = () => {
                                             <td style={{ fontWeight:600 }}>{clienteNombre}</td>
                                             <td>{fecha}</td>
                                             <td><span style={{ fontSize:'0.75rem', color:'#6b7280', fontWeight:600 }}>{orden.tipoEntrega || 'N/D'}</span></td>
-                                            <td><span className={`vt-badge ${orden.estadoOrden}`}>{orden.estadoOrden}</span></td>
+                                            <td>
+                                                <span className={`vt-badge ${orden.estadoOrden}`}>{orden.estadoOrden}</span>
+                                                {orden.solicitudCancelacion?.solicitada && !orden.solicitudCancelacion?.resuelta && (
+                                                  <span style={{
+                                                    display: 'block',
+                                                    fontSize: '0.65rem',
+                                                    color: '#92400e',
+                                                    background: '#fef3c7',
+                                                    padding: '0.1rem 0.4rem',
+                                                    borderRadius: '999px',
+                                                    marginTop: '0.25rem',
+                                                    fontWeight: 700
+                                                  }}>
+                                                    ⚠️ Cancelación solicitada
+                                                  </span>
+                                                )}
+                                            </td>
                                             <td><span className={`vt-badge ${pagoEstado}`}>{pagoEstado}</span></td>
                                             <td style={{ fontWeight:800, color:'#e8760a' }}>${Number(total).toFixed(2)}</td>
+                                            <td>
+                                              {orden.solicitudCancelacion?.solicitada && !orden.solicitudCancelacion?.resuelta && orden.estadoOrden !== 'cancelado' ? (
+                                                <button
+                                                  onClick={() => ejecutarCancelacion(orden._id)}
+                                                  disabled={cancelandoOrden === orden._id}
+                                                  style={{
+                                                    padding: '0.35rem 0.75rem',
+                                                    borderRadius: '0.4rem',
+                                                    border: 'none',
+                                                    background: cancelandoOrden === orden._id ? '#fca5a5' : '#dc2626',
+                                                    color: '#fff',
+                                                    fontSize: '0.75rem',
+                                                    fontWeight: 800,
+                                                    cursor: cancelandoOrden === orden._id ? 'not-allowed' : 'pointer',
+                                                    whiteSpace: 'nowrap'
+                                                  }}
+                                                >
+                                                  {cancelandoOrden === orden._id ? 'Cancelando…' : '✕ Confirmar cancelación'}
+                                                </button>
+                                              ) : orden.estadoOrden === 'cancelado' ? (
+                                                <span style={{ fontSize:'0.72rem', color:'#9ca3af', fontWeight:600 }}>Cancelado</span>
+                                              ) : (
+                                                <span style={{ fontSize:'0.72rem', color:'#d1d5db' }}>—</span>
+                                              )}
+                                            </td>
                                         </tr>
                                     );
                                 })}

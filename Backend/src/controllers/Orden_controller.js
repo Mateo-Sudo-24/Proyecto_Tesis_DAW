@@ -843,135 +843,120 @@ const eliminarOrden = async (req, res) => {
 };
 
 // POST /api/ordenes/:id/solicitar-cancelacion
-// Solicitar cancelación de orden (Cliente o Vendedor)
+// Solicitar cancelación de orden (Cliente)
 const solicitarCancelacion = async (req, res) => {
-  const { id } = req.params;
-  const { rol, _id } = req.usuario;
-  const { razon } = req.body;
-
-  if (!mongoose.Types.ObjectId.isValid(id)) return res.status(400).json({ msg: "ID de orden no válido." });
-  if (!razon || razon.trim().length === 0) {
-    return res.status(400).json({ msg: "La razón de cancelación es obligatoria." });
-  }
-
   try {
-    const orden = await Orden.findById(id);
-    if (!orden) return res.status(404).json({ msg: "Orden no encontrada." });
+    const { id } = req.params;
+    const { motivo, detalleAdicional } = req.body;
+    const clienteId = req.usuario._id;
 
-    // Validar: Cliente solo puede solicitar cancelación de sus propias órdenes
-    if (rol === 'cliente' && orden.cliente.toString() !== _id.toString()) {
-      return res.status(403).json({ msg: "No tienes permiso para solicitar cancelación de esta orden." });
-    }
+    const orden = await Orden.findById(id).populate('cliente', 'nombre apellido');
+    if (!orden) return res.status(404).json({ msg: 'Pedido no encontrado' });
+    if (!orden.cliente._id.equals(clienteId))
+      return res.status(403).json({ msg: 'No autorizado' });
+    if (!['pendiente', 'procesando'].includes(orden.estadoOrden))
+      return res.status(400).json({ msg: 'Este pedido no puede cancelarse en su estado actual' });
+    if (orden.solicitudCancelacion?.solicitada)
+      return res.status(400).json({ msg: 'Ya existe una solicitud de cancelación pendiente' });
 
-    // Validar: No se puede cancelar orden ya completada/entregada/cancelada
-    if (['entregado', 'completado', 'cancelado'].includes(orden.estadoOrden)) {
-      return res.status(400).json({ msg: `No se puede cancelar una orden en estado '${orden.estadoOrden}'.` });
-    }
-
-    // Validar: No puede haber otra solicitud de cancelación pendiente
-    if (orden.solicitudCancelacion.estado === 'pendiente') {
-      return res.status(400).json({ msg: "Ya existe una solicitud de cancelación pendiente para esta orden." });
-    }
-
-    // Crear solicitud de cancelación
     orden.solicitudCancelacion = {
-      estado: 'pendiente',
-      solicitadoEn: new Date(),
-      solicitadoPor: rol,
-      razon: razon.trim()
+      solicitada: true,
+      motivo,
+      detalleAdicional: detalleAdicional || '',
+      fechaSolicitud: new Date(),
+      resuelta: false
     };
-
     await orden.save();
-    res.status(200).json({ msg: "Solicitud de cancelación creada. Aguardando respuesta...", orden });
+
+    // Notificación al vendedor asignado
+    const vendedorId = orden.vendedor;
+    if (vendedorId) {
+      await Notificacion.crearConCifrado({
+        vendedor: vendedorId,
+        tipo: 'solicitud_cancelacion',
+        mensaje: `❌ El cliente ${orden.cliente.nombre} ${orden.cliente.apellido} solicita cancelar el pedido #${orden._id.toString().slice(-8).toUpperCase()}. Motivo: ${motivo}`,
+        leida: false,
+        estadoGestion: 'pendiente',
+        metadatos: { timestamp: new Date() }
+      });
+
+      // Emitir por socket al vendedor si está conectado
+      const io = req.app.get('io');
+      if (io) {
+        io.to(vendedorId.toString()).emit('nueva-notificacion', {
+          tipo: 'solicitud_cancelacion',
+          mensaje: `Solicitud de cancelación del pedido #${orden._id.toString().slice(-8).toUpperCase()}`,
+          ordenId: orden._id
+        });
+      }
+    }
+
+    res.json({ msg: 'Solicitud de cancelación enviada al vendedor', orden });
   } catch (error) {
-    console.error("Error al solicitar cancelación:", error);
-    res.status(500).json({ msg: "Error al solicitar cancelación de la orden." });
+    console.error('Error al solicitar cancelación:', error);
+    res.status(500).json({ msg: 'Error del servidor' });
   }
 };
 
-// POST /api/ordenes/:id/aprobar-cancelacion
-// Aprobar cancelación de orden (El otro rol aprueba)
-const aprobarCancelacion = async (req, res) => {
-  const { id } = req.params;
-  const { rol, _id } = req.usuario;
-
-  if (!mongoose.Types.ObjectId.isValid(id)) return res.status(400).json({ msg: "ID de orden no válido." });
-
+// PATCH /api/ordenes/:id/cancelar-vendedor
+// Vendedor ejecuta la cancelación
+const cancelarOrdenVendedor = async (req, res) => {
   try {
-    const orden = await Orden.findById(id);
-    if (!orden) return res.status(404).json({ msg: "Orden no encontrada." });
+    const { id } = req.params;
+    const vendedorId = req.usuario._id;
 
-    // Validar: Hay una solicitud pendiente
-    if (orden.solicitudCancelacion.estado !== 'pendiente') {
-      return res.status(400).json({ msg: "No hay solicitud de cancelación pendiente para esta orden." });
+    const orden = await Orden.findById(id)
+      .populate('cliente', 'nombre apellido email')
+      .populate('productoPedido.producto', 'nombre stock metrosDisponibles metrosPorRollo');
+
+    if (!orden) return res.status(404).json({ msg: 'Pedido no encontrado' });
+    if (orden.estadoOrden === 'cancelado')
+      return res.status(400).json({ msg: 'El pedido ya está cancelado' });
+
+    // Revertir stock de cada ítem (productoPedido en lugar de items)
+    for (const item of orden.productoPedido) {
+      const producto = item.producto;
+      if (!producto) continue;
+      if (item.unidadSeleccionada === 'rollo') {
+        producto.stock = (producto.stock || 0) + item.cantidad;
+      } else {
+        // metros: devolver metros disponibles
+        const metrosADevolver = item.cantidad;
+        producto.metrosDisponibles = (producto.metrosDisponibles || 0) + metrosADevolver;
+      }
+      await producto.save();
     }
 
-    // Validar: Solo puede aprobar quien NO hizo la solicitud
-    if (orden.solicitudCancelacion.solicitadoPor === rol) {
-      return res.status(403).json({ msg: "No puedes aprobar tu propia solicitud de cancelación." });
-    }
-
-    // Validar: Si es cliente, solo aprueba si vendedor solicitó
-    if (rol === 'cliente' && orden.cliente.toString() !== _id.toString()) {
-      return res.status(403).json({ msg: "No tienes permiso para responder a esta solicitud de cancelación." });
-    }
-
-    // Aprobar cancelación
-    orden.solicitudCancelacion.estado = 'aprobada';
-    orden.solicitudCancelacion.aprobadoPor = rol;
-    orden.solicitudCancelacion.respondidoEn = new Date();
     orden.estadoOrden = 'cancelado';
-
+    if (orden.solicitudCancelacion) {
+        orden.solicitudCancelacion.resuelta = true;
+    }
     await orden.save();
-    res.status(200).json({ msg: "Cancelación aprobada. Orden cancela.", orden });
+
+    // Notificación al cliente
+    if (orden.cliente?._id) {
+      await Notificacion.crearConCifrado({
+        cliente: orden.cliente._id,
+        tipo: 'orden_cancelada',
+        mensaje: `Tu pedido #${orden._id.toString().slice(-8).toUpperCase()} ha sido cancelado. ${orden.solicitudCancelacion?.motivo ? 'Motivo: ' + orden.solicitudCancelacion.motivo : ''}`,
+        leida: false,
+        estadoGestion: 'completado',
+        metadatos: { timestamp: new Date() }
+      });
+    }
+
+    // Socket al cliente
+    const io = req.app.get('io');
+    if (io) {
+      io.to(orden.cliente._id.toString()).emit('pedido-cancelado', {
+        ordenId: orden._id
+      });
+    }
+
+    res.json({ msg: 'Pedido cancelado correctamente', orden });
   } catch (error) {
-    console.error("Error al aprobar cancelación:", error);
-    res.status(500).json({ msg: "Error al aprobar cancelación de la orden." });
-  }
-};
-
-// POST /api/ordenes/:id/rechazar-cancelacion
-// Rechazar cancelación de orden (El otro rol rechaza)
-const rechazarCancelacion = async (req, res) => {
-  const { id } = req.params;
-  const { rol, _id } = req.usuario;
-  const { motivo } = req.body;
-
-  if (!mongoose.Types.ObjectId.isValid(id)) return res.status(400).json({ msg: "ID de orden no válido." });
-  if (!motivo || motivo.trim().length === 0) {
-    return res.status(400).json({ msg: "El motivo del rechazo es obligatorio." });
-  }
-
-  try {
-    const orden = await Orden.findById(id);
-    if (!orden) return res.status(404).json({ msg: "Orden no encontrada." });
-
-    // Validar: Hay una solicitud pendiente
-    if (orden.solicitudCancelacion.estado !== 'pendiente') {
-      return res.status(400).json({ msg: "No hay solicitud de cancelación pendiente para esta orden." });
-    }
-
-    // Validar: Solo puede rechazar quien NO hizo la solicitud
-    if (orden.solicitudCancelacion.solicitadoPor === rol) {
-      return res.status(403).json({ msg: "No puedes rechazar tu propia solicitud de cancelación." });
-    }
-
-    // Validar: Si es cliente, solo rechaza si vendedor solicitó
-    if (rol === 'cliente' && orden.cliente.toString() !== _id.toString()) {
-      return res.status(403).json({ msg: "No tienes permiso para responder a esta solicitud de cancelación." });
-    }
-
-    // Rechazar cancelación
-    orden.solicitudCancelacion.estado = 'rechazada';
-    orden.solicitudCancelacion.aprobadoPor = rol;
-    orden.solicitudCancelacion.motivoRechazo = motivo.trim();
-    orden.solicitudCancelacion.respondidoEn = new Date();
-
-    await orden.save();
-    res.status(200).json({ msg: "Cancelación rechazada. Orden se mantiene activa.", orden });
-  } catch (error) {
-    console.error("Error al rechazar cancelación:", error);
-    res.status(500).json({ msg: "Error al rechazar cancelación de la orden." });
+    console.error('Error al cancelar orden:', error);
+    res.status(500).json({ msg: 'Error del servidor' });
   }
 };
 
@@ -1153,6 +1138,5 @@ export {
   registrarOrdenPagadaTarjeta,
   reporteVentas,
   solicitarCancelacion,
-  aprobarCancelacion,
-  rechazarCancelacion
+  cancelarOrdenVendedor
 };

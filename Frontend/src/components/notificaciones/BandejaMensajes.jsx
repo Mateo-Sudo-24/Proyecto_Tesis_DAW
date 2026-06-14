@@ -16,6 +16,7 @@ const TITULOS_NOTIF = {
   confirmacion_pedido: '✅ Confirmación de Pedido',
   pago_completado: '💳 Pago Recibido',
   mensaje_chat: '💬 Nuevo Mensaje',
+  solicitud_cancelacion: '❌ Solicitud de Cancelación',
 };
 
 export default function BandejaMensajes() {
@@ -96,8 +97,15 @@ export default function BandejaMensajes() {
     return () => document.removeEventListener("mousedown", handleClickOutside);
   }, []);
 
-  const handleNotifClick = () => {
-    navigate('/dashboard/notificaciones');
+  const handleNotifClick = (notif) => {
+    const rol = getRol();
+    if (rol === 'vendedor') {
+      // Vendedores solo van a ventas para cancelaciones, o se quedan en el dashboard para stock
+      const destino = notif?.tipo === 'solicitud_cancelacion' ? '/dashboard/ventas' : '/dashboard';
+      navigate(destino);
+    } else {
+      navigate('/dashboard/notificaciones');
+    }
     setPanelAbierto(false);
   };
 
@@ -139,7 +147,7 @@ export default function BandejaMensajes() {
                 size="sm"
                 color="blue"
                 className="capitalize"
-                onClick={handleNotifClick}
+                onClick={() => handleNotifClick(null)}
               >
                 Ver todas →
               </Button>
@@ -157,7 +165,7 @@ export default function BandejaMensajes() {
                 <Card
                   key={notif._id}
                   className={`shadow-none border border-gray-100 cursor-pointer hover:bg-gray-50 transition-colors ${!notif.leida ? 'bg-blue-50/30' : ''}`}
-                  onClick={handleNotifClick}
+                  onClick={() => handleNotifClick(notif)}
                 >
                   <CardBody className="p-3">
                     <div className="flex justify-between items-start mb-1">

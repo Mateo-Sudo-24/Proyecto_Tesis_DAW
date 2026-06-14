@@ -10,8 +10,7 @@ import {
   registrarOrdenPagadaTarjeta,
   reporteVentas,
   solicitarCancelacion,
-  aprobarCancelacion,
-  rechazarCancelacion
+  cancelarOrdenVendedor
 } from "../controllers/Orden_controller.js";
 import { verificarTokenJWT } from '../middlewares/JWT.js';
 import { esAdmin, esVendedor } from '../middlewares/AuthMiddleware.js';
@@ -39,11 +38,9 @@ router.patch('/:id', esVendedor, actualizarEstadoOrden);
 router.delete('/:id', esAdmin, eliminarOrden);
 
 // --- RUTAS DE CANCELACIÓN DE ÓRDENES ---
-// Solicitar cancelación (cliente o vendedor)
-router.post('/:id/solicitar-cancelacion', solicitarCancelacion);
-// Aprobar cancelación (el otro rol aprueba)
-router.post('/:id/aprobar-cancelacion', aprobarCancelacion);
-// Rechazar cancelación (el otro rol rechaza)
-router.post('/:id/rechazar-cancelacion', rechazarCancelacion);
+// Solicitar cancelación (cliente)
+router.post('/:id/solicitar-cancelacion', esCliente, solicitarCancelacion);
+// Vendedor ejecuta
+router.patch('/:id/cancelar-vendedor', esVendedor, cancelarOrdenVendedor);
 
 export default router;
