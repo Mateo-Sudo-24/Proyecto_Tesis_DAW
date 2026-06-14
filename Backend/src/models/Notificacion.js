@@ -39,7 +39,7 @@ const NotificacionSchema = new mongoose.Schema({
   administrador: { type: mongoose.Schema.Types.ObjectId, ref: 'Administrador', default: null },
   vendedor: { type: mongoose.Schema.Types.ObjectId, ref: 'Vendedor', default: null },
   cliente: { type: mongoose.Schema.Types.ObjectId, ref: 'Cliente', default: null },
-  tipo: { type: String, default: 'stock_critico', enum: ['stock_critico', 'orden_creada', 'pago_completado', 'envio_listo', 'solicitud_cancelacion', 'confirmacion_pedido', 'mensaje_chat'] },
+  tipo: { type: String, default: 'stock_critico', enum: ['stock_critico', 'orden_creada', 'pago_completado', 'envio_listo', 'solicitud_cancelacion', 'confirmacion_pedido', 'mensaje_chat', 'producto_reabastecido'] },
   mensaje: { type: String, required: true },
   mensajeCifrado: { type: String, default: null }, // Almacena mensaje cifrado
   productos: [{ 
@@ -61,8 +61,6 @@ const NotificacionSchema = new mongoose.Schema({
     timestamp: { type: Date, default: Date.now }
   }
 }, { timestamps: true });
-
-NotificacionSchema.path('tipo').enum('producto_reabastecido');
 
 // Middleware pre-save para cifrar datos sensibles
 NotificacionSchema.pre('save', function (next) {
