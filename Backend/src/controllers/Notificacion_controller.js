@@ -102,10 +102,11 @@ export const obtenerNotificaciones = async (req, res) => {
   }
   
   try {
+    const limite = parseInt(req.query.limite) || 0;
     // Admin solo ve sus propias notificaciones
     const notifs = await Notificacion.find({ administrador: _id })
       .sort({ createdAt: -1 })
-      .limit(200);
+      .limit(limite || 200);
     
     // Descifrar datos sensibles antes de enviar
     const notifsDescifradas = notifs.map(n => {
@@ -378,7 +379,7 @@ export const obtenerNotificacionesNoLeidasWebhook = async (req, res) => {
 // ✅ Obtener notificaciones APROBADAS pendientes de procesar (polling n8n - SIN JWT)
 export const obtenerAprobadasPendientesWebhook = async (req, res) => {
   try {
-    const notifs = await Notificacion.find({ estadoGestion: 'aprobado' })
+    const notifs = await Notificacion.find({ estadoGestion: 'completado' })
       .sort({ createdAt: -1 })
       .limit(200);
 
@@ -432,7 +433,7 @@ export const aprobarPedido = async (req, res) => {
       return res.status(403).json({ ok: false, msg: 'No tienes permiso para gestionar esta notificación' });
     }
 
-    await Notificacion.findByIdAndUpdate(id, { estadoGestion: 'aprobado', leida: true });
+    await Notificacion.findByIdAndUpdate(id, { estadoGestion: 'completado', leida: true });
 
     // Notificar a todos los vendedores activos que la reposición fue aprobada
     try {
@@ -533,9 +534,10 @@ export const obtenerNotificacionesVendedor = async (req, res) => {
     return res.status(403).json({ msg: 'Acceso denegado. Solo vendedores.' });
   }
   try {
+    const limite = parseInt(req.query.limite) || 0;
     const notifs = await Notificacion.find({ vendedor: _id })
       .sort({ createdAt: -1 })
-      .limit(200);
+      .limit(limite || 200);
     const notifsDescifradas = notifs.map(n => {
       const decrypted = n.descifrarDatos();
       return { ...n.toObject(), mensaje: decrypted.mensaje, productos: decrypted.productos };
