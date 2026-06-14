@@ -1,27 +1,181 @@
 import { useEffect, useState, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
-import {
-  Card,
-  CardBody,
-  CardFooter,
-  Typography,
-  Button,
-  Badge,
-} from "@material-tailwind/react";
 
-const TITULOS_NOTIF = {
-  stock_critico: '⚠️ Stock Crítico',
-  producto_reabastecido: '📦 Producto Reabastecido',
-  orden_creada: '🛒 Nuevo Pedido',
-  confirmacion_pedido: '✅ Confirmación de Pedido',
-  pago_completado: '💳 Pago Recibido',
-  mensaje_chat: '💬 Nuevo Mensaje',
-  solicitud_cancelacion: '❌ Solicitud de Cancelación',
+const bmStyles = `
+.bm-wrap {
+  position: relative;
+  display: inline-flex;
+  align-items: center;
+}
+.bm-btn {
+  position: relative;
+  width: 38px;
+  height: 38px;
+  border-radius: 50%;
+  border: none;
+  background: rgba(255,255,255,0.08);
+  color: #fff;
+  font-size: 1.1rem;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: background 0.18s;
+}
+.bm-btn:hover { background: rgba(255,255,255,0.18); }
+.bm-badge {
+  position: absolute;
+  top: -4px;
+  right: -4px;
+  min-width: 17px;
+  height: 17px;
+  background: #e8760a;
+  color: #fff;
+  font-size: 0.62rem;
+  font-weight: 800;
+  border-radius: 999px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 0 3px;
+  border: 2px solid #1f2937;
+  pointer-events: none;
+  z-index: 2;
+}
+.bm-panel {
+  position: absolute;
+  top: calc(100% + 10px);
+  right: 0;
+  width: 340px;
+  max-height: 480px;
+  overflow-y: auto;
+  background: #fff;
+  border: 1px solid #e5e7eb;
+  border-radius: 0.875rem;
+  box-shadow: 0 8px 30px rgba(0,0,0,0.13);
+  z-index: 9999;
+}
+.bm-panel-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 0.875rem 1rem 0.6rem;
+  border-bottom: 1px solid #f3f4f6;
+}
+.bm-panel-title {
+  font-size: 0.9rem;
+  font-weight: 800;
+  color: #111827;
+  margin: 0;
+}
+.bm-ver-todas {
+  font-size: 0.75rem;
+  color: #e8760a;
+  font-weight: 700;
+  background: none;
+  border: none;
+  cursor: pointer;
+  padding: 0;
+}
+.bm-ver-todas:hover { text-decoration: underline; }
+.bm-item {
+  display: flex;
+  align-items: flex-start;
+  gap: 0.65rem;
+  padding: 0.75rem 1rem;
+  border-bottom: 1px solid #f9fafb;
+  cursor: pointer;
+  transition: background 0.15s;
+}
+.bm-item:hover { background: #fffbeb; }
+.bm-item:last-child { border-bottom: none; }
+.bm-item-icon {
+  width: 34px;
+  height: 34px;
+  border-radius: 50%;
+  background: #f3f4f6;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 1rem;
+  flex-shrink: 0;
+}
+.bm-item-content { flex: 1; min-width: 0; }
+.bm-item-titulo {
+  font-size: 0.78rem;
+  font-weight: 700;
+  color: #111827;
+  margin: 0 0 0.15rem;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.bm-item-msg {
+  font-size: 0.72rem;
+  color: #6b7280;
+  margin: 0;
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+}
+.bm-item-fecha {
+  font-size: 0.65rem;
+  color: #9ca3af;
+  margin: 0.2rem 0 0;
+}
+.bm-unread-dot {
+  width: 7px;
+  height: 7px;
+  border-radius: 50%;
+  background: #e8760a;
+  flex-shrink: 0;
+  margin-top: 4px;
+}
+.bm-empty {
+  padding: 2rem 1rem;
+  text-align: center;
+  color: #9ca3af;
+  font-size: 0.82rem;
+}
+`;
+
+/* ── Helpers Compartidos ────────────────────────────────────────── */
+const esNotifInfo = (n) =>
+  n.tipo === 'pago_completado' || n.tipo === 'mensaje_chat';
+
+const clasificarNotif = (n) => {
+  if (n.tipo === 'pago_completado') return 'pago';
+  if (n.tipo === 'mensaje_chat') return 'chat';
+  if (n.tipo === 'producto_reabastecido') return 'info';
+  return 'automatizacion';
 };
+
+const tituloSegunTipo = (n) => ({
+  stock_critico:          'Stock Crítico',
+  producto_reabastecido:  'Producto Reabastecido',
+  orden_creada:           'Nuevo Pedido',
+  confirmacion_pedido:    'Confirmación de Pedido',
+  pago_completado:        'Pago Recibido (Stripe)',
+  mensaje_chat:           'Nuevo Mensaje',
+  solicitud_cancelacion:  'Solicitud de Cancelación',
+  orden_cancelada:        'Pedido Cancelado',
+})[n.tipo] || 'Notificación';
+
+const iconoNotif = (n) => ({
+  stock_critico:         '⚠️',
+  producto_reabastecido: '📦',
+  orden_creada:          '🛒',
+  confirmacion_pedido:   '✅',
+  pago_completado:       '💳',
+  mensaje_chat:          '💬',
+  solicitud_cancelacion: '❌',
+  orden_cancelada:       '🚫',
+})[n.tipo] || '🔔';
 
 export default function BandejaMensajes() {
   const navigate = useNavigate();
-  const [notificaciones, setNotificaciones] = useState([]);
+  const [notifs, setNotifs] = useState([]);
   const [totalNoLeidas, setTotalNoLeidas] = useState(0);
   const [panelAbierto, setPanelAbierto] = useState(false);
   const panelRef = useRef(null);
@@ -42,13 +196,11 @@ export default function BandejaMensajes() {
     }
   };
 
-  const fetchNotificaciones = async () => {
+  const fetchNotifs = async () => {
     try {
       const token = getToken();
       if (!token) return;
       const rol = getRol();
-
-      // Solo administrador y vendedor ven estas notificaciones según el requerimiento
       if (rol !== 'administrador' && rol !== 'vendedor') return;
 
       const endpoint = rol === 'vendedor'
@@ -58,32 +210,19 @@ export default function BandejaMensajes() {
       const res = await fetch(endpoint, {
         headers: { Authorization: `Bearer ${token}` }
       });
-
       if (!res.ok) return;
       const data = await res.json();
       const list = Array.isArray(data) ? data : data.notificaciones || [];
-      setNotificaciones(list);
-
-      // Para el badge, necesitamos el conteo total de no leídas,
-      // pero el endpoint con limite=6 solo nos da las últimas 6.
-      // Si queremos el conteo real, deberíamos tener un endpoint de conteo o traer todas.
-      // El PASO 1 dice: "Badge en la campana: conteo de notificaciones con leida === false"
-      // "Polling cada 15 segundos para actualizar badge y lista"
-      // Asumiremos que el badge se basa en lo que recibimos o el backend debería proveer el total.
-      // En Notificacion_controller.js, obtenerNotificaciones no devuelve el total de no leídas.
-      // Pero obtenerNotificacionesNoLeidas sí lo hace.
-      // Sin embargo, el requerimiento pide usar ?limite=6 en los endpoints de admin/vendedor.
-
-      const unread = list.filter(n => !n.leida).length;
-      setTotalNoLeidas(unread);
+      setNotifs(list);
+      setTotalNoLeidas(list.filter(n => !n.leida).length);
     } catch (err) {
       console.error("Error fetching notifications:", err);
     }
   };
 
   useEffect(() => {
-    fetchNotificaciones();
-    const id = setInterval(fetchNotificaciones, 15000);
+    fetchNotifs();
+    const id = setInterval(fetchNotifs, 15000);
     return () => clearInterval(id);
   }, []);
 
@@ -97,99 +236,52 @@ export default function BandejaMensajes() {
     return () => document.removeEventListener("mousedown", handleClickOutside);
   }, []);
 
-  const handleNotifClick = (notif) => {
-    const rol = getRol();
-    if (rol === 'vendedor') {
-      // Vendedores solo van a ventas para cancelaciones, o se quedan en el dashboard para stock
-      const destino = notif?.tipo === 'solicitud_cancelacion' ? '/dashboard/ventas' : '/dashboard';
-      navigate(destino);
-    } else {
-      navigate('/dashboard/notificaciones');
-    }
-    setPanelAbierto(false);
-  };
-
   const rol = getRol();
   if (rol !== 'administrador' && rol !== 'vendedor') return null;
 
   return (
-    <div className="relative inline-block" ref={panelRef}>
-      {/* Botón Campana */}
-      <div className="relative cursor-pointer p-2 rounded-full hover:bg-white/10 transition-colors"
-           onClick={() => setPanelAbierto(!panelAbierto)}>
-        <span className="text-xl text-white">🔔</span>
+    <div className="bm-wrap" ref={panelRef}>
+      <style>{bmStyles}</style>
+      <button className="bm-btn" onClick={() => setPanelAbierto(!panelAbierto)}>
+        🔔
         {totalNoLeidas > 0 && (
-          <span className="absolute top-0 right-0 bg-orange-600 text-white text-[10px] font-bold px-1.5 py-0.5 rounded-full border-2 border-[#1f2937]">
-            {totalNoLeidas > 9 ? '9+' : totalNoLeidas}
-          </span>
+          <span className="bm-badge">{totalNoLeidas > 9 ? '9+' : totalNoLeidas}</span>
         )}
-      </div>
+      </button>
 
-      {/* Panel Desplegable */}
       {panelAbierto && (
-        <div
-          className="absolute top-[110%] right-0 w-[380px] max-h-[520px] overflow-y-auto z-50 bg-white border border-gray-200 rounded-xl shadow-2xl flex flex-col"
-          style={{ boxShadow: '0 8px 30px rgba(0,0,0,0.12)' }}
-        >
-          {/* Header */}
-          <div className="p-4 border-b border-gray-100 flex items-center justify-between sticky top-0 bg-white z-10">
-            <div className="flex items-center gap-2">
-              <Typography variant="h6" color="blue-gray">Notificaciones</Typography>
-              {totalNoLeidas > 0 && (
-                <span className="bg-orange-100 text-orange-800 text-xs font-bold px-2 py-0.5 rounded-full">
-                  {totalNoLeidas} nuevas
-                </span>
-              )}
-            </div>
+        <div className="bm-panel">
+          <div className="bm-panel-header">
+            <p className="bm-panel-title">Notificaciones</p>
             {rol === 'administrador' && (
-              <Button
-                variant="text"
-                size="sm"
-                color="blue"
-                className="capitalize"
-                onClick={() => handleNotifClick(null)}
-              >
+              <button className="bm-ver-todas" onClick={() => { navigate('/dashboard/notificaciones'); setPanelAbierto(false); }}>
                 Ver todas →
-              </Button>
+              </button>
             )}
           </div>
 
-          {/* Lista de Notificaciones */}
-          <div className="p-2 space-y-2">
-            {notificaciones.length === 0 ? (
-              <div className="p-8 text-center text-gray-500">
-                <Typography variant="small">No hay notificaciones recientes</Typography>
+          {notifs.length === 0 ? (
+            <div className="bm-empty">Sin notificaciones recientes</div>
+          ) : (
+            notifs.map(n => (
+              <div
+                key={n._id}
+                className="bm-item"
+                onClick={() => {
+                  navigate(rol === 'administrador' ? '/dashboard/notificaciones' : '/dashboard/ventas');
+                  setPanelAbierto(false);
+                }}
+              >
+                <div className="bm-item-icon">{iconoNotif(n)}</div>
+                <div className="bm-item-content">
+                  <p className="bm-item-titulo">{tituloSegunTipo(n)}</p>
+                  <p className="bm-item-msg">{n.mensaje}</p>
+                  <p className="bm-item-fecha">{new Date(n.createdAt).toLocaleString('es-ES')}</p>
+                </div>
+                {!n.leida && <span className="bm-unread-dot" />}
               </div>
-            ) : (
-              notificaciones.map((notif) => (
-                <Card
-                  key={notif._id}
-                  className={`shadow-none border border-gray-100 cursor-pointer hover:bg-gray-50 transition-colors ${!notif.leida ? 'bg-blue-50/30' : ''}`}
-                  onClick={() => handleNotifClick(notif)}
-                >
-                  <CardBody className="p-3">
-                    <div className="flex justify-between items-start mb-1">
-                      <Typography variant="h6" color="blue-gray" className="text-sm">
-                        {TITULOS_NOTIF[notif.tipo] || '🔔 Notificación'}
-                      </Typography>
-                      {!notif.leida && <div className="w-2 h-2 bg-orange-500 rounded-full mt-1.5" />}
-                    </div>
-                    <Typography className="text-xs text-gray-600 line-clamp-2">
-                      {notif.mensaje}
-                    </Typography>
-                  </CardBody>
-                  <CardFooter className="p-3 pt-0 flex justify-between items-center">
-                    <Typography variant="small" className="text-[10px] text-gray-400">
-                      {new Date(notif.createdAt).toLocaleString('es-ES', { hour: '2-digit', minute: '2-digit' })}
-                    </Typography>
-                    <Button size="sm" variant="text" className="p-0 h-auto text-[10px] lowercase font-bold flex items-center gap-1">
-                      Ver detalle <span className="text-xs">→</span>
-                    </Button>
-                  </CardFooter>
-                </Card>
-              ))
-            )}
-          </div>
+            ))
+          )}
         </div>
       )}
     </div>
