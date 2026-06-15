@@ -883,7 +883,7 @@ const solicitarCancelacion = async (req, res) => {
       // Emitir por socket al vendedor si está conectado
       const io = req.app.get('io');
       if (io) {
-        io.to(vendedorId.toString()).emit('nueva-notificacion', {
+        io.to(`vendedor-${vendedorId}`).emit('nueva-notificacion', {
           tipo: 'solicitud_cancelacion',
           mensaje: `Solicitud de cancelación del pedido #${orden._id.toString().slice(-8).toUpperCase()}`,
           ordenId: orden._id
@@ -948,7 +948,7 @@ const cancelarOrdenVendedor = async (req, res) => {
     // Socket al cliente
     const io = req.app.get('io');
     if (io) {
-      io.to(orden.cliente._id.toString()).emit('pedido-cancelado', {
+      io.to(`cliente-${orden.cliente._id}`).emit('pedido-cancelado', {
         ordenId: orden._id
       });
     }
