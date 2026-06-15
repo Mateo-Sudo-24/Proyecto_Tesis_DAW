@@ -55,6 +55,12 @@ const NotificacionSchema = new mongoose.Schema({
   leida: { type: Boolean, default: false },
   bandejaEnviada: { type: Boolean, default: false },
   estadoGestion: { type: String, enum: ['pendiente', 'aprobado', 'rechazado', 'completado'], default: 'pendiente' },
+  remitenteId: { type: String, default: null },
+  clienteId:   { type: String, default: null },
+  datos: {
+    type: mongoose.Schema.Types.Mixed,
+    default: {}
+  },
   metadatos: {
     ipOrigen: String,
     userAgent: String,

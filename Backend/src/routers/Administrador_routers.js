@@ -56,5 +56,19 @@ router.post('/perfil/verificar-password', verificarTokenJWT, esAdmin, verificarP
 // GET /api/admin/usuarios-chat -> Todos los usuarios verificados para el chat
 router.get('/usuarios-chat', verificarTokenJWT, esVendedor, obtenerUsuariosChat);
 
+// GET /api/admin/admin-principal -> Devuelve el primer administrador activo
+router.get('/admin-principal', verificarTokenJWT, async (req, res) => {
+  try {
+    const Administrador = (await import('../models/Administrador.js')).default;
+    const admin = await Administrador.findOne({ status: true })
+      .select('_id nombre apellido email image')
+      .lean();
+    if (!admin) return res.status(404).json({ msg: 'No hay administrador activo' });
+    res.json(admin);
+  } catch (e) {
+    res.status(500).json({ msg: 'Error del servidor' });
+  }
+});
+
 
 export default router;

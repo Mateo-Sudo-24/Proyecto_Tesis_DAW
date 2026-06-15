@@ -236,6 +236,62 @@ export default function BandejaMensajes() {
     return () => document.removeEventListener("mousedown", handleClickOutside);
   }, []);
 
+  const getDestinoNotif = (notif) => {
+    if (!notif) return '/dashboard/ventas';
+
+    // Stock → chat con admin
+    if (notif.tipo === 'stock_critico' || notif.tipo === 'producto_reabastecido') {
+      return '/dashboard/chat?destinatario=admin';
+    }
+
+    // Mensaje de cliente → chat con ese cliente
+    if (notif.tipo === 'mensaje_chat') {
+      const clienteId = notif.remitenteId || notif.clienteId || notif.datos?.clienteId || null;
+      if (clienteId) {
+        return `/dashboard/chat?clienteId=${clienteId}`;
+      }
+      return '/dashboard/chat';
+    }
+
+    // Cancelación → ventas
+    if (notif.tipo === 'solicitud_cancelacion') {
+      return '/dashboard/ventas';
+    }
+
+    return '/dashboard/ventas';
+  };
+
+  const handleClickNotif = async (notif) => {
+    const rol = getRol();
+    const destino = rol === 'administrador'
+      ? '/dashboard/notificaciones'
+      : getDestinoNotif(notif);
+
+    navigate(destino);
+    setPanelAbierto(false);
+
+    if (notif && !notif.leida) {
+      try {
+        const token = getToken();
+        const endpoint = rol === 'vendedor'
+          ? `${import.meta.env.VITE_BACKEND_URL}/notificaciones/vendedor/${notif._id}/leida`
+          : `${import.meta.env.VITE_BACKEND_URL}/notificaciones/${notif._id}/leida`;
+
+        await fetch(endpoint, {
+          method: 'PATCH',
+          headers: { Authorization: `Bearer ${token}` }
+        });
+
+        setNotifs(prev => prev.map(n =>
+          n._id === notif._id ? { ...n, leida: true } : n
+        ));
+        setTotalNoLeidas(prev => Math.max(0, prev - 1));
+      } catch (err) {
+        console.error("Error marking notification as read:", err);
+      }
+    }
+  };
+
   const rol = getRol();
   if (rol !== 'administrador' && rol !== 'vendedor') return null;
 
@@ -267,10 +323,7 @@ export default function BandejaMensajes() {
               <div
                 key={n._id}
                 className="bm-item"
-                onClick={() => {
-                  navigate(rol === 'administrador' ? '/dashboard/notificaciones' : '/dashboard/ventas');
-                  setPanelAbierto(false);
-                }}
+                onClick={() => handleClickNotif(n)}
               >
                 <div className="bm-item-icon">{iconoNotif(n)}</div>
                 <div className="bm-item-content">

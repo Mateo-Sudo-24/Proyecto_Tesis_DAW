@@ -1,6 +1,7 @@
 import { useEffect, useRef, useState } from "react";
 import { useForm } from "react-hook-form";
 import { io } from 'socket.io-client';
+import { useSearchParams } from 'react-router-dom';
 import storeProfile from '../context/storeProfile';
 import storeAuth from '../context/storeAuth';
 
@@ -421,6 +422,7 @@ const Chat = () => {
     const { register, handleSubmit, reset, watch } = useForm();
     const msgText = watch('mensaje', '');
     const messagesEndRef = useRef(null);
+    const [searchParams] = useSearchParams();
 
     const miId    = user?._id || user?.id;
     const miRol   = user?.rol;
@@ -468,6 +470,30 @@ const Chat = () => {
             .then(data => { if (Array.isArray(data)) setVendedores(data); })
             .catch(() => {});
     }, [token, isStaff]);
+
+    useEffect(() => {
+        const destinatario = searchParams.get('destinatario');
+        const clienteId = searchParams.get('clienteId');
+
+        if (isStaff) {
+            if (destinatario === 'admin') {
+                abrirConversacionAdmin();
+            } else if (clienteId && usuarios.length > 0) {
+                const cliente = usuarios.find(u => u.id === clienteId);
+                if (cliente) {
+                    seleccionarCliente(cliente);
+                }
+            }
+        } else {
+            if (clienteId && vendedores.length > 0) {
+                const vendedor = vendedores.find(v => String(v.id || v._id) === String(clienteId));
+                if (vendedor) {
+                    setContactoActivo(vendedor);
+                    setShowConversacion(true);
+                }
+            }
+        }
+    }, [isStaff, usuarios, vendedores, searchParams]);
 
     useEffect(() => {
         if (isStaff || vendedores.length === 0) return;
@@ -571,6 +597,24 @@ const Chat = () => {
         socket?.emit('solicitar_historial', { clienteId: cliente.id });
         setShowConversacion(true); // en móvil, mostrar conversación
     };
+
+    const abrirConversacionAdmin = async () => {
+        try {
+          const res = await fetch(
+            `${import.meta.env.VITE_BACKEND_URL}/admin/admin-principal`,
+            { headers: { Authorization: `Bearer ${token}` } }
+          );
+          if (!res.ok) return;
+          const data = await res.json();
+          const adminId = data._id;
+          if (adminId) {
+              const adminObj = { id: adminId, nombre: data.nombre, rol: 'administrador' };
+              seleccionarCliente(adminObj);
+          }
+        } catch (err) {
+            console.error("Error opening admin conversation:", err);
+        }
+      };
 
     // Enviar mensaje
     const enviar = ({ mensaje }) => {
