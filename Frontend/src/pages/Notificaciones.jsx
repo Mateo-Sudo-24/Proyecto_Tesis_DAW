@@ -73,11 +73,11 @@ const styles = `
 /* CARD */
 .notif-card {
   background: #fff;
-  border: 1px solid #e5e7eb;
+  border: 1.5px solid #e5e7eb;
   border-radius: 0.875rem;
   overflow: hidden;
   box-shadow: 0 2px 8px rgba(0,0,0,0.06);
-  transition: box-shadow 0.15s, transform 0.12s;
+  transition: box-shadow 0.15s, transform 0.12s, background 0.2s, border-color 0.2s;
   cursor: pointer;
   display: flex;
   flex-direction: column;
@@ -87,7 +87,37 @@ const styles = `
   transform: translateY(-2px);
 }
 
-/* Franja superior de color según tipo */
+/* Estado: Atendida — naranja suave */
+.notif-card.card-atendida {
+  background: #fff7ed;
+  border-color: #e8760a;
+}
+.notif-card.card-atendida .notif-card-titulo { color: #92400e; }
+.notif-card.card-atendida .notif-card-icono {
+  background: #fde8ce;
+  border-color: #f59e0b;
+}
+
+/* Estado: Finalizada — verde suave */
+.notif-card.card-finalizada {
+  background: #f0fdf4;
+  border-color: #16a34a;
+}
+.notif-card.card-finalizada .notif-card-titulo { color: #065f46; }
+.notif-card.card-finalizada .notif-card-icono {
+  background: #dcfce7;
+  border-color: #86efac;
+}
+
+/* Estado: Rechazada — gris apagado */
+.notif-card.card-rechazada {
+  background: #f9fafb;
+  border-color: #d1d5db;
+  opacity: 0.8;
+}
+.notif-card.card-rechazada .notif-card-titulo { color: #6b7280; }
+
+/* La franja superior ahora también cambia con el estado */
 .notif-card-stripe {
   height: 5px;
   width: 100%;
@@ -97,6 +127,10 @@ const styles = `
 .stripe-pago           { background: linear-gradient(90deg, #16a34a, #15803d); }
 .stripe-info           { background: linear-gradient(90deg, #3b82f6, #1d4ed8); }
 .stripe-chat           { background: linear-gradient(90deg, #8b5cf6, #6d28d9); }
+
+.notif-card.card-atendida .notif-card-stripe { background: linear-gradient(90deg, #e8760a, #f59e0b); }
+.notif-card.card-finalizada .notif-card-stripe { background: linear-gradient(90deg, #16a34a, #22c55e); }
+.notif-card.card-rechazada .notif-card-stripe { background: linear-gradient(90deg, #9ca3af, #6b7280); }
 
 /* Cuerpo de la card */
 .notif-card-body {
@@ -214,6 +248,9 @@ const styles = `
   display: flex;
   gap: 0.4rem;
 }
+.notif-card.card-atendida .notif-card-footer { border-top-color: #fed7aa; background: #fff7ed; }
+.notif-card.card-finalizada .notif-card-footer { border-top-color: #bbf7d0; background: #f0fdf4; }
+
 .notif-btn {
   flex: 1;
   padding: 0.42rem 0.5rem;
@@ -410,12 +447,7 @@ const Notificaciones = () => {
         method: 'PATCH', headers: { Authorization: `Bearer ${token}` }
       });
       if (res.ok) {
-        const data = await res.json();
-        setNotificaciones(prev =>
-          prev.map(n => n._id === id
-            ? (data.notif || { ...n, estadoGestion: 'pendiente', leida: true })
-            : n)
-        );
+        await fetchNotificaciones();
         toast.success('Notificación marcada como atendida');
       } else {
         toast.error('No se pudo marcar como atendida');
@@ -432,10 +464,7 @@ const Notificaciones = () => {
         method: 'PATCH', headers: { Authorization: `Bearer ${token}` }
       });
       if (res.ok) {
-        const nuevoEstado = decision === 'aprobar' ? 'completado' : 'rechazado';
-        setNotificaciones(prev =>
-          prev.map(n => n._id === id ? { ...n, estadoGestion: nuevoEstado, leida: true } : n)
-        );
+        await fetchNotificaciones();
         toast.success(decision === 'aprobar' ? 'Notificación finalizada' : 'Notificación rechazada');
       } else {
         toast.error(`Error al ${decision === 'aprobar' ? 'finalizar' : 'rechazar'}`);
@@ -446,9 +475,27 @@ const Notificaciones = () => {
 
   // ── Filtrado ──
   const notificacionesFiltradas = notificaciones.filter(n => {
-    if (filtro === 'atendidas')   return !esNotifInfo(n) && n.leida && ['pendiente','aprobado'].includes(n.estadoGestion);
-    if (filtro === 'finalizadas') return !esNotifInfo(n) && ['completado','rechazado'].includes(n.estadoGestion);
-    return true;
+    // Notificaciones de info (Stripe, chat) solo aparecen en "Todas"
+    if (esNotifInfo(n)) {
+      return filtro === 'todas';
+    }
+
+    if (filtro === 'todas') {
+      // En "Todas" solo aparecen las que aún no han sido atendidas (sin leer)
+      return !n.leida;
+    }
+
+    if (filtro === 'atendidas') {
+      // Leídas pero pendientes de resolución
+      return n.leida && ['pendiente', 'aprobado'].includes(n.estadoGestion);
+    }
+
+    if (filtro === 'finalizadas') {
+      // Completadas o rechazadas
+      return ['completado', 'rechazado'].includes(n.estadoGestion);
+    }
+
+    return false;
   });
 
   // ── Paginación ──
@@ -478,9 +525,27 @@ const Notificaciones = () => {
         {/* Pills de filtro */}
         <div className="notif-filtros">
           {[
-            { key: 'todas',       label: 'Todas',       count: notificaciones.length },
-            { key: 'atendidas',   label: 'Atendidas',   count: notificaciones.filter(n => !esNotifInfo(n) && ['pendiente','aprobado'].includes(n.estadoGestion) && n.leida).length },
-            { key: 'finalizadas', label: 'Finalizadas', count: notificaciones.filter(n => !esNotifInfo(n) && ['completado','rechazado'].includes(n.estadoGestion)).length },
+            {
+              key: 'todas',
+              label: 'Todas',
+              count: notificaciones.filter(n =>
+                esNotifInfo(n) || (!esNotifInfo(n) && !n.leida)
+              ).length
+            },
+            {
+              key: 'atendidas',
+              label: 'Atendidas',
+              count: notificaciones.filter(n =>
+                !esNotifInfo(n) && n.leida && ['pendiente','aprobado'].includes(n.estadoGestion)
+              ).length
+            },
+            {
+              key: 'finalizadas',
+              label: 'Finalizadas',
+              count: notificaciones.filter(n =>
+                !esNotifInfo(n) && ['completado','rechazado'].includes(n.estadoGestion)
+              ).length
+            },
           ].map(({ key, label, count }) => (
             <button
               key={key}
@@ -507,12 +572,20 @@ const Notificaciones = () => {
             notifsPagina.map(notif => {
               const clasificacion = clasificarNotif(notif);
               const esInfo = esNotifInfo(notif);
-              const sinLeer = !notif.leida;
               const esAtendida = !esInfo && notif.leida && ['pendiente','aprobado'].includes(notif.estadoGestion);
-              const esFinalizada = !esInfo && ['completado','rechazado'].includes(notif.estadoGestion);
+              const esFinalizada = !esInfo && notif.estadoGestion === 'completado';
+              const esRechazada  = !esInfo && notif.estadoGestion === 'rechazado';
+
+              const claseCard = esAtendida
+                ? 'notif-card card-atendida'
+                : esFinalizada
+                  ? 'notif-card card-finalizada'
+                  : esRechazada
+                    ? 'notif-card card-rechazada'
+                    : 'notif-card'; // blanca — sin leer
 
               return (
-                <div key={notif._id} className="notif-card">
+                <div key={notif._id} className={claseCard}>
 
                   {/* Franja de color superior */}
                   <div className={`notif-card-stripe stripe-${clasificacion}`} />
@@ -528,9 +601,9 @@ const Notificaciones = () => {
                             : clasificacion === 'chat' ? 'Chat'
                             : 'Info'}
                         </span>
-                        {sinLeer && <span className="notif-unread-dot" title="Sin leer" />}
+                        {!notif.leida && <span className="notif-unread-dot" title="Sin leer" />}
                         {esAtendida && <span className="notif-estado-badge badge-atendida">Atendida</span>}
-                        {esFinalizada && <span className="notif-estado-badge badge-finalizada">Finalizada</span>}
+                        {(esFinalizada || esRechazada) && <span className="notif-estado-badge badge-finalizada">Finalizada</span>}
                       </div>
                     </div>
 
@@ -557,7 +630,7 @@ const Notificaciones = () => {
                   {/* Footer con botones de acción */}
                   <div className="notif-card-footer">
                     {/* Sin leer y es de automatización → marcar como atendida */}
-                    {!esInfo && sinLeer && (
+                    {!esInfo && !notif.leida && (
                       <button className="notif-btn notif-btn-atender" onClick={() => pasarAPendiente(notif._id)}>
                         Marcar atendida
                       </button>
@@ -570,25 +643,25 @@ const Notificaciones = () => {
                           disabled={gestionando === notif._id}
                           onClick={() => gestionarPedido(notif._id, 'aprobar')}
                         >
-                          {gestionando === notif._id ? '...' : '✓ Finalizar'}
+                          {gestionando === notif._id ? '…' : '✓ Finalizar'}
                         </button>
                         <button
                           className="notif-btn notif-btn-rechazar"
                           disabled={gestionando === notif._id}
                           onClick={() => gestionarPedido(notif._id, 'rechazar')}
                         >
-                          {gestionando === notif._id ? '...' : '✗ Rechazar'}
+                          {gestionando === notif._id ? '…' : '✗ Rechazar'}
                         </button>
                       </>
                     )}
                     {/* Info (Stripe/chat) sin leer → solo marcar leída */}
-                    {esInfo && sinLeer && (
+                    {esInfo && !notif.leida && (
                       <button className="notif-btn notif-btn-leer" onClick={() => marcarLeida(notif._id)}>
                         Marcar como leída
                       </button>
                     )}
-                    {/* Finalizada → eliminar */}
-                    {esFinalizada && (
+                    {/* Finalizada o Rechazada → eliminar */}
+                    {(esFinalizada || esRechazada) && (
                       <button className="notif-btn notif-btn-eliminar" onClick={e => eliminarNotificacion(e, notif._id)}>
                         Eliminar
                       </button>
