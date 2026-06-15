@@ -29,7 +29,7 @@ const metodosCliente = [
 ]
 
 metodosCliente[3] = {
-    value: 'Efectivo o tarjeta dÃ©bito en casa',
+    value: 'Efectivo o tarjeta débito en casa',
     label: 'Efectivo o tarjeta debito en casa',
     helper: 'Paga en efectivo o con tarjeta de debito al momento de la entrega. Sin cargo adicional.'
 }

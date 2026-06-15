@@ -25,7 +25,7 @@ const esPagoTarjetaOnline = (metodo = '') => {
         || normalizado === 'stripe'
         || normalizado.includes('stripe'))
         && !normalizado.includes('debito')
-        && !normalizado.includes('dÃ©bito')
+        && !normalizado.includes('débito')
         && !normalizado.includes('en casa');
 };
 
@@ -246,7 +246,7 @@ const registrarOrden = async (req, res) => {
 
     // Para venta_local o establecimiento, direccionEnvio puede ser null/vacío
     const tipoEntregaFinal = tipoEntrega || 'domicilio';
-    const requiereDireccion = ['domicilio'].includes(tipoEntregaFinal);
+    const requiereDireccion = ['domicilio', 'envio_domicilio'].includes(tipoEntregaFinal);
 
     if (requiereDireccion && (typeof direccionEnvio !== 'object' || direccionEnvio === null)) {
         return res.status(400).json({ msg: "El campo 'direccionEnvio' es obligatorio para entregas a domicilio." });
@@ -537,9 +537,9 @@ const registrarOrdenTienda = async (req, res) => {
         direccionEnvio,
         datosFacturacion: datosFacturacionBody,
     } = req.body;
-    const tiposEntregaTienda = ['domicilio', 'retiro', 'venta_local'];
+    const tiposEntregaTienda = ['domicilio', 'retiro', 'venta_local', 'envio_domicilio', 'retiro_almacen', 'venta_tienda'];
     const tipoEntregaFinal = tiposEntregaTienda.includes(tipoEntrega) ? tipoEntrega : 'venta_local';
-    const esVentaLocal = tipoEntregaFinal === 'venta_local';
+    const esVentaLocal = ['venta_local', 'venta_tienda'].includes(tipoEntregaFinal);
     if (!Array.isArray(items) || items.length === 0) {
         return res.status(400).json({ msg: "Agrega al menos un producto para registrar la venta." });
     }
@@ -658,7 +658,7 @@ const registrarOrdenTienda = async (req, res) => {
             comisionPago,
             totalFinal,
             tipoEntrega: tipoEntregaFinal,
-            direccionEnvio: ['domicilio', 'retiro'].includes(tipoEntregaFinal) ? direccionEnvio : undefined,
+            direccionEnvio: ['domicilio', 'retiro', 'envio_domicilio', 'retiro_almacen'].includes(tipoEntregaFinal) ? direccionEnvio : undefined,
             origenPedido: 'tienda',
             clienteGuest: !emailCliente || !clienteOrden.confirmEmail,
             datosFacturacion,
@@ -877,6 +877,14 @@ const solicitarCancelacion = async (req, res) => {
         mensaje: `❌ El cliente ${orden.cliente.nombre} ${orden.cliente.apellido} solicita cancelar el pedido #${orden._id.toString().slice(-8).toUpperCase()}. Motivo: ${motivo}`,
         leida: false,
         estadoGestion: 'pendiente',
+        clienteId: orden.cliente._id.toString(),
+        remitenteId: orden.cliente._id.toString(),
+        datos: {
+          clienteId: orden.cliente._id.toString(),
+          clienteNombre: `${orden.cliente.nombre} ${orden.cliente.apellido}`,
+          motivo: motivo,
+          ordenId: orden._id.toString()
+        },
         metadatos: { timestamp: new Date() }
       });
 
@@ -985,7 +993,7 @@ const procesarPagoOrden = async (req, res) => {
         const metodosInmediatos = ['Transferencia Bancaria', 'Efectivo', 'Contra Entrega', 'PayPal', 'De Una',
                                    'Pago contra entrega', 'Pago efectivo / tarjeta débito', 'Pago efectivo / tarjeta debito'];
         metodosInmediatos.push(
-            'Efectivo o tarjeta dÃ©bito en casa',
+            'Efectivo o tarjeta débito en casa',
             'Efectivo o tarjeta debito en casa'
         );
         if (metodosInmediatos.includes(orden.metodoPago) || esPagoPresencial(orden.metodoPago)) {
@@ -1095,7 +1103,7 @@ const reporteVentas = async (req, res) => {
         const totalVentas    = ordenes.length;
         const cuentaComoIngreso = (o) =>
             o.estadoOrden === 'entregado' ||
-            (o.tipoEntrega === 'venta_local' && o.estadoPago === 'completado');
+            (['venta_local', 'venta_tienda'].includes(o.tipoEntrega) && o.estadoPago === 'completado');
         const ingresoTotal = ordenes.reduce((acc, o) => acc + (cuentaComoIngreso(o) ? getTotalOrden(o) : 0), 0);
         const ordenesPagadas    = ordenes.filter(o => o.estadoPago === 'completado').length;
         const ordenesPendientes = ordenes.filter(o => o.estadoPago !== 'completado').length;

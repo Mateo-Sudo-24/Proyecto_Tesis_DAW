@@ -458,10 +458,15 @@ const Notificaciones = () => {
 
   const gestionarPedido = async (id, decision) => {
     setGestionando(id);
-    const endpoint = decision === 'aprobar' ? 'aprobar' : 'rechazar';
+    const estadoFinal = decision === 'aprobar' ? 'completado' : 'rechazado';
     try {
-      const res = await fetch(`${backendUrl}/notificaciones/${id}/${endpoint}`, {
-        method: 'PATCH', headers: { Authorization: `Bearer ${token}` }
+      const res = await fetch(`${backendUrl}/notificaciones/${id}/gestionar`, {
+        method: 'PATCH',
+        headers: {
+          'Content-Type': 'application/json',
+          Authorization: `Bearer ${token}`
+        },
+        body: JSON.stringify({ estadoGestion: estadoFinal })
       });
       if (res.ok) {
         await fetchNotificaciones();
