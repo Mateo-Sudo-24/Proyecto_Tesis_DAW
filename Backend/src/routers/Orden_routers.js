@@ -13,7 +13,7 @@ import {
   cancelarOrdenVendedor
 } from "../controllers/Orden_controller.js";
 import { verificarTokenJWT } from '../middlewares/JWT.js';
-import { esAdmin, esVendedor } from '../middlewares/AuthMiddleware.js';
+import { esAdmin, esVendedor, esCliente } from '../middlewares/AuthMiddleware.js';
 
 const router = Router();
 
