@@ -86,7 +86,10 @@ const crearNotificacionStockCritico = async (producto) => {
                 tipo: 'stock_critico',
                 mensaje: `El producto "${producto.nombre}" tiene stock critico (${producto.stock} rollos disponibles)`,
                 productos: [{ productId: producto._id, nombre: producto.nombre, stock: producto.stock, umbral: STOCK_CRITICO_ROLLOS }],
-                leida: false
+                leida: false,
+                datos: {
+                    destinoChat: 'admin'
+                }
             });
         }
 
@@ -139,6 +142,9 @@ const crearNotificacionReabastecimiento = async (producto, stockAnterior) => {
                 }],
                 leida: false,
                 estadoGestion: 'completado',
+                datos: {
+                    destinoChat: 'admin'
+                },
                 metadatos: { timestamp: new Date() }
             })
         ));

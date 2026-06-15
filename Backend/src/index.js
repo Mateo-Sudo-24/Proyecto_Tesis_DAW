@@ -77,13 +77,16 @@ const getRolPorId = async (id) => {
     }
 };
 
-const crearNotificacionChat = async ({ para, rolPara, deNombre, texto }) => {
+const crearNotificacionChat = async ({ para, rolPara, deId, deNombre, texto }) => {
     if (!para || !rolPara) return;
     const payload = {
         tipo: 'mensaje_chat',
         mensaje: `Tienes un mensaje de ${deNombre || 'un contacto'}: ${String(texto || '').slice(0, 120)}`,
         leida: false,
         estadoGestion: 'completado',
+        remitenteId: deId,
+        clienteId: deId,
+        datos: { clienteId: deId, clienteNombre: deNombre },
         metadatos: { timestamp: new Date() },
     };
     if (rolPara === 'administrador') payload.administrador = para;
@@ -96,15 +99,15 @@ const crearNotificacionChat = async ({ para, rolPara, deNombre, texto }) => {
     }
 };
 
-const crearNotificacionesChatStaff = async ({ deNombre, texto }) => {
+const crearNotificacionesChatStaff = async ({ deId, deNombre, texto }) => {
     try {
         const [admins, vendedores] = await Promise.all([
             Administrador.find().select('_id').lean(),
             Vendedor.find({ status: 'activo' }).select('_id').lean(),
         ]);
         await Promise.all([
-            ...admins.map(a => crearNotificacionChat({ para: a._id, rolPara: 'administrador', deNombre, texto })),
-            ...vendedores.map(v => crearNotificacionChat({ para: v._id, rolPara: 'vendedor', deNombre, texto })),
+            ...admins.map(a => crearNotificacionChat({ para: a._id, rolPara: 'administrador', deId, deNombre, texto })),
+            ...vendedores.map(v => crearNotificacionChat({ para: v._id, rolPara: 'vendedor', deId, deNombre, texto })),
         ]);
     } catch (error) {
         console.warn('No se pudieron crear notificaciones de chat para staff:', error.message);
@@ -287,11 +290,11 @@ io.on('connection', async (socket) => {
 
         if (para) {
             io.to(para).emit('mensaje_de_cliente', { clienteId: socket.usuario.id, msg });
-            await crearNotificacionChat({ para, rolPara: await getRolPorId(para), deNombre: socket.usuario.nombre, texto: msg.texto });
+            await crearNotificacionChat({ para, rolPara: await getRolPorId(para), deId: socket.usuario.id, deNombre: socket.usuario.nombre, texto: msg.texto });
             await emitirUnreadUsuario(para);
         } else {
             io.to('staff_room').emit('mensaje_de_cliente', { clienteId: socket.usuario.id, msg });
-            await crearNotificacionesChatStaff({ deNombre: socket.usuario.nombre, texto: msg.texto });
+            await crearNotificacionesChatStaff({ deId: socket.usuario.id, deNombre: socket.usuario.nombre, texto: msg.texto });
             await emitirUnreadStaff();
         }
     });
@@ -314,12 +317,12 @@ io.on('connection', async (socket) => {
 
         if (paraEsStaff) {
             io.to(para).emit('mensaje_de_cliente', { clienteId: socket.usuario.id, msg });
-            await crearNotificacionChat({ para, rolPara: await getRolPorId(para), deNombre: socket.usuario.nombre, texto: msg.texto });
+            await crearNotificacionChat({ para, rolPara: await getRolPorId(para), deId: socket.usuario.id, deNombre: socket.usuario.nombre, texto: msg.texto });
             await emitirUnreadUsuario(para);
         } else {
             io.to(para).emit('mensaje_de_staff', msg);
             io.to('staff_room').emit('mensaje_de_cliente', { clienteId: para, msg });
-            await crearNotificacionChat({ para, rolPara: 'cliente', deNombre: socket.usuario.nombre, texto: msg.texto });
+            await crearNotificacionChat({ para, rolPara: 'cliente', deId: socket.usuario.id, deNombre: socket.usuario.nombre, texto: msg.texto });
             await emitirUnreadUsuario(para);
         }
     });
