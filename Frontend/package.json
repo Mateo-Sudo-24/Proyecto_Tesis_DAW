@@ -12,12 +12,10 @@
     "test:run": "vitest run"
   },
   "dependencies": {
-    "@material-tailwind/react": "^2.1.10",
     "@react-google-maps/api": "^2.20.8",
     "@stripe/react-stripe-js": "^3.9.0",
     "@stripe/stripe-js": "^7.8.0",
     "@tailwindcss/vite": "^4.0.1",
-    "framer-motion": "^12.40.0",
     "html2canvas": "^1.4.1",
     "jspdf": "^4.2.1",
     "prop-types": "^15.8.1",
