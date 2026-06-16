@@ -4,13 +4,12 @@ import {
   obtenerNotificaciones, 
   marcarLeida,
   marcarPendiente,
+  gestionarNotificacion,
   obtenerNotificacionesNoLeidas,
   obtenerNotificacionesNoLeidasWebhook,
   obtenerAprobadasPendientesWebhook,
   eliminarNotificacion,
   marcarLeidaWebhook,
-  aprobarPedido,
-  rechazarPedido,
   verificarEstadoNotificacionWebhook,
   obtenerNotificacionesVendedor,
   marcarLeidaVendedor,
@@ -56,11 +55,8 @@ router.get('/no-leidas', verificarTokenJWT, esAdmin, obtenerNotificacionesNoLeid
 router.patch('/:id/leida', verificarTokenJWT, esAdmin, marcarLeida);
 router.patch('/:id/pendiente', verificarTokenJWT, esAdmin, marcarPendiente);
 
-// PATCH /api/notificaciones/:id/aprobar -> Aprobar pedido de reposición (llama n8n webhook)
-router.patch('/:id/aprobar', verificarTokenJWT, esAdmin, aprobarPedido);
-
-// PATCH /api/notificaciones/:id/rechazar -> Rechazar pedido de reposición (llama n8n webhook)
-router.patch('/:id/rechazar', verificarTokenJWT, esAdmin, rechazarPedido);
+// PATCH /api/notificaciones/:id/gestionar -> Gestionar notificación (aprobar/rechazar)
+router.patch('/:id/gestionar', verificarTokenJWT, esAdmin, gestionarNotificacion);
 
 // DELETE /api/notificaciones/:id -> Eliminar notificación
 router.delete('/:id', verificarTokenJWT, esAdmin, eliminarNotificacion);

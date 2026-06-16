@@ -105,7 +105,7 @@ const TiendaVendedor = () => {
     const [ordenPagoOpen, setOrdenPagoOpen] = useState(false);
     const modoBloqueado = carrito.length > 0;
     const esPedidoEnTienda = modoVenta === 'tienda';
-    const tituloPedido = esPedidoEnTienda ? 'Pedido en tienda' : 'Envio a domicilio';
+    const tituloPedido = esPedidoEnTienda ? 'Venta en tienda' : 'Envío a domicilio';
     const vendedorAsignado = user
         ? {
             _id: user._id || user.id,
@@ -173,7 +173,7 @@ const TiendaVendedor = () => {
             if (idx === -1) return [...prev, { producto, cantidad, unidadSeleccionada: unidad }];
             return prev.map((item, i) => i === idx ? { ...item, cantidad: item.cantidad + cantidad } : item);
         });
-        toast.success(esPedidoEnTienda ? "Producto añadido al pedido en tienda." : "Producto añadido al envío a domicilio.");
+        toast.success(esPedidoEnTienda ? "Producto añadido a la venta en tienda." : "Producto añadido al envío a domicilio.");
     };
 
     const registrarOrdenTienda = async (orderData, facturacion) => {
@@ -234,7 +234,7 @@ const TiendaVendedor = () => {
                             disabled={modoBloqueado && modoVenta !== 'tienda'}
                             onClick={() => setModoVenta('tienda')}
                         >
-                            Pedido en tienda
+                            Venta en tienda
                             <span>Registra venta local con consumidor final y pago realizado.</span>
                         </button>
                         <button
@@ -316,7 +316,7 @@ const TiendaVendedor = () => {
                                             onChange={e => setCantidades(prev => ({ ...prev, [producto._id]: e.target.value }))}
                                         />
                                         <button className={modoVenta === 'tienda' ? 'tv-primary' : 'tv-secondary'} disabled={metros <= 0} onClick={() => agregar(producto)}>
-                                            {modoVenta === 'tienda' ? 'Añadir a pedido en tienda' : 'Añadir para envío a domicilio'}
+                                            {modoVenta === 'tienda' ? 'Añadir a venta en tienda' : 'Añadir para envío a domicilio'}
                                         </button>
                                     </div>
                                 </article>
@@ -373,7 +373,7 @@ const TiendaVendedor = () => {
 
             {ordenPagoOpen && (
                 <ModalOrdenPago
-                    tipoEntrega={esPedidoEnTienda ? "retiro" : "domicilio"}
+                    tipoEntrega={esPedidoEnTienda ? "retiro_almacen" : "envio_domicilio"}
                     cartItems={carrito}
                     subtotalCart={totales.subtotal}
                     vendedorAsignado={vendedorAsignado}
@@ -382,7 +382,7 @@ const TiendaVendedor = () => {
                     onOrdenCreada={() => {
                         setOrdenPagoOpen(false);
                         setCarrito([]);
-                        toast.success(esPedidoEnTienda ? "Pedido en tienda registrado correctamente." : "Pedido a domicilio registrado correctamente.");
+                        toast.success(esPedidoEnTienda ? "Venta en tienda registrada correctamente." : "Envío a domicilio registrado correctamente.");
                         navigate("/dashboard/mis-pedidos");
                     }}
                     onNeedCardPayment={() => {}}

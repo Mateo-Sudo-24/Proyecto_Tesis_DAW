@@ -420,13 +420,19 @@ export const verificarEstadoNotificacionWebhook = async (req, res) => {
   }
 };
 
-// ✅ Aprobar pedido de reposición (Admin con JWT → llama webhook n8n para continuar flujo)
-export const aprobarPedido = async (req, res) => {
+// ✅ Gestionar notificación (Admin con JWT)
+export const gestionarNotificacion = async (req, res) => {
   const { id } = req.params;
+  const { estadoGestion } = req.body;
   const { _id, rol } = req.usuario;
 
   if (rol !== 'administrador') {
     return res.status(403).json({ msg: 'Acceso denegado.' });
+  }
+
+  const estadosValidos = ['pendiente', 'completado', 'rechazado'];
+  if (!estadosValidos.includes(estadoGestion)) {
+    return res.status(400).json({ msg: 'Estado de gestión no válido' });
   }
 
   try {
@@ -436,78 +442,45 @@ export const aprobarPedido = async (req, res) => {
       return res.status(403).json({ ok: false, msg: 'No tienes permiso para gestionar esta notificación' });
     }
 
-    await Notificacion.findByIdAndUpdate(id, { estadoGestion: 'completado', leida: true });
+    const notifActualizada = await Notificacion.findByIdAndUpdate(
+      id,
+      {
+        estadoGestion,
+        ...(estadoGestion !== 'pendiente' ? { leida: true } : {})
+      },
+      { new: true }
+    );
 
-    // Notificar a todos los vendedores activos que la reposición fue aprobada
-    try {
-      const vendedores = await Vendedor.find({ status: 'activo' }).select('_id');
-      const datosDescifrados = notif.descifrarDatos();
-      const msgProductos = (datosDescifrados.productos || []).map(p => p.nombre).join(', ');
-      await Promise.all(vendedores.map(v =>
-        Notificacion.crearConCifrado({
-          vendedor: v._id,
-          tipo: 'confirmacion_pedido',
-          mensaje: `✅ Reposición de stock aprobada por administración${msgProductos ? `: ${msgProductos}` : ''}. Por favor procede con el pedido al proveedor.`,
-          leida: false,
-          estadoGestion: 'completado',
-          metadatos: { timestamp: new Date() }
-        })
-      ));
-    } catch (vErr) {
-      console.warn('⚠️ Error al notificar vendedores sobre aprobación:', vErr.message);
-    }
+    const decision = estadoGestion === 'completado' ? 'aprobado' : 'rechazado';
 
-    // Llamar al webhook de n8n para reanudar el flujo de espera
-    const n8nUrl = process.env.N8N_WEBHOOK_URL;
-    if (n8nUrl) {
+    // Notificar a vendedores si se aprueba
+    if (estadoGestion === 'completado') {
       try {
+        const vendedores = await Vendedor.find({ status: 'activo' }).select('_id');
         const datosDescifrados = notif.descifrarDatos();
-        await axios.post(n8nUrl, {
-          decision: 'aprobado',
-          idNotificacion: id,
-          mensaje: datosDescifrados.mensaje || notif.mensaje,
-          productos: datosDescifrados.productos || notif.productos || []
-        }, {
-          headers: { 'Content-Type': 'application/json' },
-          timeout: 5000
-        });
-      } catch (webhookErr) {
-        console.warn('⚠️ No se pudo contactar n8n (flujo continuará cuando n8n esté activo):', webhookErr.message);
+        const msgProductos = (datosDescifrados.productos || []).map(p => p.nombre).join(', ');
+        await Promise.all(vendedores.map(v =>
+          Notificacion.crearConCifrado({
+            vendedor: v._id,
+            tipo: 'confirmacion_pedido',
+            mensaje: `✅ Reposición de stock aprobada por administración${msgProductos ? `: ${msgProductos}` : ''}. Por favor procede con el pedido al proveedor.`,
+            leida: false,
+            estadoGestion: 'completado',
+            metadatos: { timestamp: new Date() }
+          })
+        ));
+      } catch (vErr) {
+        console.warn('⚠️ Error al notificar vendedores sobre aprobación:', vErr.message);
       }
     }
 
-    console.log(`✅ Pedido aprobado por admin ${_id} para notificación ${id}`);
-    res.json({ ok: true, msg: 'Pedido aprobado. Se notificará al proveedor.' });
-  } catch (error) {
-    console.error('Error al aprobar pedido:', error);
-    res.status(500).json({ ok: false, msg: 'Error al aprobar pedido' });
-  }
-};
-
-// ✅ Rechazar pedido de reposición (Admin con JWT → llama webhook n8n para continuar flujo)
-export const rechazarPedido = async (req, res) => {
-  const { id } = req.params;
-  const { _id, rol } = req.usuario;
-
-  if (rol !== 'administrador') {
-    return res.status(403).json({ msg: 'Acceso denegado.' });
-  }
-
-  try {
-    const notif = await Notificacion.findById(id);
-    if (!notif) return res.status(404).json({ ok: false, msg: 'Notificación no encontrada' });
-    if (notif.administrador.toString() !== _id.toString()) {
-      return res.status(403).json({ ok: false, msg: 'No tienes permiso para gestionar esta notificación' });
-    }
-
-    await Notificacion.findByIdAndUpdate(id, { estadoGestion: 'rechazado', leida: true });
-
+    // Webhook n8n
     const n8nUrl = process.env.N8N_WEBHOOK_URL;
     if (n8nUrl) {
       try {
         const datosDescifrados = notif.descifrarDatos();
         await axios.post(n8nUrl, {
-          decision: 'rechazado',
+          decision,
           idNotificacion: id,
           mensaje: datosDescifrados.mensaje || notif.mensaje,
           productos: datosDescifrados.productos || notif.productos || []
@@ -520,11 +493,10 @@ export const rechazarPedido = async (req, res) => {
       }
     }
 
-    console.log(`❌ Pedido rechazado por admin ${_id} para notificación ${id}`);
-    res.json({ ok: true, msg: 'Pedido rechazado.' });
+    res.json({ ok: true, msg: `Notificación ${decision}`, notif: notifActualizada });
   } catch (error) {
-    console.error('Error al rechazar pedido:', error);
-    res.status(500).json({ ok: false, msg: 'Error al rechazar pedido' });
+    console.error('Error al gestionar notificación:', error);
+    res.status(500).json({ ok: false, msg: 'Error al gestionar notificación' });
   }
 };
 
