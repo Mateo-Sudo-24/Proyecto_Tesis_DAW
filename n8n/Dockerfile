@@ -1,1 +1,1 @@
-FROM docker.n8n.io/n8nio/n8n
+FROM ghcr.io/n8n-io/n8n
