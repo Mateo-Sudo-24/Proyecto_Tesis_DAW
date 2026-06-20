@@ -12,11 +12,10 @@ const MAX_IMAGES = 4;
 const FLUJOS = {
     info: {
         burbuja: '📍 Info tienda',
-        mensaje: '¿Dónde están ubicados y qué horario de atención tienen?',
+        mensaje: 'Necesito información de la tienda, dirección, horario y contacto',
         siguientes: [
-            '¿Hacen envíos a domicilio?',
-            '¿Puedo ver el catálogo completo?',
-            '¿Aceptan pagos con tarjeta?',
+            '🧵 Ver catálogo de telas',
+            '💲 Consultar precios',
         ],
     },
     productos: {
@@ -83,7 +82,12 @@ const pideTelaSinReferencia = (texto = '') => {
 
 const esConsultaTextilReconocible = (texto = '') => {
     const t = normalizarTexto(texto);
-    return /\b(tela|telas|tejido|textil|algodon|lino|seda|poliester|lana|nylon|viscosa|rayon|terciopelo|denim|jean|jersey|saten|gasa|tul|encaje|polar|fleece|gabardina|tafetan|lycra|spandex|microfibra|loneta|popelina|organza|color|textura|metro|rollo|comprar|precio|catalogo|carrito|reponer|reposicion|stock)\b/.test(t);
+    return /\b(tela|telas|tejido|textil|algodon|lino|seda|poliester|lana|nylon|viscosa|rayon|terciopelo|denim|jean|jersey|saten|gasa|tul|encaje|polar|fleece|gabardina|tafetan|lycra|spandex|microfibra|loneta|popelina|organza|color|textura|metro|rollo|comprar|precio|catalogo|carrito|reponer|reposicion|stock|direccion|ubicacion|horario|telefono|email|correo|envio|envios|pago|pagos)\b/.test(t);
+};
+
+const esConsultaInformacionTienda = (texto = '') => {
+    const t = normalizarTexto(texto);
+    return /\b(ubicacion|ubicados|direccion|horario|horarios|contacto|telefono|email|correo|tienda|local|envio|envios|pago|pagos|tarjeta|atencion)\b/.test(t);
 };
 
 // Convierte markdown básico a JSX sin dependencias externas.
@@ -286,6 +290,42 @@ const ChatModal = ({ onClose }) => {
                 if (mostrarCtaProductos) respuestas.push(crearCtaProgresivo(botMessageId + 1));
                 return respuestas;
             });
+            setIsLoading(false);
+            return;
+        }
+
+        if (!tieneImagenes && esConsultaInformacionTienda(userMessage.content)) {
+            setMessages(prev => [
+                ...prev,
+                {
+                    id: botMessageId,
+                    role: 'assistant',
+                    content: `📍 Información de Intex
+
+📧 Email
+[intex@gmail.com](mailto:intex@gmail.com)
+
+📞 Teléfono
+0998434399
+
+📍 Dirección
+Av. De los Granados y Río Coca
+
+🕒 Horario de atención
+Lunes a Viernes: 08:00 – 18:00
+
+También puedo ayudarte con:
+
+• Catálogo de telas
+• Búsqueda de productos
+• Precios por metro y por rollo
+• Identificación de telas mediante fotografías`
+                }
+            ]);
+            setBurbujasActivas([
+                '🧵 Ver catálogo de telas',
+                '💲 Consultar precios'
+            ]);
             setIsLoading(false);
             return;
         }
@@ -568,7 +608,13 @@ const ChatModal = ({ onClose }) => {
                                 className="chat-followup-bubble"
                                 onClick={() => {
                                     setBurbujasActivas([]);
-                                    sendMessage({ mensaje: pregunta });
+                                    let mensajeEnvio = pregunta;
+                                    if (pregunta === '🧵 Ver catálogo de telas') {
+                                        mensajeEnvio = "Quiero ver el catálogo de telas disponibles";
+                                    } else if (pregunta === '💲 Consultar precios') {
+                                        mensajeEnvio = "¿Cuáles son los precios de las telas disponibles?";
+                                    }
+                                    sendMessage({ mensaje: mensajeEnvio });
                                 }}
                             >
                                 {pregunta}
