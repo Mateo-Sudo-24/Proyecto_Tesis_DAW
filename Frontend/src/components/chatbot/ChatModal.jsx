@@ -11,30 +11,30 @@ const MAX_IMAGES = 4;
 
 const FLUJOS = {
     info: {
-        burbuja: '📍 Información de la tienda',
-        mensaje: '¿Dónde están ubicados y qué servicios ofrecen?',
+        burbuja: '📍 Info tienda',
+        mensaje: '¿Dónde están ubicados y qué horario de atención tienen?',
         siguientes: [
-            '¿Cuál es el horario de atención?',
             '¿Hacen envíos a domicilio?',
             '¿Puedo ver el catálogo completo?',
+            '¿Aceptan pagos con tarjeta?',
         ],
     },
     productos: {
-        burbuja: '🧵 Buscar un producto',
-        mensaje: 'Quiero ver los productos disponibles',
+        burbuja: '🧵 Buscar producto',
+        mensaje: 'Quiero ver el catálogo de telas disponibles',
         siguientes: [
             '¿Qué telas tienen en algodón?',
             '¿Tienen telas por metro y por rollo?',
-            '¿Cuáles son los precios?',
+            '¿Cuáles son los precios del catálogo?',
         ],
     },
     preguntas: {
-        burbuja: '❓ Tengo una pregunta',
-        mensaje: '¿Qué puede hacer el asistente de Intex?',
+        burbuja: '❓ Preguntas',
+        mensaje: '¿Cómo funciona el catálogo y cómo hago un pedido de telas?',
         siguientes: [
-            '¿Puedo subir una foto de una tela?',
-            '¿Cómo hago un pedido?',
-            '¿Aceptan pagos con tarjeta?',
+            '¿Puedo subir una foto de una tela para identificarla?',
+            '¿Cómo hago un pedido por metro o por rollo?',
+            '¿Qué métodos de pago aceptan?',
         ],
     },
 };
@@ -139,7 +139,6 @@ const ChatModal = ({ onClose }) => {
     const [selectedImages, setSelectedImages] = useState([]); // array de dataURLs
     const [productIntentCount, setProductIntentCount] = useState(0);
     const [burbujasActivas, setBurbujasActivas] = useState([]);
-    const [mostrarBurbujas, setMostrarBurbujas] = useState(true);
     const [tituloImagen, setTituloImagen] = useState('');
     const [descripcionImagen, setDescripcionImagen] = useState('');
     const messagesEndRef = useRef(null);
@@ -389,7 +388,6 @@ const ChatModal = ({ onClose }) => {
     };
 
     const handleBurbujaPredefinida = async (flujo) => {
-        setMostrarBurbujas(false);
         await sendMessage({ mensaje: flujo.mensaje, siguientes: flujo.siguientes });
     };
 
@@ -409,43 +407,16 @@ const ChatModal = ({ onClose }) => {
 
                 {/* Messages */}
                 <div className="chat-messages-container">
-                    {messages.length === 0 && mostrarBurbujas && (
-                        <div className="chat-welcome-message">
-                            <div style={{ fontSize: '2rem', marginBottom: '0.5rem' }}>🧵</div>
-                            <p style={{ fontWeight: 700, color: '#374151', margin: '0 0 0.35rem' }}>
-                                Hola, soy <strong>Intex IA</strong>
+                    {messages.length === 0 && (
+                        <div className="chat-presentacion">
+                            <div className="chat-presentacion-icon">🧵</div>
+                            <p className="chat-presentacion-titulo">Hola, soy Intex IA</p>
+                            <p className="chat-presentacion-texto">
+                                Tu asesor experto en telas. Puedo ayudarte a encontrar el material perfecto,
+                                analizar fotos de telas y resolver tus dudas sobre pedidos, precios y envíos.
                             </p>
-                            <p style={{ fontSize: '0.82rem', color: '#6b7280', margin: '0 0 1.25rem' }}>
-                                Tu asesor experto en telas. ¿En qué puedo ayudarte hoy?
-                            </p>
-                            <div style={{ display: 'flex', flexDirection: 'column', gap: '0.5rem' }}>
-                                {Object.values(FLUJOS).map((flujo, i) => (
-                                    <button
-                                        key={i}
-                                        type="button"
-                                        onClick={() => handleBurbujaPredefinida(flujo)}
-                                        style={{
-                                            background: '#fff',
-                                            border: '1.5px solid #e8760a',
-                                            borderRadius: '1.5rem',
-                                            padding: '0.6rem 1rem',
-                                            fontSize: '0.85rem',
-                                            fontWeight: 700,
-                                            color: '#c4620a',
-                                            cursor: 'pointer',
-                                            textAlign: 'left',
-                                            transition: 'background 0.15s',
-                                        }}
-                                        onMouseOver={e => e.currentTarget.style.background = '#fde8ce'}
-                                        onMouseOut={e => e.currentTarget.style.background = '#fff'}
-                                    >
-                                        {flujo.burbuja}
-                                    </button>
-                                ))}
-                            </div>
-                            <p style={{ fontSize: '0.72rem', color: '#9ca3af', marginTop: '0.875rem', textAlign: 'center', lineHeight: 1.5 }}>
-                                📸 Puedes subir una foto de tela con un título y descripción<br />
-                                para identificarla y encontrar productos similares
+                            <p className="chat-presentacion-hint">
+                                👇 Usa las opciones rápidas debajo o escribe tu consulta
                             </p>
                         </div>
                     )}
@@ -523,35 +494,6 @@ const ChatModal = ({ onClose }) => {
                             </div>
                         </div>
                     ))}
-                    {burbujasActivas.length > 0 && !isLoading && messages.length > 0 && messages[messages.length - 1]?.role === 'assistant' && (
-                        <div style={{ display: 'flex', flexWrap: 'wrap', gap: '0.4rem', padding: '0.5rem 0', marginTop: '0.25rem' }}>
-                            {burbujasActivas.map((pregunta, i) => (
-                                <button
-                                    key={i}
-                                    type="button"
-                                    onClick={() => {
-                                        setBurbujasActivas([]);
-                                        sendMessage({ mensaje: pregunta });
-                                    }}
-                                    style={{
-                                        background: '#f9fafb',
-                                        border: '1px solid #e5e7eb',
-                                        borderRadius: '1rem',
-                                        padding: '0.4rem 0.85rem',
-                                        fontSize: '0.78rem',
-                                        fontWeight: 600,
-                                        color: '#374151',
-                                        cursor: 'pointer',
-                                        transition: 'all 0.15s',
-                                    }}
-                                    onMouseOver={e => { e.currentTarget.style.borderColor = '#e8760a'; e.currentTarget.style.color = '#c4620a'; }}
-                                    onMouseOut={e => { e.currentTarget.style.borderColor = '#e5e7eb'; e.currentTarget.style.color = '#374151'; }}
-                                >
-                                    {pregunta}
-                                </button>
-                            ))}
-                        </div>
-                    )}
                     <div ref={messagesEndRef} />
                 </div>
 
@@ -569,68 +511,24 @@ const ChatModal = ({ onClose }) => {
                     </div>
                 )}
 
-                {/* Tira de imágenes seleccionadas */}
-                {selectedImages.length > 0 && (
-                    <div className="chat-images-strip">
-                        {selectedImages.map((img, i) => (
-                            <div key={i} className="chat-thumb-wrap">
-                                <img src={img} alt={`Foto ${i + 1}`} className="chat-thumb-img" />
-                                <button
-                                    className="chat-thumb-remove"
-                                    onClick={() => removeImage(i)}
-                                    aria-label="Quitar imagen"
-                                >x</button>
-                            </div>
-                        ))}
-                        {selectedImages.length < MAX_IMAGES && (
-                            <button
-                                className="chat-thumb-add"
-                                onClick={() => fileInputRef.current.click()}
-                                title="Agregar más imágenes"
-                            >
-                                <MdAdd size={22} />
-                            </button>
-                        )}
-                    </div>
-                )}
-
-                {selectedImages.length > 0 && (
-                    <div style={{ padding: '0.5rem 1rem 0', display: 'flex', flexDirection: 'column', gap: '0.4rem' }}>
-                        <input
-                            type="text"
-                            placeholder="Título de la tela (ej: Tela azul para tapicería)"
-                            value={tituloImagen}
-                            onChange={e => setTituloImagen(e.target.value)}
-                            style={{ border: '1px solid #e5e7eb', borderRadius: '0.5rem', padding: '0.45rem 0.75rem', fontSize: '0.82rem', outline: 'none' }}
-                        />
-                        <textarea
-                            placeholder="Descripción opcional (color, uso, material)"
-                            value={descripcionImagen}
-                            onChange={e => setDescripcionImagen(e.target.value)}
-                            rows={2}
-                            style={{ border: '1px solid #e5e7eb', borderRadius: '0.5rem', padding: '0.45rem 0.75rem', fontSize: '0.82rem', resize: 'none', outline: 'none', fontFamily: 'inherit' }}
-                        />
-                    </div>
-                )}
-
-                {/* Input Area */}
-                <div className="chat-input-container">
-                    <div className="chat-input-buttons">
+                {/* Fila de burbujas rápidas — siempre visible, arriba del input */}
+                <div className="chat-quick-row">
+                    <div className="chat-quick-actions">
                         <button
                             onClick={() => setShowCamera(true)}
-                            title="📷 Capturar foto"
-                            className="chat-button-action"
+                            title="Capturar foto"
+                            className="chat-icon-btn"
                             disabled={selectedImages.length >= MAX_IMAGES}
                         >
-                            <MdCamera size={20} />
+                            <MdCamera size={18} />
                         </button>
                         <button
                             onClick={() => fileInputRef.current.click()}
-                            title={`📎 Subir imágenes (${selectedImages.length}/${MAX_IMAGES})`}
-                            className="chat-button-action"
+                            title={`Subir imágenes (${selectedImages.length}/${MAX_IMAGES})`}
+                            className="chat-icon-btn"
                             disabled={selectedImages.length >= MAX_IMAGES}
                         >
-                            <MdAttachFile size={20} />
+                            <MdAttachFile size={18} />
                             {selectedImages.length > 0 && (
                                 <span className="chat-img-badge">{selectedImages.length}</span>
                             )}
@@ -645,12 +543,84 @@ const ChatModal = ({ onClose }) => {
                         />
                     </div>
 
+                    <div className="chat-quick-bubbles">
+                        {Object.values(FLUJOS).map((flujo, i) => (
+                            <button
+                                key={i}
+                                type="button"
+                                className="chat-quick-bubble"
+                                onClick={() => handleBurbujaPredefinida(flujo)}
+                                disabled={isLoading}
+                            >
+                                {flujo.burbuja}
+                            </button>
+                        ))}
+                    </div>
+                </div>
+
+                {/* Burbujas de seguimiento contextual — aparecen tras una respuesta */}
+                {burbujasActivas.length > 0 && !isLoading && messages.length > 0 && messages[messages.length - 1]?.role === 'assistant' && (
+                    <div className="chat-followup-row">
+                        {burbujasActivas.map((pregunta, i) => (
+                            <button
+                                key={i}
+                                type="button"
+                                className="chat-followup-bubble"
+                                onClick={() => {
+                                    setBurbujasActivas([]);
+                                    sendMessage({ mensaje: pregunta });
+                                }}
+                            >
+                                {pregunta}
+                            </button>
+                        ))}
+                    </div>
+                )}
+
+                {/* Tira de imágenes seleccionadas (si hay) */}
+                {selectedImages.length > 0 && (
+                    <div className="chat-images-strip">
+                        {selectedImages.map((img, i) => (
+                            <div key={i} className="chat-thumb-wrap">
+                                <img src={img} alt={`Foto ${i + 1}`} className="chat-thumb-img" />
+                                <button className="chat-thumb-remove" onClick={() => removeImage(i)} aria-label="Quitar imagen">×</button>
+                            </div>
+                        ))}
+                        {selectedImages.length < MAX_IMAGES && (
+                            <button className="chat-thumb-add" onClick={() => fileInputRef.current.click()} title="Agregar más imágenes">
+                                <MdAdd size={20} />
+                            </button>
+                        )}
+                    </div>
+                )}
+
+                {selectedImages.length > 0 && (
+                    <div className="chat-image-context">
+                        <input
+                            type="text"
+                            placeholder="Título de la tela (ej: Tela azul para tapicería)"
+                            value={tituloImagen}
+                            onChange={e => setTituloImagen(e.target.value)}
+                            className="chat-image-context-input"
+                        />
+                        <textarea
+                            placeholder="Descripción opcional (color, uso, material)"
+                            value={descripcionImagen}
+                            onChange={e => setDescripcionImagen(e.target.value)}
+                            rows={2}
+                            className="chat-image-context-textarea"
+                        />
+                    </div>
+                )}
+
+                {/* Input de texto principal */}
+                <div className="chat-input-container">
                     <textarea
                         value={input}
                         onChange={(e) => setInput(e.target.value)}
                         onKeyPress={handleKeyPress}
-                        placeholder="Escribe tu consulta o sube una foto de tela... (Enter para enviar)"
-                        rows="2"
+                        placeholder="Escribe tu consulta o sube una foto de tela..."
+                        rows="1"
                         disabled={isLoading}
                         className="chat-textarea"
                     />
@@ -659,7 +629,7 @@ const ChatModal = ({ onClose }) => {
                         disabled={isLoading || (!input.trim() && selectedImages.length === 0)}
                         className="chat-send-btn"
                     >
-                        {isLoading ? 'Enviando...' : <><span>Enviar</span><MdSend size={16} /></>}
+                        {isLoading ? <span className="chat-send-spinner" /> : <MdSend size={18} />}
                     </button>
                 </div>
             </div>
