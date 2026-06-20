@@ -486,6 +486,7 @@ const ModalOrdenPago = ({
     envioBase = 2.5,
     vendedorAsignado,
     ocultarSubtituloEntrega = false,
+    metodosPagoOverride = null,
     onClose,
     onOrdenCreada,
     onNeedCardPayment,
@@ -496,7 +497,7 @@ const ModalOrdenPago = ({
     const navigate = useNavigate()
     const [form, setForm] = useState({ nombre: '', apellido: '', ruc: '', email: '', telefono: '', direccion: '' })
     const isVendedor = user?.rol === 'vendedor'
-    const metodosPago = isVendedor ? metodosVendedor : metodosCliente
+    const metodosPago = metodosPagoOverride || (isVendedor ? metodosVendedor : metodosCliente)
     const [metodoPago, setMetodoPago] = useState(metodosPago[0].value)
     const [direccionDomicilio, setDireccionDomicilio] = useState('CAVA CORP - Almacenes Intex')
     const [coordsDomicilio, setCoordsDomicilio] = useState(CAVA_COORDS)
@@ -826,40 +827,42 @@ const ModalOrdenPago = ({
                     {/* Datos de facturación */}
                     <div className="op-section">
                         <div className="op-section-title">Datos de facturación</div>
-                        <div style={{ display:'flex', gap:'0.5rem', flexWrap:'wrap', padding:'0.8rem 1.25rem 0' }}>
-                            <button
-                                type="button"
-                                className="mop-mapa-toggle"
-                                style={{
-                                    width:'auto',
-                                    borderRadius:'0.55rem',
-                                    background:'linear-gradient(135deg, #e8760a, #c4620a)',
-                                    color:'#fff',
-                                    border:'none',
-                                    fontWeight:800,
-                                    boxShadow:'0 3px 10px rgba(232,118,10,0.3)'
-                                }}
-                                onClick={llenarConMisDatos}
-                            >
-                                Llenar con mis datos
-                            </button>
-                            <button
-                                type="button"
-                                className="mop-mapa-toggle"
-                                style={{
-                                    width:'auto',
-                                    borderRadius:'0.55rem',
-                                    background:'#1f2937',
-                                    color:'#f59e0b',
-                                    border:'1px solid #374151',
-                                    fontWeight:800,
-                                    boxShadow:'0 2px 6px rgba(0,0,0,0.2)'
-                                }}
-                                onClick={llenarConOtrosDatos}
-                            >
-                                Llenar con otros datos
-                            </button>
-                        </div>
+                        {!isVendedor && (
+                            <div style={{ display:'flex', gap:'0.5rem', flexWrap:'wrap', padding:'0.8rem 1.25rem 0' }}>
+                                <button
+                                    type="button"
+                                    className="mop-mapa-toggle"
+                                    style={{
+                                        width:'auto',
+                                        borderRadius:'0.55rem',
+                                        background:'linear-gradient(135deg, #e8760a, #c4620a)',
+                                        color:'#fff',
+                                        border:'none',
+                                        fontWeight:800,
+                                        boxShadow:'0 3px 10px rgba(232,118,10,0.3)'
+                                    }}
+                                    onClick={llenarConMisDatos}
+                                >
+                                    Llenar con mis datos
+                                </button>
+                                <button
+                                    type="button"
+                                    className="mop-mapa-toggle"
+                                    style={{
+                                        width:'auto',
+                                        borderRadius:'0.55rem',
+                                        background:'#1f2937',
+                                        color:'#f59e0b',
+                                        border:'1px solid #374151',
+                                        fontWeight:800,
+                                        boxShadow:'0 2px 6px rgba(0,0,0,0.2)'
+                                    }}
+                                    onClick={llenarConOtrosDatos}
+                                >
+                                    Llenar con otros datos
+                                </button>
+                            </div>
+                        )}
                         <div className="op-grid">
                             <div className="op-field">
                                 <label className="op-label">Nombre</label>

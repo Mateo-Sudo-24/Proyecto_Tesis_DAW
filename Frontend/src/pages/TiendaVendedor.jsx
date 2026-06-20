@@ -19,16 +19,15 @@ const styles = `
     .tv-primary:disabled { opacity:0.55; cursor:not-allowed; }
     .tv-mode-box { background:#fff; border:1px solid #e5e7eb; border-radius:0.875rem; padding:0.9rem; margin-bottom:1rem; box-shadow:0 2px 10px rgba(0,0,0,0.05); }
     .tv-mode-title { margin:0 0 0.65rem; font-size:0.82rem; font-weight:900; color:#374151; text-transform:uppercase; letter-spacing:0.04em; }
-    .tv-mode-options { display:grid; grid-template-columns:1fr 1fr; gap:0.6rem; }
-    .tv-mode-btn { border:1.5px solid #e5e7eb; background:#f9fafb; color:#4b5563; border-radius:0.7rem; padding:0.75rem; text-align:left; cursor:pointer; font-weight:800; }
+    .tv-mode-options { display:flex; gap:0.6rem; }
+    .tv-mode-btn { border:1.5px solid #e5e7eb; background:#f9fafb; color:#4b5563; border-radius:0.7rem; padding:0.75rem; text-align:left; cursor:pointer; font-weight:800; width: 100%; }
     .tv-mode-btn:disabled { opacity:0.48; cursor:not-allowed; }
     .tv-mode-btn span { display:block; font-size:0.72rem; color:#6b7280; font-weight:600; margin-top:0.2rem; line-height:1.35; }
     .tv-mode-btn.active { background:#e8760a; border-color:#e8760a; color:#fff; box-shadow:0 3px 12px rgba(232,118,10,0.25); }
     .tv-mode-btn.active span { color:#fff7ed; }
     .tv-layout { display:grid; grid-template-columns:minmax(0,1fr) 340px; gap:1.25rem; align-items:start; }
-    .tv-grid { display:grid; grid-template-columns:repeat(1,minmax(0,1fr)); gap:1rem; }
+    .tv-grid { display:grid; grid-template-columns:repeat(1,minmax(0,1fr)); gap:1.25rem; }
     @media (min-width:700px) { .tv-grid { grid-template-columns:repeat(2,minmax(0,1fr)); } }
-    @media (min-width:1120px) { .tv-grid { grid-template-columns:repeat(3,minmax(0,1fr)); } }
     @media (max-width:980px) { .tv-layout { grid-template-columns:1fr; } }
 
     /* Paginación y Búsqueda */
@@ -230,21 +229,16 @@ const TiendaVendedor = () => {
                     <div className="tv-mode-options">
                         <button
                             type="button"
-                            className={`tv-mode-btn${modoVenta === 'tienda' ? ' active' : ''}`}
-                            disabled={modoBloqueado && modoVenta !== 'tienda'}
-                            onClick={() => setModoVenta('tienda')}
+                            className="tv-mode-btn active"
+                            onClick={() => setModoVenta(modoVenta === 'tienda' ? 'domicilio' : 'tienda')}
+                            disabled={modoBloqueado}
                         >
-                            Venta en tienda
-                            <span>Registra venta local con consumidor final y pago realizado.</span>
-                        </button>
-                        <button
-                            type="button"
-                            className={`tv-mode-btn${modoVenta === 'domicilio' ? ' active' : ''}`}
-                            disabled={modoBloqueado && modoVenta !== 'domicilio'}
-                            onClick={() => setModoVenta('domicilio')}
-                        >
-                            Envío a domicilio
-                            <span>Gestiona el carrito y la orden de pago en esta misma tienda.</span>
+                            {modoVenta === 'tienda' ? '🏪 Venta en tienda' : '🛵 Envío a domicilio'}
+                            <span>
+                                {modoVenta === 'tienda'
+                                    ? 'Toca para cambiar a envío a domicilio.'
+                                    : 'Toca para cambiar a venta en tienda.'}
+                            </span>
                         </button>
                     </div>
                     {modoBloqueado && (
@@ -378,6 +372,18 @@ const TiendaVendedor = () => {
                     subtotalCart={totales.subtotal}
                     vendedorAsignado={vendedorAsignado}
                     ocultarSubtituloEntrega={esPedidoEnTienda}
+                    metodosPagoOverride={[
+                        {
+                            value: 'Efectivo o tarjeta débito en casa',
+                            label: 'Efectivo / Tarjeta débito',
+                            helper: 'Pago presencial. Sin cargo adicional.'
+                        },
+                        {
+                            value: 'Pago por tarjeta en linea',
+                            label: 'Tarjeta de crédito',
+                            helper: 'Cobro con Stripe. Se aplica comisión del 5.4% + $0.30.'
+                        },
+                    ]}
                     onClose={() => setOrdenPagoOpen(false)}
                     onOrdenCreada={() => {
                         setOrdenPagoOpen(false);

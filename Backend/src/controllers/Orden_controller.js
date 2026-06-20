@@ -113,6 +113,22 @@ const validarDatosFacturacion = (datos = {}, { minLetras = 2 } = {}) => {
     return null;
 };
 
+// Agregar una validación específica para tienda, sin exigir RUC
+const validarDatosFacturacionTienda = (datos = {}) => {
+    const nombre = limpiarTexto(datos.nombre);
+    const apellido = limpiarTexto(datos.apellido);
+    const correo = limpiarTexto(datos.correo || datos.email).toLowerCase();
+    const direccion = limpiarTexto(datos.direccion);
+    const telefono = soloDigitos(datos.telefono);
+
+    if (!nombreRegex.test(nombre)) return 'El nombre debe tener entre 2 y 10 letras, máximo 12 caracteres.';
+    if (apellido && !nombreRegex.test(apellido)) return 'El apellido debe tener entre 2 y 10 letras, máximo 12 caracteres.';
+    if (correo && !emailRegex.test(correo)) return 'Ingresa un correo válido.';
+    if (telefono && !telefonoRegex.test(telefono)) return 'El teléfono debe tener 10 dígitos y empezar con 0.';
+    if (direccion && direccion.length > 0 && direccion.length < 5) return 'La dirección debe tener al menos 5 caracteres.';
+    return null;
+};
+
 const normalizarDatosFacturacion = (datos = {}) => {
     const ruc = soloDigitos(datos.ruc);
     const telefono = soloDigitos(datos.telefono);
@@ -548,14 +564,13 @@ const registrarOrdenTienda = async (req, res) => {
     if (!nombreCliente) {
         return res.status(400).json({ msg: "El nombre del cliente es obligatorio." });
     }
-    const errorClienteTienda = validarDatosFacturacion({
+    const errorClienteTienda = validarDatosFacturacionTienda({
         nombre: cliente.nombre,
         apellido: cliente.apellido,
         correo: cliente.email,
         direccion: cliente.direccion,
         telefono: cliente.telefono,
-        ruc: cliente.ruc
-    }, { minLetras: 2 });
+    });
     if (errorClienteTienda) {
         return res.status(400).json({ msg: errorClienteTienda });
     }
@@ -680,11 +695,28 @@ const registrarOrdenTienda = async (req, res) => {
 
         res.status(201).json({ msg: "Pedido en tienda registrado correctamente.", orden: ordenPopulada, cliente: clienteOrden });
     } catch (error) {
+        console.error("❌ Error al registrar la orden en tienda:", error);
+        console.error("Stack:", error.stack);
+
         if (error.message.includes('Stock insuficiente') || error.message.includes('inválida') || error.message.includes('ya no existe')) {
             return res.status(400).json({ msg: error.message });
         }
-        console.error("Error al registrar la orden en tienda:", error);
-        res.status(500).json({ msg: "Error en el servidor al registrar el pedido en tienda." });
+
+        // Errores de validación de Mongoose (schema Cliente u Orden)
+        if (error.name === 'ValidationError') {
+            const detalles = Object.values(error.errors).map(e => e.message).join(' | ');
+            return res.status(400).json({ msg: `Error de validación: ${detalles}` });
+        }
+
+        // Error de documento duplicado (email único en Cliente)
+        if (error.code === 11000) {
+            return res.status(400).json({ msg: 'Ya existe un cliente con ese correo electrónico.' });
+        }
+
+        res.status(500).json({
+            msg: "Error en el servidor al registrar el pedido en tienda.",
+            error: error.message // temporal para depurar, quitar en producción final
+        });
     }
 };
 

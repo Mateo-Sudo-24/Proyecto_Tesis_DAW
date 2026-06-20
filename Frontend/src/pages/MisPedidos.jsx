@@ -313,6 +313,32 @@ const OrdenCard = ({ orden: ordenInicial, index, isVendedor, token, fetchOrdenes
     const [motivoCancelacion, setMotivoCancelacion] = useState('');
     const [detalleCancelacion, setDetalleCancelacion] = useState('');
     const [enviandoCancelacion, setEnviandoCancelacion] = useState(false);
+    const [cancelandoVendedor, setCancelandoVendedor] = useState(false);
+
+    const confirmarCancelacionVendedor = async () => {
+      setCancelandoVendedor(true);
+      try {
+        const res = await fetch(`${import.meta.env.VITE_BACKEND_URL}/ordenes/${orden._id}/cancelar-vendedor`, {
+          method: 'PATCH',
+          headers: {
+            'Content-Type': 'application/json',
+            Authorization: `Bearer ${token}`
+          }
+        });
+        const data = await res.json();
+        if (res.ok) {
+          toast.success('Pedido cancelado y stock revertido correctamente.');
+          setOrden(prev => ({ ...prev, ...data.orden }));
+          if (fetchOrdenes) fetchOrdenes();
+        } else {
+          toast.error(data.msg || 'Error al cancelar el pedido');
+        }
+      } catch {
+        toast.error('Error al cancelar el pedido');
+      } finally {
+        setCancelandoVendedor(false);
+      }
+    };
 
     const enviarSolicitudCancelacion = async () => {
       if (!motivoCancelacion) {
@@ -428,6 +454,11 @@ const OrdenCard = ({ orden: ordenInicial, index, isVendedor, token, fetchOrdenes
                     <span className={`mp-badge ${pagoClass}`}>
                         💳 Pago {orden.estadoPago === 'completado' ? 'realizado' : (orden.estadoPago ?? 'pendiente')}
                     </span>
+                    {orden.solicitudCancelacion?.solicitada && !orden.solicitudCancelacion?.resuelta && (
+                        <span className="mp-badge" style={{ background:'#fef3c7', color:'#92400e' }}>
+                            ⚠️ Cancelación solicitada
+                        </span>
+                    )}
                 </div>
             </div>
 
@@ -514,6 +545,24 @@ const OrdenCard = ({ orden: ordenInicial, index, isVendedor, token, fetchOrdenes
                     <button className="mp-pay-btn" type="button" onClick={() => setConfirmPago(true)}>
                         Marcar pago realizado
                     </button>
+                )}
+                {isVendedor && orden.solicitudCancelacion?.solicitada && !orden.solicitudCancelacion?.resuelta && orden.estadoOrden !== 'cancelado' && (
+                  <button
+                    onClick={confirmarCancelacionVendedor}
+                    disabled={cancelandoVendedor}
+                    style={{
+                      padding: '0.45rem 0.9rem',
+                      borderRadius: '0.5rem',
+                      border: 'none',
+                      background: cancelandoVendedor ? '#fca5a5' : '#dc2626',
+                      color: '#fff',
+                      fontSize: '0.8rem',
+                      fontWeight: 800,
+                      cursor: cancelandoVendedor ? 'not-allowed' : 'pointer'
+                    }}
+                  >
+                    {cancelandoVendedor ? 'Cancelando…' : '✕ Confirmar cancelación del cliente'}
+                  </button>
                 )}
                 {(['pendiente', 'procesando'].includes(orden.estadoOrden) && !orden.solicitudCancelacion?.solicitada) && (
                   <button
