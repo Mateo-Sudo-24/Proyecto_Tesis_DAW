@@ -234,6 +234,12 @@ const registrarProducto = async (req, res) => {
 
         await nuevoProducto.save();
 
+        // Si el producto nace con stock crítico (incluyendo 0), notificar al admin
+        const esCriticoAlCrear = nuevoProducto.stock < STOCK_CRITICO_ROLLOS;
+        if (esCriticoAlCrear) {
+            crearNotificacionStockCritico(nuevoProducto).catch(() => {});
+        }
+
         res.status(201).json({ msg: "Producto registrado exitosamente", producto: nuevoProducto });
     } catch (error) {
         console.error("Error al registrar producto:", error);
@@ -325,9 +331,14 @@ const actualizarProducto = async (req, res) => {
         }
 
         const ahora_es_critico = stockNuevo < STOCK_CRITICO_ROLLOS;
-        
-        if (stockNuevo < stockAnteriorRollos && ahora_es_critico) {
-            await crearNotificacionStockCritico(producto);
+        const eraCriticoAntes = stockAnteriorRollos < STOCK_CRITICO_ROLLOS;
+
+        // Notificar si:
+        // 1) el stock bajó y quedó crítico, O
+        // 2) el stock sigue crítico pero nunca bajó de 4 a este nivel en esta edición
+        //    (ej: ya estaba crítico y se vuelve a guardar igual o el vendedor lo deja en 0)
+        if (ahora_es_critico && (stockNuevo !== stockAnteriorRollos || eraCriticoAntes)) {
+            crearNotificacionStockCritico(producto).catch(() => {});
         }
         
         res.status(200).json({ 
