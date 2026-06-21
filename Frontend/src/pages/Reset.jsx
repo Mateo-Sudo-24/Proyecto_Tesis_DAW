@@ -209,13 +209,10 @@ const Reset = () => {
             const response = await fetchDataBackend(url, { password: data.password }, 'POST');
 
             if (response?.msg) {
-                toast.success(response.msg);
                 setTimeout(() => navigate('/login'), 3000);
-            } else {
-                toast.error("Hubo un error al cambiar la contraseña");
             }
         } catch (error) {
-            toast.error("Error inesperado al cambiar la contraseña");
+            // Error already handled by useFetch
         } finally {
             setIsLoading(false);
         }
@@ -227,13 +224,10 @@ const Reset = () => {
                 const url = `${import.meta.env.VITE_BACKEND_URL}/auth/recuperar-password/${token}`;
                 const response = await fetchDataBackend(url, null, 'GET');
                 if (response?.msg) {
-                    toast.success(response.msg);
                     setTokenBack(true);
-                } else {
-                    toast.error("Token inválido o expirado");
                 }
             } catch (error) {
-                toast.error("Error al verificar el token");
+                // Error already handled by useFetch
             }
         };
         verifyToken();
