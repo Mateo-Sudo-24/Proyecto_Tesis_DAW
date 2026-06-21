@@ -444,6 +444,11 @@ const TiendaVendedor = () => {
                                     value: 'Efectivo o tarjeta débito en casa',
                                     label: 'Efectivo / Tarjeta débito',
                                     helper: 'Pago presencial en el establecimiento. Sin cargo adicional.'
+                                },
+                                {
+                                    value: 'Pago por tarjeta en linea',
+                                    label: 'Tarjeta de crédito',
+                                    helper: 'Cobro con Stripe. Se aplica comisión del 5.4% + $0.30.'
                                 }
                               ]
                             : [
