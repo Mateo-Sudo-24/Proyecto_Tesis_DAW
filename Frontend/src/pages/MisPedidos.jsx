@@ -112,12 +112,12 @@ const pageStyles = `
 
 const STEPS_DOMICILIO      = ['Pedido recibido', 'Procesando', 'Motorizado en camino a su hogar', 'Entregado'];
 const STEPS_ESTABLECIMIENTO = ['Pedido recibido', 'Procesando pedido', 'Pedido listo', 'Pedido en recepción'];
-const STEPS_VENTA_LOCAL    = ['Listo'];
+const STEPS_VENTA_LOCAL    = ['Orden lista'];
 
 // Maps display label → backend estadoOrden value
 const DOMICILIO_MAP      = { 'Pedido recibido': 'pagado', 'Procesando': 'procesando', 'Motorizado en camino a su hogar': 'listo', 'Entregado': 'entregado' };
 const ESTABLECIMIENTO_MAP = { 'Pedido recibido': 'pagado', 'Procesando pedido': 'procesando', 'Pedido listo': 'listo', 'Pedido en recepción': 'entregado' };
-const VENTA_LOCAL_MAP     = { 'Listo': 'listo' };
+const VENTA_LOCAL_MAP     = { 'Orden lista': 'listo' };
 
 const MOTIVOS_CANCELACION = [
   'No llegó el motorizado / repartidor',
@@ -131,9 +131,13 @@ const MOTIVOS_CANCELACION = [
 ];
 
 const getStepConfig = (tipoEntrega) => {
-    if (tipoEntrega === 'domicilio')       return { steps: STEPS_DOMICILIO,       map: DOMICILIO_MAP };
-    if (tipoEntrega === 'venta_local')     return { steps: STEPS_VENTA_LOCAL,     map: VENTA_LOCAL_MAP };
-    // retiro utiliza STEPS_ESTABLECIMIENTO porque comparte el flujo sin despacho a domicilio.
+    if (['domicilio', 'envio_domicilio'].includes(tipoEntrega)) {
+        return { steps: STEPS_DOMICILIO, map: DOMICILIO_MAP };
+    }
+    if (['venta_local', 'venta_tienda'].includes(tipoEntrega)) {
+        return { steps: STEPS_VENTA_LOCAL, map: VENTA_LOCAL_MAP };
+    }
+    // retiro / retiro_almacen / establecimiento comparten el flujo sin despacho a domicilio.
     return { steps: STEPS_ESTABLECIMIENTO, map: ESTABLECIMIENTO_MAP };
 };
 const ITEMS_PER_PAGE = 3;
@@ -190,7 +194,7 @@ const ProgressBar = ({ estadoOrden, estadoPago, tipoEntrega, isVendedor, ordenId
     }
 
     // venta_local: render single dot centered
-    if (tipoEntrega === 'venta_local') {
+    if (['venta_local', 'venta_tienda'].includes(tipoEntrega)) {
         const isDone = estadoOrden === 'listo' || estadoOrden === 'entregado';
         return (
             <div style={{ display:'flex', justifyContent:'center', margin:'0.875rem 0 0' }}>
@@ -198,7 +202,7 @@ const ProgressBar = ({ estadoOrden, estadoPago, tipoEntrega, isVendedor, ordenId
                     <div className={`mp-step-dot${isDone ? ' done' : ' active'}`}>
                         {isDone ? '✓' : '🏪'}
                     </div>
-                    <span className={`mp-step-label${isDone ? ' done' : ' active'}`}>Listo</span>
+                    <span className={`mp-step-label${isDone ? ' done' : ' active'}`}>Orden lista</span>
                 </div>
             </div>
         );
