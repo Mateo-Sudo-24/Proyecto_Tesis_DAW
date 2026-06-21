@@ -192,6 +192,7 @@ export const FormProducto = ({ productoToUpdate, onSuccess, onCancel }) => {
     }, [productoToUpdate, reset]);
 
     const onSubmit = async (data) => {
+        if (isSubmitting) return;
         setIsSubmitting(true);
         if (!selectedCategoria) {
             toast.error('Debes seleccionar una categoría');
@@ -353,18 +354,19 @@ export const FormProducto = ({ productoToUpdate, onSuccess, onCancel }) => {
                         <input
                             type="number"
                             placeholder="Ej: 10"
-                            min="1"
+                            min="0"
                             step="1"
                             className="fp-input"
                             {...register('rollosIngresados', {
                                 required: 'Ingresa la cantidad de rollos',
-                                min: 1,
+                                min: 0,
                                 onChange: (e) => {
-                                    const n = Math.max(1, parseInt(e.target.value, 10) || 1);
+                                    const n = Math.max(0, parseInt(e.target.value, 10) || 0);
                                     const metrosPorRollo = Number(watch('metrosPorRollo') || 100);
 
                                     setValue('stock', Math.max(0, n - 1));
-                                    setValue('metrosDisponibles', metrosPorRollo);
+                                    // Si n es 0, forzar metros a 0 también (coincide con backend)
+                                    setValue('metrosDisponibles', n === 0 ? 0 : metrosPorRollo);
                                 }
                             })}
                         />
@@ -376,7 +378,7 @@ export const FormProducto = ({ productoToUpdate, onSuccess, onCancel }) => {
                                 marginTop:'0.25rem'
                             }}
                         >
-                            1 rollo reservado para venta de metros.
+                            1 rollo se reserva para venta de metros. Pon 0 para marcar el producto como agotado por completo.
                         </p>
                     </div>
                     <div className="fp-field" style={{ marginBottom: 0 }}>
