@@ -17,14 +17,64 @@ const styles = `
     .tv-primary { background:#e8760a; color:#fff; box-shadow:0 3px 10px rgba(232,118,10,0.24); }
     .tv-secondary, .tv-link { background:#f3f4f6; color:#374151; border:1px solid #e5e7eb; }
     .tv-primary:disabled { opacity:0.55; cursor:not-allowed; }
-    .tv-mode-box { background:#fff; border:1px solid #e5e7eb; border-radius:0.875rem; padding:0.9rem; margin-bottom:1rem; box-shadow:0 2px 10px rgba(0,0,0,0.05); }
-    .tv-mode-title { margin:0 0 0.65rem; font-size:0.82rem; font-weight:900; color:#374151; text-transform:uppercase; letter-spacing:0.04em; }
-    .tv-mode-options { display:grid; grid-template-columns:1fr 1fr; gap:0.6rem; }
-    .tv-mode-btn { border:1.5px solid #e5e7eb; background:#f9fafb; color:#4b5563; border-radius:0.7rem; padding:0.75rem; text-align:left; cursor:pointer; font-weight:800; width: 100%; }
-    .tv-mode-btn:disabled { opacity:0.48; cursor:not-allowed; }
-    .tv-mode-btn span { display:block; font-size:0.72rem; color:#6b7280; font-weight:600; margin-top:0.2rem; line-height:1.35; }
-    .tv-mode-btn.active { background:#e8760a; border-color:#e8760a; color:#fff; box-shadow:0 3px 12px rgba(232,118,10,0.25); }
-    .tv-mode-btn.active span { color:#fff7ed; }
+    .tv-mode-box {
+        background:#fff;
+        border:1px solid #e5e7eb;
+        border-radius:0.875rem;
+        padding:0.9rem;
+        margin-bottom:1rem;
+        box-shadow:0 2px 10px rgba(0,0,0,0.05);
+    }
+    .tv-mode-title {
+        margin:0 0 0.65rem;
+        font-size:0.82rem;
+        font-weight:900;
+        color:#374151;
+        text-transform:uppercase;
+        letter-spacing:0.04em;
+    }
+    .tv-mode-options {
+        display:grid;
+        grid-template-columns: repeat(2, minmax(0, 1fr)); /* fuerza siempre 2 columnas iguales */
+        gap:0.6rem;
+        width: 100%;
+    }
+    .tv-mode-btn {
+        display: flex;
+        flex-direction: column;
+        align-items: flex-start;
+        width: 100%;
+        border:1.5px solid #e5e7eb;
+        background:#f9fafb;
+        color:#4b5563;
+        border-radius:0.7rem;
+        padding:0.75rem;
+        text-align:left;
+        cursor:pointer;
+        font-weight:800;
+        box-sizing: border-box;
+    }
+    .tv-mode-btn:disabled {
+        opacity:0.48;
+        cursor:not-allowed;
+    }
+    .tv-mode-btn span {
+        display:block;
+        font-size:0.72rem;
+        color:#6b7280;
+        font-weight:600;
+        margin-top:0.2rem;
+        line-height:1.35;
+    }
+    .tv-mode-btn.active {
+        background:#e8760a;
+        border-color:#e8760a;
+        color:#fff;
+        box-shadow:0 3px 12px rgba(232,118,10,0.25);
+    }
+    .tv-mode-btn.active span {
+        color:#fff7ed;
+    }
     .tv-layout { display:grid; grid-template-columns:minmax(0,1fr) 340px; gap:1.25rem; align-items:start; }
     .tv-grid { display:grid; grid-template-columns:repeat(1,minmax(0,1fr)); gap:1.25rem; }
     @media (min-width:700px) { .tv-grid { grid-template-columns:repeat(2,minmax(0,1fr)); } }
@@ -46,7 +96,17 @@ const styles = `
         .tv-header { align-items:stretch; }
         .tv-actions { width:100%; }
         .tv-link, .tv-primary, .tv-secondary { width:100%; justify-content:center; }
-        .tv-mode-options { grid-template-columns:1fr; }
+        .tv-mode-options {
+            grid-template-columns: repeat(2, minmax(0, 1fr)); /* mantener 2 columnas incluso en móvil */
+            gap: 0.45rem;
+        }
+        .tv-mode-btn {
+            padding: 0.6rem;
+            font-size: 0.82rem;
+        }
+        .tv-mode-btn span {
+            font-size: 0.66rem;
+        }
         .tv-cart { position:static; }
     }
     .tv-card, .tv-cart { background:#fff; border:1px solid #e5e7eb; border-radius:0.875rem; box-shadow:0 2px 10px rgba(0,0,0,0.06); }
@@ -233,7 +293,7 @@ const TiendaVendedor = () => {
                             disabled={modoBloqueado && modoVenta !== 'tienda'}
                             onClick={() => setModoVenta('tienda')}
                         >
-                            🏪 Venta en tienda
+                            Venta en tienda
                             <span>Registra venta local con consumidor final y pago realizado.</span>
                         </button>
                         <button
@@ -242,7 +302,7 @@ const TiendaVendedor = () => {
                             disabled={modoBloqueado && modoVenta !== 'domicilio'}
                             onClick={() => setModoVenta('domicilio')}
                         >
-                            🛵 Envío a domicilio
+                            Envío a domicilio
                             <span>Gestiona el carrito y la orden de pago en esta misma tienda.</span>
                         </button>
                     </div>
