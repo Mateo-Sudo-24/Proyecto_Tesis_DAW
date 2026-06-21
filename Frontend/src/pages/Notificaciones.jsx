@@ -441,6 +441,7 @@ const Notificaciones = () => {
   };
 
   const pasarAPendiente = async (id) => {
+    if (gestionando === id) return;
     setGestionando(id);
     try {
       const res = await fetch(`${backendUrl}/notificaciones/${id}/pendiente`, {
@@ -457,6 +458,7 @@ const Notificaciones = () => {
   };
 
   const gestionarPedido = async (id, decision) => {
+    if (gestionando === id) return;
     setGestionando(id);
     const estadoFinal = decision === 'aprobar' ? 'completado' : 'rechazado';
     try {

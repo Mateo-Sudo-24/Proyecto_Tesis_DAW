@@ -54,9 +54,22 @@ const ordenSchema = new Schema({
     metodoPago: {
         type: String,
         required: true,
-        enum: ['Pago por tarjeta en linea', 'De Una', 'Pago efectivo / tarjeta debito',
-               'Pago por tarjeta en línea', 'Pago por tarjeta en línea', 'Pago contra entrega', 'Pago efectivo / tarjeta débito',
-               'Tarjeta de Crédito', 'Transferencia Bancaria', 'PayPal', 'Contra Entrega', 'Efectivo', 'Stripe']
+        enum: [
+            'Pago por tarjeta en linea',
+            'Pago por tarjeta en línea',
+            'De Una',
+            'Pago contra entrega',
+            'Contra Entrega',
+            'Tarjeta de Crédito',
+            'Transferencia Bancaria',
+            'PayPal',
+            'Efectivo',
+            'Stripe',
+            'Pago efectivo / tarjeta debito',
+            'Pago efectivo / tarjeta débito',
+            'Efectivo o tarjeta debito en casa',
+            'Efectivo o tarjeta débito en casa'
+        ]
     },
     metodoPagoInterno: { type: String }, // 'stripe' | 'de_una' | 'contra_entrega' | 'efectivo'
     pagoStripeId: { type: String },
@@ -78,7 +91,15 @@ const ordenSchema = new Schema({
     },
     tipoEntrega: {
         type: String,
-        enum: ['domicilio', 'retiro', 'venta_local'],
+        enum: [
+            'domicilio',
+            'retiro',
+            'venta_local',
+            'envio_domicilio',
+            'retiro_almacen',
+            'venta_tienda',
+            'establecimiento'
+        ],
         default: 'domicilio'
     },
     origenPedido: {
@@ -109,9 +130,5 @@ const ordenSchema = new Schema({
     }
 }, { timestamps: true });
 
-ordenSchema.path('metodoPago').enum(
-    'Efectivo o tarjeta dÃ©bito en casa',
-    'Efectivo o tarjeta debito en casa'
-);
 
 export default model("Orden", ordenSchema);

@@ -43,11 +43,18 @@ const normalizarProductoTextil = (body, productoActual = {}) => {
             : toNumber(productoActual.stock, 0) + 1;
 
     const rollosStock = Math.max(0, rollosIngresados - 1);
-    const metrosDisponibles = body.metrosDisponibles !== undefined
-        ? toNumber(body.metrosDisponibles, productoActual.metrosDisponibles ?? metrosPorRollo)
-        : productoActual.metrosDisponibles !== undefined
-            ? toNumber(productoActual.metrosDisponibles, metrosPorRollo)
-            : metrosPorRollo;
+
+    // Si no quedan rollos ingresados (0), forzar metros disponibles a 0 también.
+    // El producto está completamente agotado.
+    const productoAgotado = rollosIngresados <= 0;
+
+    const metrosDisponibles = productoAgotado
+        ? 0
+        : body.metrosDisponibles !== undefined
+            ? toNumber(body.metrosDisponibles, productoActual.metrosDisponibles ?? metrosPorRollo)
+            : productoActual.metrosDisponibles !== undefined
+                ? toNumber(productoActual.metrosDisponibles, metrosPorRollo)
+                : metrosPorRollo;
 
     const unidadVenta = ['metro', 'rollo', 'ambos'].includes(body.unidadVenta)
         ? body.unidadVenta
@@ -81,14 +88,19 @@ const crearNotificacionStockCritico = async (producto) => {
         }
 
         for (const admin of admins) {
+            const mensaje = producto.stock === 0
+                ? `🚫 PRODUCTO AGOTADO: "${producto.nombre}" tiene 0 rollos y 0 metros disponibles. Reposición urgente requerida.`
+                : `El producto "${producto.nombre}" tiene stock crítico (${producto.stock} rollos disponibles)`;
+
             await Notificacion.create({
                 administrador: admin._id,
                 tipo: 'stock_critico',
-                mensaje: `El producto "${producto.nombre}" tiene stock critico (${producto.stock} rollos disponibles)`,
+                mensaje,
                 productos: [{ productId: producto._id, nombre: producto.nombre, stock: producto.stock, umbral: STOCK_CRITICO_ROLLOS }],
                 leida: false,
                 datos: {
-                    destinoChat: 'admin'
+                    destinoChat: 'admin',
+                    agotadoTotal: producto.stock === 0
                 }
             });
         }
